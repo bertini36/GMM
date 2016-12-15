@@ -1,0 +1,253 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Section*
+Variational Inference
+\end_layout
+
+\begin_layout Standard
+Variational inference optimizes 
+\begin_inset Formula $q(\theta|\Theta)$
+\end_inset
+
+ so that,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+argmin_{q(\theta|\Theta)}\;KL(q(\theta|\Theta),\,p(\theta|X;\Omega)\,\equiv & argmax_{q(\theta|\Theta)}\;ELBO(p(X,\theta;\Omega),\,q(\theta|\Theta))
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+where the Evidence Lower BOund is defined as;
+\end_layout
+
+\begin_layout Section*
+\begin_inset Formula 
+\begin{align*}
+ELBO(p(X,\theta;\Omega),\,q(\theta|\Theta))= & \int q(\theta|\Theta)\log p(X,\theta;\Omega)d\theta-\int q(\theta|\Theta)\log q(\theta|\Theta)d\theta\\
+= & \mathbb{E}_{q(\theta|\Theta)}[\log p(X,\theta;\Omega)]+\mathbb{H}[q(\theta|\Theta)]
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and where:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\theta= & \{\pi,z,\mu,\Delta\}\\
+\Omega= & \{\alpha,m_{o},W_{o}\}\\
+X= & \{X\}\\
+\Theta= & \{\lambda_{\pi},\lambda_{\mu},\lambda_{\Delta},\phi\}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Coordinate Ascent
+\end_layout
+
+\begin_layout Standard
+In coordinate ascent, we will find the local maximum of the ELBO by solving
+ the exact maximization along each coordinate at each iteration.
+ Therefore, we need to find the updates for each coordinate:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(\pi|\lambda_{\pi})}= & 0\\
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}= & 0\\
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(\Delta_{k}|\lambda_{\Delta_{k}})}= & 0\\
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(z_{n}|\phi_{n})}= & 0
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Part*
+Coordinate Ascent Variational Inference
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+ELBO[p(X,\theta;\Omega),q(\theta|\Theta)]= & \mathbb{E}_{q(\theta|\Theta)}[\log p(\pi|\alpha)+\sum_{k=1}^{K}\log p(\mu_{k}|\,m_{o},\,(\beta_{o}\Delta_{k})^{-1})+\log p(\Delta_{k}|\nu_{o},\,W_{o})+\sum_{n=1}^{N}\log p(z_{n}|\pi)+\log p(x_{n}|\mu_{z_{n}},\,\Delta_{z_{n}}^{-1})]\\
+ & -\mathbb{E}_{q(\theta|\Theta)}[\log q(\pi|\lambda_{\pi})+\sum_{n=1}^{N}\log q(z_{n}|\phi_{n})+\sum_{k=1}^{K}\log q(\mu_{k}|\lambda_{\mu_{k}})+\log q(\Delta_{k}|\lambda_{\Delta_{k}})]
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Mixture Proportions
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(\pi|\lambda_{\pi})}= & 0\\
+\frac{\delta}{\delta q(\pi|\lambda_{\pi})}\mathbb{E}_{q(\theta|\Theta)}[\log p(\pi|\alpha)+\sum_{n=1}^{N}\log p(z_{n}|\pi)]= & \frac{\delta}{\delta q(\pi|\lambda_{\pi})}\mathbb{E}_{q(\pi|\lambda_{\pi})}[\log q(\pi|\lambda_{\pi})]\\
+\frac{\delta}{\delta q(\pi|\lambda_{\pi})}\mathbb{E}_{q(\pi|\lambda_{\pi})}[\log p(\pi|\alpha)+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}[\log p(z_{n}|\pi)]]= & \frac{\delta}{\delta q(\pi|\lambda_{\pi})}\mathbb{E}_{q(\pi|\lambda_{\pi})}[\log q(\pi|\lambda_{\pi})]\\
+\frac{\delta}{\delta q(\pi|\lambda_{\pi})}-\log B(\alpha)+\mathbb{E}_{q(\pi|\lambda_{\pi})}[\sum_{k=1}^{K}(\alpha_{k}-1)\log\pi_{k}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}[\mathbb{I}(z_{n}=k)]\,\log\pi_{k}]= & \frac{\delta}{\delta q(\pi|\lambda_{\pi})}\mathbb{E}_{q(\pi|\lambda_{\pi})}[\log q(\pi|\lambda_{\pi})]\\
+q(\pi|\lambda_{\pi})= & Dir(\alpha_{k}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}[\mathbb{I}(z_{n}=k)])
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Mixture Assignments
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(z_{n}|\phi_{n})}= & 0\\
+\frac{\delta}{\delta q(z_{n}|\phi_{n})}\mathbb{E}_{q(z_{n}|\phi_{n})}[\mathbb{E}_{q(\pi|\lambda_{\pi})}\log p(z_{n}|\pi)+\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})q(\Delta_{k}|\lambda_{\Delta_{k}})}\log p(x_{n}|\mu_{z_{n}},\,\Delta_{z_{n}}^{-1})]= & \frac{\delta}{\delta q(z_{n}|\phi_{n})}\mathbb{E}_{q(z_{n}|\phi_{n})}[\log q(z_{n}|\phi_{n})]\\
+\frac{\delta}{\delta q(z_{n}|\phi_{n})}\mathbb{E}_{q(z_{n}|\phi_{n})}[\sum_{k=1}^{K}\mathbb{I}(z_{n}=k)[\mathbb{E}_{q(\pi|\lambda_{\pi})}\log p(\pi_{k})+\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})q(\Delta_{k}|\lambda_{\Delta_{k}})}\log p(x_{n}|\mu_{k},\,\Delta_{k}^{-1})]]= & \frac{\delta}{\delta q(z_{n}|\phi_{n})}\mathbb{E}_{q(z_{n}|\phi_{n})}[\log q(z_{n}|\phi_{n})]\\
+q(z_{n}|\phi_{n})= & Cat(\mathbb{E}_{q(\pi|\lambda_{\pi})}\log p(\pi_{k})+\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})q(\Delta_{k}|\lambda_{\Delta_{k}})}\log p(x_{n}|\mu_{k},\,\Delta_{k}^{-1}))
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Mixture Means
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}= & 0\\
+\frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\theta|\Theta)}[\log p(\mu_{k}|\,m_{o},\,(\beta_{o}\Delta_{k})^{-1})+\sum_{n=1}^{N}\log p(x_{n}|\mu_{z_{n}},\,\Delta_{z_{n}}^{-1})]= & \frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\theta|\Theta)}[\log q(\mu_{k}|\lambda_{\mu_{k}})]\\
+\frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}[\log p(\mu_{k}|\,m_{o},\,(\beta_{o}\Delta_{k})^{-1})+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}[\mathbb{I}(z_{n}=k)]\log p(x_{n}|\mu_{k},\,\Delta_{k}^{-1})]= & \frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[\log q(\mu_{k}|\lambda_{\mu_{k}})]\\
+\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}[\log p(\mu_{k}|\,m_{o},\,(\beta_{o}\Delta_{k})^{-1})= & \mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}[\frac{1}{2}log|\beta_{o}\Delta_{k}|-\frac{1}{2}\log2\pi-\frac{1}{2}(\mu_{k}-m_{0})^{T}\beta_{o}\Delta_{k}(\mu_{k}-m_{0})]\\
+\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})q(z_{n}|\phi_{n})}[\mathbb{I}(z_{n}=k)]\log p(x_{n}|\mu_{k},\,\Delta_{k}^{-1})]= & \mathbb{E}_{q(z_{n}|\phi_{n})}[\mathbb{I}(z_{n}=k)]\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}[\frac{1}{2}log|\Delta_{k}|-\frac{1}{2}\log2\pi-\frac{1}{2}(x_{n}-\mu_{k})^{T}\Delta_{k}(x_{n}-\mu_{k})]\\
+\frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}[-\frac{1}{2}(\mu_{k}-m_{0})^{T}\beta_{o}\Delta_{k}(\mu_{k}-m_{0})-\frac{1}{2}\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k)(x_{n}-\mu_{k})^{T}\Delta_{k}(x_{n}-\mu_{k})]]= & \frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[\log q(\mu_{k}|\lambda_{\mu_{k}})]\\
+\frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}[-\frac{1}{2}\mu_{k}^{T}\beta_{o}\Delta_{k}\mu_{k}+m_{o}\beta_{o}\Delta_{k}\mu_{k}-\frac{1}{2}\mu_{k}^{T}\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k)\Delta_{k}\mu_{k}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k)x_{n}\Delta_{k}\mu_{k}]]= & \frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[\log q(\mu_{k}|\lambda_{\mu_{k}})]\\
+\frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[-\frac{1}{2}\mu_{k}^{T}(\beta_{o}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k))\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}\Delta_{k}\mu_{k}+(m_{o}\beta_{o}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k)x_{n})\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}\Delta_{k}\mu_{k}]]= & \frac{\delta}{\delta q(\mu_{k}|\lambda_{\mu_{k}})}\mathbb{E}_{q(\mu_{k}|\lambda_{\mu_{k}})}[\log q(\mu_{k}|\lambda_{\mu_{k}})]\\
+q(\mu_{k}|\lambda_{\mu_{k}})= & N(\frac{m_{o}\beta_{o}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k)x_{n}}{\beta_{o}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k)},(\beta_{o}+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}\mathbb{I}(z_{n}=k))\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}\Delta_{k})^{-1})
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Mixture Precisions
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{\delta ELBO(p(X,\theta;\Omega),q(\theta|\Theta))}{\delta q(\Delta_{k}|\lambda_{\Delta_{k}})}= & 0\\
+\frac{\delta}{\delta q(\Delta_{k}|\lambda_{\Delta_{k}})}\mathbb{E}_{q(\theta|\Theta)}[\log p(\mu_{k}|\,m_{o},\,(\beta_{o}\Delta_{k})^{-1})+\sum_{n=1}^{N}\log p(x_{n}|\mu_{z_{n}},\,\Delta_{z_{n}}^{-1})-\log q(\Delta_{k}|\lambda_{\Delta_{k}})]= & 0\\
+\frac{\delta}{\delta q(\Delta_{k}|\lambda_{\Delta_{k}})}\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}[\log p(\mu_{k}|\,m_{o},\,(\beta_{o}\Delta_{k})^{-1})+\log p(\Delta_{k}|\nu_{o},\,W_{o})+\sum_{n=1}^{N}\mathbb{E}_{q(z_{n}|\phi_{n})}[\mathbb{I}(z_{n}=k)]\log p(x_{n}|\mu_{k},\,\Delta_{k}^{-1})]= & \frac{\delta}{\delta q(\Delta_{k}|\lambda_{\Delta_{k}})}\mathbb{E}_{q(\Delta_{k}|\lambda_{\Delta_{k}})}\log q(\Delta_{k}|\lambda_{\Delta_{k}})\\
+\log p(\mu_{k}|\,m_{o},\,(\beta_{o}\Delta_{k})^{-1})= & \frac{1}{2}log|\beta_{o}\Delta_{k}|-\frac{1}{2}\log2\pi-\frac{1}{2}(\mu_{k}-m_{0})^{T}\beta_{o}\Delta_{k}(\mu_{k}-m_{0})\\
+\log p(\Delta_{k}|\nu_{o},\,W_{o})=\\
+\log p(x_{n}|\mu_{k},\,\Delta_{k}^{-1})= & \frac{1}{2}log|\Delta_{k}|-\frac{1}{2}\log2\pi-\frac{1}{2}(x_{n}-\mu_{k})^{T}\Delta_{k}(x_{n}-\mu_{k})
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

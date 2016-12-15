@@ -1,0 +1,18 @@
+#!/bin/bash
+export PROJECT=GMM
+export PROJECT_HOME=${HOME}/prj/${PROJECT}
+export WORKON_HOME=${HOME}/.virtualenvs
+export VIRTUALENV_WRAPPER=/usr/share/virtualenvwrapper/virtualenvwrapper.sh
+if [ ${VIRTUAL_ENV} ]; then
+    #source $VIRTUAL_ENV/bin/activate || true
+    echo Deactivating current virtual environment
+    deactivate || true; 
+else
+    source $VIRTUALENV_WRAPPER;
+fi
+echo Activating ${PROJECT} virtual environment
+export PIP_VIRTUALENV_BASE=${WORKON_HOME}
+workon ${PROJECT}
+export PYTHONUNBUFFERED=1
+#echo "Env:",$VIRTUAL_ENV
+export PYTHONPATH=${PROJECT_HOME}/
