@@ -2,3 +2,4 @@ numpy==1.11.2
 matplotlib==1.5.3
 scipy==0.18.1
 autograd==1.1.7
+tensorflow==0.12.0rc1
