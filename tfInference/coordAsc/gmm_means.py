@@ -22,7 +22,7 @@ parser.add_argument('-filename', metavar='filename', type=str, default='data_k2_
 parser.add_argument('-alpha', metavar='alpha', nargs='+', type=float, default=[1.]*2)
 parser.add_argument('-m_o', metavar='m_o', nargs='+', type=float, default=[0., 0.])
 parser.add_argument('-beta_o', metavar='beta_o', nargs='+', type=float, default=0.01)
-parser.add_argument('-Delta_o', metavar='Delta_o', nargs='+', type=float, default=[1., 0., 0., 1.])
+parser.add_argument('-Delta_o', metavar='Delta_o', nargs='+', type=float, default=[1., 1., 1., 1.])
 args = parser.parse_args()
 
 # Get data
@@ -39,7 +39,7 @@ K = args.K
 alpha_aux = args.alpha
 m_o_aux = np.array(args.m_o)
 beta_o_aux = args.beta_o
-Delta_o_aux = np.array([args.Delta_o[0:D],args.Delta_o[D:2*D]])
+Delta_o_aux = np.array([args.Delta_o[0:D], args.Delta_o[D:2*D]])
 
 printf('Gaussian Mixture Model')
 printf('N: {}, D: {}'.format(N, D))
@@ -56,12 +56,21 @@ lambda_pi_aux = alpha_aux + np.sum(phi_aux, axis=0)
 lambda_mu_beta_aux = beta_o_aux + np.sum(phi_aux, axis=0)
 lambda_mu_m_aux = np.tile(1./lambda_mu_beta_aux, (2, 1)).T * \
 				  (beta_o_aux * m_o_aux + np.dot(phi_aux.T, data['xn']))
-phi = tf.Variable(phi_aux, dtype=tf.float32)
-lambda_pi = tf.Variable(lambda_pi_aux, dtype=tf.float32)
-lambda_pi_res = tf.reshape(lambda_pi, [K, 1])
-lambda_mu_beta = tf.Variable(lambda_mu_beta_aux, dtype=tf.float32)
+
+# Optimization variables
+phi_o = tf.Variable(phi_aux, dtype=tf.float32)
+lambda_pi_o = tf.Variable(lambda_pi_aux, dtype=tf.float32)
+lambda_mu_beta_o = tf.Variable(lambda_mu_beta_aux, dtype=tf.float32)
+lambda_mu_m_o = tf.Variable(lambda_mu_m_aux, dtype=tf.float32)
+
+# Restrictions
+phi = tf.add(tf.nn.softplus(phi_o), 10)
+lambda_pi = tf.add(tf.nn.softplus(lambda_pi_o), 10)
+lambda_mu_beta = tf.add(tf.nn.softplus(lambda_mu_beta_o), 10)
+lambda_mu_m = tf.add(tf.nn.softplus(lambda_mu_m_o), 10)
+
 lambda_mu_beta_res = tf.reshape(lambda_mu_beta, [K, 1])
-lambda_mu_m = tf.Variable(lambda_mu_m_aux, dtype=tf.float32)
+lambda_pi_res = tf.reshape(lambda_pi, [K, 1])
 
 # ELBO computation graph
 ELBO = tf.sub(tf_log_beta_function(lambda_pi_res), tf_log_beta_function(alpha))
@@ -77,12 +86,18 @@ for k in xrange(K):
 				  tf.matmul(Delta_o, tf.transpose(tf.sub(lambda_mu_m[k,:], m_o))))))
 	ELBO = tf.sub(ELBO,
 				  tf.div(tf.mul(tf.cast(D, dtype=tf.float32), beta_o), tf.mul(2., lambda_mu_beta_res[k])))
+	printf('SHAPE lambda_mu_beta[k]: {}'.format(lambda_mu_beta_res[k].get_shape()))
+	printf('SHAPE Delta_o: {}'.format(Delta_o.get_shape()))
 	r = tf.mul(lambda_mu_beta_res[k], Delta_o)
-	printf('Shape r: {}'.format(r.get_shape()))
+	printf('SHAPE r: {}'.format(r.get_shape()))
+	r = tf.reshape(r, [2,2])
+	printf('SHAPE r: {}'.format(r.get_shape()))
+	r1 = tf.matrix_determinant(tf.add(tf.nn.softplus(r), 1.0))
+	r2 = tf.log(r1)
 	ELBO = tf.sub(ELBO,
-				  tf.mul(1/2., tf.log(tf.matrix_determinant(r))))
+				  tf.mul(1/2., r2))
 	for n in xrange(N):
-		printf('Iter: {}'.format((k*n)+n))
+		# printf('Iter: {}'.format((k*n)+n))
 		aux1 = tf.add(tf.sub(tf_dirichlet_expectation(lambda_pi_res)[k], tf.log(phi[n,k])), 
 					  tf.mul(1/2.,
 					  		 tf.log(tf.div(tf.matrix_determinant(Delta_o), 2.*math.pi))))
@@ -100,7 +115,8 @@ printf('He acabado de definir el grafo')
 
 # Optimizer definition
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-train = optimizer.minimize(ELBO, var_list=[lambda_pi, phi, lambda_mu_m, lambda_mu_beta])
+printf('Se ha definido el optimizer')
+train = optimizer.minimize(ELBO, var_list=[lambda_pi_o, phi_o, lambda_mu_m_o, lambda_mu_beta_o])
 
 # Main program
 init = tf.global_variables_initializer()
