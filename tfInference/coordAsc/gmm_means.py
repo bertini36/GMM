@@ -68,26 +68,37 @@ lambda_mu_beta_res = tf.reshape(lambda_mu_beta, [K, 1])
 lambda_pi_res = tf.reshape(lambda_pi, [K, 1])
 
 # ELBO computation graph
-ELBO = tf.sub(tf_log_beta_function(lambda_pi_res), tf_log_beta_function(alpha))
-ELBO = tf.add(ELBO, 
-			  tf.matmul(tf.sub(alpha, lambda_pi_res), 
-			  			tf_dirichlet_expectation(lambda_pi_res)))
-ELBO = tf.add(ELBO,  
-			  tf.mul(K/2., tf.log(tf.matrix_determinant(tf.mul(beta_o, Delta_o)))))
-ELBO = tf.add(ELBO, K*(D/2.))
+q1 = tf_log_beta_function(lambda_pi_res)																			# [2, 1] 
+q2 = tf_log_beta_function(alpha)																					# [1, 2]
+q3 = tf.matmul(tf.sub(alpha, lambda_pi_res), tf_dirichlet_expectation(lambda_pi_res))								# [2, 1]
+q4 = tf.mul(K/2., tf.log(tf.matrix_determinant(tf.mul(beta_o, Delta_o))))											# Scalar
+
+printf('Shape q1: {}'.format(q1.get_shape()))
+printf('Shape q2: {}'.format(q2.get_shape()))
+printf('Shape q3: {}'.format(q3.get_shape()))
+printf('Shape q4: {}'.format(q4.get_shape()))
+
+ELBO = tf.sub(q1, tf.add(q2, tf.add(q3, tf.add(q4, K*(D/2.)))))														# [2, 2]
+
+printf('Shape ELBO: {}'.format(ELBO.get_shape()))
 
 for k in xrange(K):
-	ELBO = tf.sub(ELBO,
-				  tf.mul(tf.div(beta_o, 2.), tf.matmul(tf.sub(lambda_mu_m[k,:], m_o), 
-				  		 tf.matmul(Delta_o, tf.transpose(tf.sub(lambda_mu_m[k,:], m_o))))))
-	ELBO = tf.sub(ELBO,
-				  tf.div(tf.mul(tf.cast(D, dtype=tf.float32), beta_o), tf.mul(2., lambda_mu_beta_res[k])))
-	ELBO = tf.sub(ELBO,
-				  tf.mul(1/2., tf.log(tf.mul(tf.pow(lambda_mu_beta_res[k], 2), tf.matrix_determinant(Delta_o)))))
+	s1 = tf.mul(tf.div(beta_o, 2.), tf.matmul(tf.sub(lambda_mu_m[k,:], m_o), 										# [1, 1]
+				  		 					  tf.matmul(Delta_o, tf.transpose(tf.sub(lambda_mu_m[k,:], m_o)))))
+	s2 = tf.div(tf.mul(float(D), beta_o), tf.mul(2., lambda_mu_beta_res[k]))										# [1, ]
+	s3 = tf.mul(1/2., tf.log(tf.mul(tf.pow(lambda_mu_beta_res[k], 2), tf.matrix_determinant(Delta_o))))				# [1, ]
+
+	printf('Shape s1: {}'.format(s1.get_shape()))
+	printf('Shape s2: {}'.format(s2.get_shape()))
+	printf('Shape s3: {}'.format(s3.get_shape()))
+
+	ELBO = tf.sub(ELBO, tf.add(s1, tf.add(s2, s3)))
+
+	printf('Shape ELBO: {}'.format(ELBO.get_shape()))
 
 	"""
 	NEW: 
-	
+
 	ELBO += np.dot(phi[:,k].T,																				# r3																					
 				- np.log(phi[:,k]) 																			# r4						
 				+ 1/2.*np.log(np.linalg.det(Delta_o)/(2.*math.pi))											# r5	
@@ -97,21 +108,20 @@ for k in xrange(K):
 
 	r1 = tf.reshape(tf.transpose(phi[:,k]), [N,1])																	# [N, 1]
 	r2 = tf.reshape(tf.sub(0., tf.log(phi[:,k])), [N,1])															# [N, 1]
-	r3 = tf.mul(1/2., tf.log(tf.div(tf.matrix_determinant(Delta_o), tf.mul(2., math.pi))))							# Scalar
+	r3 = tf.mul(1/2., tf.log(tf.div(tf.matrix_determinant(Delta_o), 2.*math.pi)))									# Scalar
 	r4 = tf.mul(1/2., tf.matrix_diag(tf.matmul(tf.sub(xn, lambda_mu_m[k,:]),										# [N, N, N]	<-- ?
 											   tf.matmul(Delta_o, tf.transpose(tf.sub(xn, lambda_mu_m[k,:]))))))
 	r5 = tf.div(float(D), tf.mul(2., lambda_mu_beta[k]))															# Scalar
-	
-	r6 = tf.add(r2, tf.sub(r3, tf.sub(r4, r5)))																		# [N, N, N] <-- ?
 
 	printf('Shape r1: {}'.format(r1.get_shape()))
 	printf('Shape r2: {}'.format(r2.get_shape()))
 	printf('Shape r3: {}'.format(r3.get_shape()))
 	printf('Shape r4: {}'.format(r4.get_shape()))
 	printf('Shape r5: {}'.format(r5.get_shape()))
-	printf('Shape r6: {}'.format(r6.get_shape()))
 
-	ELBO = tf.add(ELBO, tf.matmul(r1, r6))
+	ELBO = tf.add(ELBO, tf.matmul(r1, tf.add(r2, tf.sub(r3, tf.sub(r4, r5)))))
+
+	printf('Shape ELBO: {}'.format(ELBO.get_shape()))
 
 # Optimizer definition
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
