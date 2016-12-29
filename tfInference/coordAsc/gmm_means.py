@@ -106,11 +106,11 @@ for k in xrange(K):
 				- D/(2.*lambda_mu_beta[k]))																	# r7
 	"""
 
-	r1 = tf.reshape(tf.transpose(phi[:,k]), [N,1])																	# [N, 1]
+	r1 = tf.reshape(tf.transpose(phi[:,k]), [1,N])																	# [N, 1]
 	r2 = tf.reshape(tf.sub(0., tf.log(phi[:,k])), [N,1])															# [N, 1]
 	r3 = tf.mul(1/2., tf.log(tf.div(tf.matrix_determinant(Delta_o), 2.*math.pi)))									# Scalar
-	r4 = tf.mul(1/2., tf.matrix_diag(tf.matmul(tf.sub(xn, lambda_mu_m[k,:]),										# [N, N, N]	<-- ?
-											   tf.matmul(Delta_o, tf.transpose(tf.sub(xn, lambda_mu_m[k,:]))))))
+	r4 = tf.mul(1/2., tf.reshape(tf.pack([tf.matmul(tf.sub(xn, lambda_mu_m[k,:]),										# [N, N, N]	<-- ?
+										  tf.matmul(Delta_o, tf.transpose(tf.sub(xn, lambda_mu_m[k,:]))))[i, i] for i in range(N)]), [N,1]))
 	r5 = tf.div(float(D), tf.mul(2., lambda_mu_beta[k]))															# Scalar
 
 	printf('Shape r1: {}'.format(r1.get_shape()))
