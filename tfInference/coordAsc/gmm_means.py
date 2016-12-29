@@ -58,17 +58,12 @@ lambda_mu_m_aux = np.tile(1./lambda_mu_beta_aux, (2, 1)).T * \
 				  (beta_o_aux * m_o_aux + np.dot(phi_aux.T, data['xn']))
 
 # Optimization variables
-phi_o = tf.Variable(phi_aux, dtype=tf.float32)
-lambda_pi_o = tf.Variable(lambda_pi_aux, dtype=tf.float32)
-lambda_mu_beta_o = tf.Variable(lambda_mu_beta_aux, dtype=tf.float32)
-lambda_mu_m_o = tf.Variable(lambda_mu_m_aux, dtype=tf.float32)
+phi = tf.Variable(phi_aux, dtype=tf.float32)
+lambda_pi = tf.Variable(lambda_pi_aux, dtype=tf.float32)
+lambda_mu_beta = tf.Variable(lambda_mu_beta_aux, dtype=tf.float32)
+lambda_mu_m = tf.Variable(lambda_mu_m_aux, dtype=tf.float32)
 
-# Restrictions
-phi = tf.add(tf.nn.softplus(phi_o), 10)
-lambda_pi = tf.add(tf.nn.softplus(lambda_pi_o), 10)
-lambda_mu_beta = tf.add(tf.nn.softplus(lambda_mu_beta_o), 10)
-lambda_mu_m = tf.add(tf.nn.softplus(lambda_mu_m_o), 10)
-
+# Reshapes
 lambda_mu_beta_res = tf.reshape(lambda_mu_beta, [K, 1])
 lambda_pi_res = tf.reshape(lambda_pi, [K, 1])
 
@@ -80,48 +75,53 @@ ELBO = tf.add(ELBO,
 ELBO = tf.add(ELBO,  
 			  tf.mul(K/2., tf.log(tf.matrix_determinant(tf.mul(beta_o, Delta_o)))))
 ELBO = tf.add(ELBO, K*(D/2.))
+
 for k in xrange(K):
 	ELBO = tf.sub(ELBO,
 				  tf.mul(tf.div(beta_o, 2.), tf.matmul(tf.sub(lambda_mu_m[k,:], m_o), 
-				  tf.matmul(Delta_o, tf.transpose(tf.sub(lambda_mu_m[k,:], m_o))))))
+				  		 tf.matmul(Delta_o, tf.transpose(tf.sub(lambda_mu_m[k,:], m_o))))))
 	ELBO = tf.sub(ELBO,
 				  tf.div(tf.mul(tf.cast(D, dtype=tf.float32), beta_o), tf.mul(2., lambda_mu_beta_res[k])))
-	printf('SHAPE lambda_mu_beta[k]: {}'.format(lambda_mu_beta_res[k].get_shape()))
-	printf('SHAPE Delta_o: {}'.format(Delta_o.get_shape()))
-	r = tf.mul(lambda_mu_beta_res[k], Delta_o)
-	printf('SHAPE r: {}'.format(r.get_shape()))
-	r = tf.reshape(r, [2,2])
-	printf('SHAPE r: {}'.format(r.get_shape()))
-	r1 = tf.matrix_determinant(tf.add(tf.nn.softplus(r), 1.0))
-	r2 = tf.log(r1)
 	ELBO = tf.sub(ELBO,
-				  tf.mul(1/2., r2))
-	for n in xrange(N):
-		# printf('Iter: {}'.format((k*n)+n))
-		aux1 = tf.add(tf.sub(tf_dirichlet_expectation(lambda_pi_res)[k], tf.log(phi[n,k])), 
-					  tf.mul(1/2.,
-					  		 tf.log(tf.div(tf.matrix_determinant(Delta_o), 2.*math.pi))))
-		aux2 = tf.mul(1/2.,
-					  tf.matmul(tf.reshape(tf.sub(xn[n,:], lambda_mu_m[k,:]), [1, 2]), 
-					 		 	tf.matmul(Delta_o, 
-								  		  tf.reshape(tf.transpose(tf.sub(xn[n,:], lambda_mu_m[k,:])), [2, 1]))))
-		ELBO = tf.add(ELBO,
-					  tf.mul(phi[n,k],
-							 tf.sub(tf.sub(aux1, aux2),
-							 		tf.div(tf.cast(D, dtype=tf.float32), tf.mul(2., lambda_mu_beta_res[k])))))
-ELBO = tf.sub(0., ELBO)
+				  tf.mul(1/2., tf.log(tf.mul(tf.pow(lambda_mu_beta_res[k], 2), tf.matrix_determinant(Delta_o)))))
 
-printf('He acabado de definir el grafo')
+	"""
+	NEW: 
+	
+	ELBO += np.dot(phi[:,k].T,																				# r3																					
+				- np.log(phi[:,k]) 																			# r4						
+				+ 1/2.*np.log(np.linalg.det(Delta_o)/(2.*math.pi))											# r5	
+				- 1/2.*np.diagonal(np.dot((xn-lambda_mu_m[k,:]),np.dot(Delta_o,(xn-lambda_mu_m[k,:]).T)))	# r6
+				- D/(2.*lambda_mu_beta[k]))																	# r7
+	"""
+
+	r1 = tf.reshape(tf.transpose(phi[:,k]), [N,1])																	# [N, 1]
+	r2 = tf.reshape(tf.sub(0., tf.log(phi[:,k])), [N,1])															# [N, 1]
+	r3 = tf.mul(1/2., tf.log(tf.div(tf.matrix_determinant(Delta_o), tf.mul(2., math.pi))))							# Scalar
+	r4 = tf.mul(1/2., tf.matrix_diag(tf.matmul(tf.sub(xn, lambda_mu_m[k,:]),										# [N, N, N]	<-- ?
+											   tf.matmul(Delta_o, tf.transpose(tf.sub(xn, lambda_mu_m[k,:]))))))
+	r5 = tf.div(float(D), tf.mul(2., lambda_mu_beta[k]))															# Scalar
+	
+	r6 = tf.add(r2, tf.sub(r3, tf.sub(r4, r5)))																		# [N, N, N] <-- ?
+
+	printf('Shape r1: {}'.format(r1.get_shape()))
+	printf('Shape r2: {}'.format(r2.get_shape()))
+	printf('Shape r3: {}'.format(r3.get_shape()))
+	printf('Shape r4: {}'.format(r4.get_shape()))
+	printf('Shape r5: {}'.format(r5.get_shape()))
+	printf('Shape r6: {}'.format(r6.get_shape()))
+
+	ELBO = tf.add(ELBO, tf.matmul(r1, r6))
 
 # Optimizer definition
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-printf('Se ha definido el optimizer')
-train = optimizer.minimize(ELBO, var_list=[lambda_pi_o, phi_o, lambda_mu_m_o, lambda_mu_beta_o])
+train = optimizer.minimize(ELBO, var_list=[lambda_pi, phi, lambda_mu_m, lambda_mu_beta])
 
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
 	sess.run(init)
-	printf('ENTRO!!!')
 	for epoch in range(10):
-		sess.run([train])
+		_, elbo = sess.run([train, ELBO])
+		printf('ELBO: {}'.format(elbo))
+	printf('sess.run(ELBO): {}'.format(sess.run(ELBO)))
