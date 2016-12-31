@@ -11,3 +11,4 @@ if [ -z "$VIRTUAL_ENV" ]; then
 fi
 echo "Installing packages in virtual environment"
 pip install -r requirements.txt
+pip install --upgrade $TF_BINARY_URL
