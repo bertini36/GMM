@@ -22,7 +22,7 @@ parser.add_argument('-filename', metavar='filename', type=str, default='data_k2_
 parser.add_argument('-alpha', metavar='alpha', nargs='+', type=float, default=[1.]*2)
 parser.add_argument('-m_o', metavar='m_o', nargs='+', type=float, default=[0., 0.])
 parser.add_argument('-beta_o', metavar='beta_o', nargs='+', type=float, default=0.01)
-parser.add_argument('-Delta_o', metavar='Delta_o', nargs='+', type=float, default=[1., 1., 1., 1.])
+parser.add_argument('-Delta_o', metavar='Delta_o', nargs='+', type=float, default=[1., 0., 0., 1.])
 args = parser.parse_args()
 
 # Get data
@@ -73,14 +73,7 @@ q2 = tf_log_beta_function(alpha)																					# [1, 2]
 q3 = tf.matmul(tf.sub(alpha, lambda_pi_res), tf_dirichlet_expectation(lambda_pi_res))								# [2, 1]
 q4 = tf.mul(K/2., tf.log(tf.matrix_determinant(tf.mul(beta_o, Delta_o))))											# Scalar
 
-printf('Shape q1: {}'.format(q1.get_shape()))
-printf('Shape q2: {}'.format(q2.get_shape()))
-printf('Shape q3: {}'.format(q3.get_shape()))
-printf('Shape q4: {}'.format(q4.get_shape()))
-
-ELBO = tf.sub(q1, tf.add(q2, tf.add(q3, tf.add(q4, K*(D/2.)))))														# [2, 2]
-
-printf('Shape ELBO: {}'.format(ELBO.get_shape()))
+ELBO1 = tf.sub(q1, tf.add(q2, tf.add(q3, tf.add(q4, K*(D/2.)))))														# [2, 2]
 
 for k in xrange(K):
 	s1 = tf.mul(tf.div(beta_o, 2.), tf.matmul(tf.sub(lambda_mu_m[k,:], m_o), 										# [1, 1]
@@ -88,50 +81,46 @@ for k in xrange(K):
 	s2 = tf.div(tf.mul(float(D), beta_o), tf.mul(2., lambda_mu_beta_res[k]))										# [1, ]
 	s3 = tf.mul(1/2., tf.log(tf.mul(tf.pow(lambda_mu_beta_res[k], 2), tf.matrix_determinant(Delta_o))))				# [1, ]
 
-	printf('Shape s1: {}'.format(s1.get_shape()))
-	printf('Shape s2: {}'.format(s2.get_shape()))
-	printf('Shape s3: {}'.format(s3.get_shape()))
-
-	ELBO = tf.sub(ELBO, tf.add(s1, tf.add(s2, s3)))
-
-	printf('Shape ELBO: {}'.format(ELBO.get_shape()))
-
-	"""
-	NEW: 
-
-	ELBO += np.dot(phi[:,k].T,																				# r3																					
-				- np.log(phi[:,k]) 																			# r4						
-				+ 1/2.*np.log(np.linalg.det(Delta_o)/(2.*math.pi))											# r5	
-				- 1/2.*np.diagonal(np.dot((xn-lambda_mu_m[k,:]),np.dot(Delta_o,(xn-lambda_mu_m[k,:]).T)))	# r6
-				- D/(2.*lambda_mu_beta[k]))																	# r7
-	"""
+	ELBO2 = tf.sub(ELBO1, tf.add(s1, tf.add(s2, s3)))
 
 	r1 = tf.reshape(tf.transpose(phi[:,k]), [1,N])																	# [N, 1]
 	r2 = tf.reshape(tf.sub(0., tf.log(phi[:,k])), [N,1])															# [N, 1]
 	r3 = tf.mul(1/2., tf.log(tf.div(tf.matrix_determinant(Delta_o), 2.*math.pi)))									# Scalar
-	r4 = tf.mul(1/2., tf.reshape(tf.pack([tf.matmul(tf.sub(xn, lambda_mu_m[k,:]),										# [N, N, N]	<-- ?
+	r4 = tf.mul(1/2., tf.reshape(tf.pack([tf.matmul(tf.sub(xn, lambda_mu_m[k,:]),								
 										  tf.matmul(Delta_o, tf.transpose(tf.sub(xn, lambda_mu_m[k,:]))))[i, i] for i in range(N)]), [N,1]))
 	r5 = tf.div(float(D), tf.mul(2., lambda_mu_beta[k]))															# Scalar
 
-	printf('Shape r1: {}'.format(r1.get_shape()))
-	printf('Shape r2: {}'.format(r2.get_shape()))
-	printf('Shape r3: {}'.format(r3.get_shape()))
-	printf('Shape r4: {}'.format(r4.get_shape()))
-	printf('Shape r5: {}'.format(r5.get_shape()))
-
-	ELBO = tf.add(ELBO, tf.matmul(r1, tf.add(r2, tf.sub(r3, tf.sub(r4, r5)))))
-
-	printf('Shape ELBO: {}'.format(ELBO.get_shape()))
+	ELBO3 = tf.add(ELBO2, tf.matmul(r1, tf.add(r2, tf.sub(r3, tf.sub(r4, r5)))))
 
 # Optimizer definition
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-train = optimizer.minimize(ELBO, var_list=[lambda_pi, phi, lambda_mu_m, lambda_mu_beta])
+train = optimizer.minimize(ELBO3, var_list=[lambda_pi, phi, lambda_mu_m, lambda_mu_beta])
+
+# Summaries definition
+if DEBUG:
+	tf.summary.histogram('phi', phi)
+	tf.summary.histogram('lambda_pi', lambda_pi)
+	tf.summary.histogram('lambda_mu_m', lambda_mu_m)
+	tf.summary.histogram('lambda_mu_beta', lambda_mu_beta)
+	merged = tf.summary.merge_all()
+	file_writer = tf.summary.FileWriter('/tmp/tensorboard/', \
+										tf.get_default_graph())
+	run_calls = 0
 
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
 	sess.run(init)
-	for epoch in range(10):
-		_, elbo = sess.run([train, ELBO])
-		printf('ELBO: {}'.format(elbo))
-	printf('sess.run(ELBO): {}'.format(sess.run(ELBO)))
+	for epoch in range(5):
+		_, m, elbo1, elbo2, elbo3, r_1, r_2, r_3, r_4, r_5 = sess.run([train, merged, ELBO1, ELBO2, ELBO3, r1, r2, r3, r4, r5])
+		if DEBUG:
+			run_calls += 1
+			file_writer.add_summary(m, run_calls)
+		printf('r1: {}'.format(r_1))
+		printf('r2: {}'.format(r_2))
+		printf('r3: {}'.format(r_3))
+		printf('r4: {}'.format(r_4))
+		printf('r5: {}'.format(r_5))
+		printf('ELBO1: {}'.format(elbo1))
+		printf('ELBO2: {}'.format(elbo2))
+		printf('ELBO3: {}'.format(elbo3))
