@@ -13,69 +13,72 @@ def printf(s):
     if DEBUG:
         print(s) 
 
+# Data
 N = 100
-It = 50
+np.random.seed(7)
+xn = tf.convert_to_tensor(np.random.normal(5, 1, N), dtype=tf.float64)
 
-# Needed for initilizations
-aux_m = 0.
-aux_beta = 0.0001
-aux_a_gamma = np.random.gamma(1, 1, 1)[0]
-aux_b_gamma = np.random.gamma(1, 1, 1)[0]
-
-# Probabilistic parameters
-m = tf.Variable(aux_m, dtype=tf.float64)
-beta = tf.Variable(aux_beta, dtype=tf.float64)
+m = tf.Variable(0., dtype=tf.float64)
+beta = tf.Variable(0.0001, dtype=tf.float64)
 a = tf.Variable(0.001, dtype=tf.float64)
 b = tf.Variable(0.001, dtype=tf.float64)
 
+# Needed for variational initilizations
+a_gamma_ini = np.random.gamma(1, 1, 1)[0]
+b_gamma_ini = np.random.gamma(1, 1, 1)[0]
+
 # Variational parameters
-v_a_gamma = tf.Variable(aux_a_gamma, dtype=tf.float64)
-v_b_gamma = tf.Variable(aux_b_gamma, dtype=tf.float64)
-v_m_mu = tf.Variable(np.random.normal(aux_m, (aux_beta)**(-1.), 1)[0], dtype=tf.float64)
-v_beta_mu = tf.Variable(np.random.gamma(aux_a_gamma, aux_b_gamma, 1)[0], dtype=tf.float64)
+a_gamma_var = tf.Variable(a_gamma_ini, dtype=tf.float64)
+b_gamma_var = tf.Variable(b_gamma_ini, dtype=tf.float64)
+m_mu = tf.Variable(np.random.normal(0., (0.0001)**(-1.), 1)[0], dtype=tf.float64)
+beta_mu_var = tf.Variable(np.random.gamma(a_gamma_ini, b_gamma_ini, 1)[0], dtype=tf.float64)
 
 # Maintain numerical stability
-a_gamma = tf.nn.softplus(v_a_gamma)
-b_gamma = tf.nn.softplus(v_b_gamma)
-m_mu = tf.nn.softplus(v_m_mu)
-beta_mu = tf.nn.softplus(v_beta_mu)
+a_gamma = tf.nn.softplus(a_gamma_var)
+b_gamma = tf.nn.softplus(b_gamma_var)
+beta_mu = tf.nn.softplus(beta_mu_var)
 
-# Data
-xn = tf.convert_to_tensor(np.random.normal(5, 1, N), dtype=tf.float64)
+LB1 = tf.mul(tf.cast(1./2, tf.float64), tf.log(tf.div(beta, beta_mu)))
+LB2 = tf.add(LB1, tf.mul(tf.mul(tf.cast(1./2, tf.float64), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))), tf.sub(beta_mu, beta)))
+LB3 = tf.sub(LB2, tf.mul(m_mu, tf.sub(tf.mul(beta_mu, m_mu), tf.mul(beta, m))))
+LB4 = tf.add(LB3, tf.mul(tf.cast(1./2, tf.float64), tf.sub(tf.mul(beta_mu, tf.pow(m_mu, 2)), tf.mul(beta, tf.pow(m, 2)))))
 
-# LB += 1./2*np.log(beta/beta_mu)+1./2*(m_mu**2+1./beta_mu)*(beta_mu-beta)
-#       -m_mu*(beta_mu*m_mu-beta*m)
-#       +1./2*(beta_mu*m_mu**2-beta*m**2)
-LB = tf.add(tf.mul(tf.cast(1./2, tf.float64), tf.log(tf.div(beta, beta_mu))), 
-            tf.mul(tf.mul(tf.cast(1./2, tf.float64), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))), tf.sub(beta_mu, beta)))
-LB = tf.sub(LB, tf.mul(m_mu, tf.sub(tf.mul(beta_mu, m_mu), tf.mul(beta, m))))
-LB = tf.add(LB, tf.mul(tf.cast(1./2, tf.float64), tf.sub(tf.mul(beta_mu, tf.pow(m_mu, 2)), tf.mul(beta, tf.pow(m, 2)))))
+LB5 = tf.add(LB4, tf.mul(a, tf.log(b)))
+LB6 = tf.sub(LB5, tf.mul(a_gamma, tf.log(b_gamma)))
+LB7 = tf.add(LB6, tf.lgamma(a_gamma))
+LB8 = tf.sub(LB7, tf.lgamma(a))
+LB9 = tf.add(LB8, tf.mul(tf.sub(tf.digamma(a_gamma), tf.log(b_gamma)), tf.sub(a, a_gamma)))
+LB10 = tf.add(LB9, tf.mul(tf.div(a_gamma, b_gamma), tf.sub(b_gamma, b)))
 
-# LB += a*np.log(b)-a_gamma*np.log(b_gamma)
-#       +gammaln(a_gamma)-gammaln(a)+(psi(a_gamma)-np.log(b_gamma))*(a-a_gamma)
-#       +a_gamma/b_gamma*(b_gamma-b)
-LB = tf.add(LB, tf.sub(tf.mul(a, tf.log(b)), tf.mul(a_gamma, tf.log(b_gamma))))
-LB = tf.add(LB, tf.add(tf.sub(tf.lgamma(a_gamma), tf.lgamma(a)), tf.mul(tf.sub(tf.digamma(a_gamma), tf.log(b_gamma)), tf.sub(a, a_gamma))))
-LB = tf.add(LB, tf.mul(tf.div(a_gamma, b_gamma), tf.sub(b_gamma, b)))
-
-# LB += N/2.*(psi(a_gamma)-np.log(b_gamma))
-#      -N/2.*np.log(2*math.pi)-1./2*a_gamma/b_gamma*sum(xn**2)
-#      +a_gamma/b_gamma*sum(xn)*m_mu-N/2.*a_gamma/b_gamma*(m_mu**2+1./beta_mu)
-LB = tf.add(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.sub(tf.digamma(a_gamma), tf.log(b_gamma))))
-LB = tf.sub(LB, tf.sub(tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.log(tf.mul(tf.cast(2., tf.float64), math.pi))), 
-                       tf.mul(tf.cast(1./2, tf.float64), tf.mul(tf.div(a_gamma, b_gamma), tf.reduce_sum(tf.pow(xn, 2))))))
-LB = tf.add(LB, tf.sub(tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)), 
-                       tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
-                              tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))))))
+LB11 = tf.add(LB10, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.sub(tf.digamma(a_gamma), tf.log(b_gamma))))
+LB12 = tf.sub(LB11, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.log(tf.mul(tf.cast(2., tf.float64), math.pi))))
+LB13 = tf.sub(LB12, tf.mul(tf.cast(1./2, tf.float64), tf.mul(tf.div(a_gamma, b_gamma), tf.reduce_sum(tf.pow(xn, 2)))))
+LB14 = tf.add(LB13, tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)))
+LB15 = tf.sub(LB14, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu)))))
 
 # Optimizer definition
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-train = optimizer.minimize(LB, var_list=[v_a_gamma, v_b_gamma, v_m_mu, v_beta_mu])
+train = optimizer.minimize(LB15, var_list=[a_gamma_var, b_gamma_var, m_mu, beta_mu_var])
 
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
     for epoch in range(5):
-        _, mu, a, b, elbo = sess.run([train, v_m_mu, v_a_gamma, v_b_gamma, LB])
-        printf('Iter {}: Mean={} Precision={} ELBO={}'.format(epoch, mu, a/b, elbo))
+        printf('***** Epoch {} *****'.format(epoch))
+        _, lb1, lb2, lb3, lb4, lb5, lb6, lb7, lb8, lb9, lb10, lb11, lb12, lb13, lb14, lb15 = sess.run([train, LB1, LB2, LB3, LB4, LB5, LB6, LB7, LB8, LB9, LB10, LB11, LB12, LB13, LB14, LB15])
+        printf('ELBO1={}'.format(lb1))
+        printf('ELBO2={}'.format(lb2))
+        printf('ELBO3={}'.format(lb3))
+        printf('ELBO4={}'.format(lb4))
+        printf('ELBO5={}'.format(lb5))
+        printf('ELBO6={}'.format(lb6))
+        printf('ELBO7={}'.format(lb7))
+        printf('ELBO8={}'.format(lb8))
+        printf('ELBO9={}'.format(lb9))
+        printf('ELBO10={}'.format(lb10))
+        printf('ELBO11={}'.format(lb11))
+        printf('ELBO12={}'.format(lb12))
+        printf('ELBO13={}'.format(lb13))
+        printf('ELBO14={}'.format(lb14))
+        printf('ELBO15={}'.format(lb15))

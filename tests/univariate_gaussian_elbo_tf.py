@@ -6,7 +6,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 N = 100
-np.random.seed(123)
+np.random.seed(7)
 xn = tf.convert_to_tensor(np.random.normal(5, 1, N), dtype=tf.float64)
 
 

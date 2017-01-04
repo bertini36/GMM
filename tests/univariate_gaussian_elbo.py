@@ -5,7 +5,7 @@ import numpy as np
 from scipy.special import psi, gammaln
 
 N = 100
-np.random.seed(123)
+np.random.seed(7)
 xn = np.random.normal(5, 1, N)
 
 m = 0.
