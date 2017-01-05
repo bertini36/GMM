@@ -8,17 +8,13 @@ DEBUG = True
 SUMMARIES = True
 PRECISON = 0.0000001
 
-# Learning rates
-#        a     b    mu   beta
-lrs = [0.01, 0.01, 0.01, 0.01]
-
 def printf(s):
     if DEBUG:
         print(s) 
 
 # Data
 N = 100
-np.random.seed(7)
+# np.random.seed(7)
 xn = tf.convert_to_tensor(np.random.normal(5, 1, N), dtype=tf.float64)
 
 m = tf.Variable(0., dtype=tf.float64)
@@ -59,28 +55,10 @@ LB = tf.sub(LB, tf.mul(tf.cast(1./2, tf.float64), tf.mul(tf.div(a_gamma, b_gamma
 LB = tf.add(LB, tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)))
 LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu)))))
 
-# Optimizer definition (Coordinate descent simulation)
-mode = tf.placeholder(tf.int32, shape=[], name='mode')
-learning_rate = tf.placeholder(tf.float32, shape=[], name='learning_rate')
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
-grads_and_vars = None
-def f0(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[a_gamma_var])
-    return optimizer.apply_gradients(grads_and_vars)
-def f1(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[b_gamma_var])
-    return optimizer.apply_gradients(grads_and_vars)
-def f2(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[m_mu])
-    return optimizer.apply_gradients(grads_and_vars)
-def f3(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[beta_mu_var])
-    return optimizer.apply_gradients(grads_and_vars)
-train = tf.case({tf.cast(mode==0, dtype=tf.bool): f0, 
-                 tf.cast(mode==1, dtype=tf.bool): f1, 
-                 tf.cast(mode==2, dtype=tf.bool): f2, 
-                 tf.cast(mode==3, dtype=tf.bool): f3}, 
-                default=f0, exclusive=True)
+# Optimizer definition
+optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
+grads_and_vars = optimizer.compute_gradients(-LB, var_list=[a_gamma_var, b_gamma_var, m_mu, beta_mu_var])
+train = optimizer.apply_gradients(grads_and_vars)
 
 # Summaries definition
 if SUMMARIES:
@@ -88,8 +66,6 @@ if SUMMARIES:
     tf.summary.histogram('beta_mu', beta_mu)
     tf.summary.histogram('a_gamma', a_gamma)
     tf.summary.histogram('b_gamma', b_gamma)
-    tf.summary.histogram('mode', mode)
-    tf.summary.histogram('learning_rate', learning_rate)
     merged = tf.summary.merge_all()
     file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
     run_calls = 0
@@ -98,13 +74,16 @@ if SUMMARIES:
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    for epoch in range(40):
+    for epoch in range(10):
         if SUMMARIES:
-            _, mer, lb, mu, a, b = sess.run([train, merged, LB, m_mu, a_gamma_var, b_gamma_var], feed_dict={mode: epoch%4, learning_rate: lrs[epoch%4]})
+            _, mer, lb, grads = sess.run([train, merged, LB, grads_and_vars])
             run_calls += 1
             file_writer.add_summary(mer, run_calls)
         else:
             _, lb = sess.run([train, LB])
         printf('***** Epoch {} *****'.format(epoch))
         printf('ELBO={}'.format(lb))
-        printf('Mean={} Precision={}'.format(mu, a/b))
+        printf('a_gamma: value={} gradient={}'.format(grads[0][1], grads[0][0]))
+        printf('b_gamma: value={} gradient={}'.format(grads[1][1], grads[1][0]))
+        printf('m_mu: value={} gradient={}'.format(grads[2][1], grads[2][0]))
+        printf('beta_mu: value={} gradient={}'.format(grads[3][1], grads[3][0]))
