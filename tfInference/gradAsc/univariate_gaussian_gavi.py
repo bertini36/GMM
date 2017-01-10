@@ -4,17 +4,10 @@ import math
 import numpy as np
 import tensorflow as tf
 
-DEBUG = True
-SUMMARIES = True
-PRECISON = 0.0000001
 
-def printf(s):
-    if DEBUG:
-        print(s) 
-
-# Data
+## Data
 N = 100
-# np.random.seed(7)
+np.random.seed(42)
 xn = tf.convert_to_tensor(np.random.normal(5, 1, N), dtype=tf.float64)
 
 m = tf.Variable(0., dtype=tf.float64)
@@ -33,9 +26,9 @@ m_mu = tf.Variable(np.random.normal(0., (0.0001)**(-1.), 1)[0], dtype=tf.float64
 beta_mu_var = tf.Variable(np.random.gamma(a_gamma_ini, b_gamma_ini, 1)[0], dtype=tf.float64)
 
 # Maintain numerical stability
-a_gamma = tf.add(tf.nn.softplus(a_gamma_var), PRECISON)
-b_gamma = tf.add(tf.nn.softplus(b_gamma_var), PRECISON)
-beta_mu = tf.add(tf.nn.softplus(beta_mu_var), PRECISON)
+a_gamma = tf.nn.softplus(a_gamma_var)
+b_gamma = tf.nn.softplus(b_gamma_var)
+beta_mu = tf.nn.softplus(beta_mu_var)
 
 LB = tf.mul(tf.cast(1./2, tf.float64), tf.log(tf.div(beta, beta_mu)))
 LB = tf.add(LB, tf.mul(tf.mul(tf.cast(1./2, tf.float64), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))), tf.sub(beta_mu, beta)))
@@ -56,34 +49,22 @@ LB = tf.add(LB, tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)
 LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu)))))
 
 # Optimizer definition
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
+optimizer = tf.train.AdamOptimizer(learning_rate=100.)
 grads_and_vars = optimizer.compute_gradients(-LB, var_list=[a_gamma_var, b_gamma_var, m_mu, beta_mu_var])
 train = optimizer.apply_gradients(grads_and_vars)
-
-# Summaries definition
-if SUMMARIES:
-    tf.summary.histogram('m_mu', m_mu)
-    tf.summary.histogram('beta_mu', beta_mu)
-    tf.summary.histogram('a_gamma', a_gamma)
-    tf.summary.histogram('b_gamma', b_gamma)
-    merged = tf.summary.merge_all()
-    file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
-    run_calls = 0
 
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    for epoch in range(10):
-        if SUMMARIES:
-            _, mer, lb, grads = sess.run([train, merged, LB, grads_and_vars])
-            run_calls += 1
-            file_writer.add_summary(mer, run_calls)
+    lb, mu, beta, a, b  = sess.run([LB, m_mu, beta_mu, a_gamma, b_gamma])
+    print('it: {}, ELBO:{}, m_mu:{}, beta_mu:{}, a_gamma:{}, b_gamma:{}'.format('-', lb, mu, beta, a, b))
+    for epoch in range(400):
+        _ = sess.run(train)
+        lb, mu, beta, a, b  = sess.run([LB, m_mu, beta_mu, a_gamma, b_gamma])
+        if epoch > 0:
+            inc = (old_ELBO-lb)/old_ELBO*100
+            print('It={}, ELBO={}, Inc={}, Mean={}, beta={}, Precision={}, a={}, b={}'.format(epoch, lb, inc, mu, beta, a/b, a, b))
         else:
-            _, lb = sess.run([train, LB])
-        printf('***** Epoch {} *****'.format(epoch))
-        printf('ELBO={}'.format(lb))
-        printf('a_gamma: value={} gradient={}'.format(grads[0][1], grads[0][0]))
-        printf('b_gamma: value={} gradient={}'.format(grads[1][1], grads[1][0]))
-        printf('m_mu: value={} gradient={}'.format(grads[2][1], grads[2][0]))
-        printf('beta_mu: value={} gradient={}'.format(grads[3][1], grads[3][0]))
+            print('It={}, ELBO={}, Inc={}, Mean={}, beta={}, Precision={}, a={}, b={}'.format(epoch, lb, None, mu, beta, a/b, a, b))
+        old_ELBO = lb.copy()
