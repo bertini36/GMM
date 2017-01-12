@@ -5,8 +5,11 @@ import numpy as np
 import tensorflow as tf
 
 DEBUG = True
-SUMMARIES = True
+MAX_EPOCHS = 1000
 PRECISON = 0.0000001
+N = 100
+DATA_MEAN = 5
+
 
 # Learning rates
 #        a     b    mu   beta
@@ -17,9 +20,8 @@ def printf(s):
         print(s) 
 
 # Data
-N = 100
-np.random.seed(7)
-xn = tf.convert_to_tensor(np.random.normal(5, 1, N), dtype=tf.float64)
+# np.random.seed(7)
+xn = tf.convert_to_tensor(np.random.normal(DATA_MEAN, 1, N), dtype=tf.float64)
 
 m = tf.Variable(0., dtype=tf.float64)
 beta = tf.Variable(0.0001, dtype=tf.float64)
@@ -41,6 +43,7 @@ a_gamma = tf.add(tf.nn.softplus(a_gamma_var), PRECISON)
 b_gamma = tf.add(tf.nn.softplus(b_gamma_var), PRECISON)
 beta_mu = tf.add(tf.nn.softplus(beta_mu_var), PRECISON)
 
+# Lower Bound definition
 LB = tf.mul(tf.cast(1./2, tf.float64), tf.log(tf.div(beta, beta_mu)))
 LB = tf.add(LB, tf.mul(tf.mul(tf.cast(1./2, tf.float64), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))), tf.sub(beta_mu, beta)))
 LB = tf.sub(LB, tf.mul(m_mu, tf.sub(tf.mul(beta_mu, m_mu), tf.mul(beta, m))))
@@ -83,41 +86,33 @@ train = tf.case({tf.cast(mode==0, dtype=tf.bool): f0,
                 default=f0, exclusive=True)
 
 # Summaries definition
-if SUMMARIES:
-    tf.summary.histogram('m_mu', m_mu)
-    tf.summary.histogram('beta_mu', beta_mu)
-    tf.summary.histogram('a_gamma', a_gamma)
-    tf.summary.histogram('b_gamma', b_gamma)
-    tf.summary.histogram('mode', mode)
-    tf.summary.histogram('learning_rate', learning_rate)
-    merged = tf.summary.merge_all()
-    file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
-    run_calls = 0
+tf.summary.histogram('m_mu', m_mu)
+tf.summary.histogram('beta_mu', beta_mu)
+tf.summary.histogram('a_gamma', a_gamma)
+tf.summary.histogram('b_gamma', b_gamma)
+tf.summary.histogram('mode', mode)
+tf.summary.histogram('learning_rate', learning_rate)
+merged = tf.summary.merge_all()
+file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
+run_calls = 0
 
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    while(True):
-        if SUMMARIES:
-            # TODO: Aplicar factores de escala del learning rate en funcion de la variable
-            if epoch%4 == 0:
-                _, mer, lb, mu, a, b = sess.run([train, merged, LB, m_mu, a_gamma_var, b_gamma_var], feed_dict={mode: 0, learning_rate: lrs[0]})
-            elif epoch%4 == 1:
-                _, mer, lb, mu, a, b = sess.run([train, merged, LB, m_mu, a_gamma_var, b_gamma_var], feed_dict={mode: 1, learning_rate: lrs[1]})
-            elif epoch%4 == 2:
-                _, mer, lb, mu, a, b = sess.run([train, merged, LB, m_mu, a_gamma_var, b_gamma_var], feed_dict={mode: 2, learning_rate: lrs[2]})
-            elif epoch%4 == 4:
-                _, mer, lb, mu, a, b = sess.run([train, merged, LB, m_mu, a_gamma_var, b_gamma_var], feed_dict={mode: 3, learning_rate: lrs[3]})
-            run_calls += 1
-            file_writer.add_summary(mer, run_calls)
-        else:
-            _, lb = sess.run([train, LB])
-        printf('***** Epoch {} *****'.format(epoch))
-        printf('ELBO={}'.format(lb))
-        printf('Mean={} Precision={}'.format(mu, a/b))
+    epoch = 0
+    while epoch < MAX_EPOCHS:
+        # TODO: Aplicar factores de escala del learning rate en funcion de la variable
+        sess.run(train, feed_dict={mode: 0, learning_rate: lrs[0]})
+        sess.run(train, feed_dict={mode: 1, learning_rate: lrs[1]})
+        sess.run(train, feed_dict={mode: 2, learning_rate: lrs[2]})
+        _, mer, lb, m_mu_out, a_gamma_out, b_gamma_out = sess.run([train, merged, LB, m_mu, a_gamma_var, b_gamma_var], feed_dict={mode: 3, learning_rate: lrs[3]})
+        printf('Epoch {}: Mu={} Precision={} ELBO={}'.format(epoch, m_mu_out, a_gamma_out/b_gamma_out, lb))
+        run_calls += 1
+        file_writer.add_summary(mer, run_calls)
         if epoch > 0:
-            inc = (old_ELBO-lb)/old_ELBO*100
+            inc = (old_lb-lb)/old_lb*100
             if inc < 1e-8:
                 break
-        old_ELBO = lb.copy()
+        old_lb = lb
+        epoch += 1

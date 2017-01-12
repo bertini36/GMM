@@ -4,17 +4,19 @@ import math
 import numpy as np
 import tensorflow as tf
 
+
 DEBUG = True
-SUMMARIES = True
-MAX_EPOCHS = 5000
+MAX_EPOCHS = 400
+N = 100
+DATA_MEAN = 5
 
 def printf(s):
     if DEBUG:
         print(s) 
 
 # Data
-N = 100
-xn = tf.convert_to_tensor(np.random.normal(5, 1, N), dtype=tf.float64)
+# np.random.seed(42)
+xn = tf.convert_to_tensor(np.random.normal(DATA_MEAN, 1, N), dtype=tf.float64)
 
 m = tf.Variable(0., dtype=tf.float64)
 beta = tf.Variable(0.0001, dtype=tf.float64)
@@ -61,14 +63,13 @@ assign_b_gamma = b_gamma.assign(tf.add(b, tf.add(tf.sub(tf.mul(tf.cast(1./2, tf.
                                                         tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))))))
 
 # Summaries definition
-if SUMMARIES:
-    tf.summary.histogram('m_mu', m_mu)
-    tf.summary.histogram('beta_mu', beta_mu)
-    tf.summary.histogram('a_gamma', a_gamma)
-    tf.summary.histogram('b_gamma', b_gamma)
-    merged = tf.summary.merge_all()
-    file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
-    run_calls = 0
+tf.summary.histogram('m_mu', m_mu)
+tf.summary.histogram('beta_mu', beta_mu)
+tf.summary.histogram('a_gamma', a_gamma)
+tf.summary.histogram('b_gamma', b_gamma)
+merged = tf.summary.merge_all()
+file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
+run_calls = 0
 
 # Main program
 init = tf.global_variables_initializer()
@@ -79,8 +80,10 @@ with tf.Session() as sess:
         sess.run([assign_m_mu, assign_beta_mu, assign_a_gamma])
         sess.run(assign_b_gamma)
         m_mu_out, beta_mu_out, a_gamma_out, b_gamma_out = sess.run([m_mu, beta_mu, a_gamma, b_gamma])
-        lb = sess.run(LB)
+        mer, lb = sess.run([merged, LB])
         printf('Epoch {}: Mu={} Precision={} ELBO={}'.format(epoch, m_mu_out, a_gamma_out/b_gamma_out, lb))
+        run_calls += 1
+        file_writer.add_summary(mer, run_calls)
         if epoch > 0:
             inc = (old_lb-lb)/old_lb*100
             if inc < 1e-8:

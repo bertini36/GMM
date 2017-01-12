@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+
 import numpy as np
 import math
 from scipy.special import psi, gammaln
