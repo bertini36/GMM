@@ -28,6 +28,7 @@ with open('../../data/data_k2_100.pkl', 'r') as inputfile:
 # plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']))
 # plt.show()
 
+# Configurations
 N, D = xn.shape
 K = 2
 alpha_aux = [1.0, 1.0]
@@ -39,12 +40,14 @@ beta_o = tf.convert_to_tensor(beta_o_aux, dtype=tf.float64)
 Delta_o_aux = np.array([[1.0, 0.0], [0.0, 1.0]])
 Delta_o = tf.convert_to_tensor(Delta_o_aux , dtype=tf.float64)
 
-# Initialize
+# Initializations
 phi_aux = np.random.dirichlet(alpha_aux, N)
 lambda_pi_aux = alpha_aux + np.sum(phi_aux, axis=0)
 lambda_mu_beta_aux = beta_o_aux + np.sum(phi_aux, axis=0)
 lambda_mu_m_aux = np.tile(1./lambda_mu_beta_aux, (2, 1)).T * \
 				(beta_o_aux * m_o_aux + np.dot(phi_aux.T, data['xn']))
+
+# Variables
 phi = tf.Variable(phi_aux, dtype=tf.float64)
 lambda_pi = tf.Variable(lambda_pi_aux, dtype=tf.float64)
 lambda_mu_beta = tf.Variable(lambda_mu_beta_aux, dtype=tf.float64)
