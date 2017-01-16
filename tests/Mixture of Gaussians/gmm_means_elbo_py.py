@@ -21,16 +21,17 @@ def ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m, lambda_m
 		a3 = beta_o/2.*np.dot(a1, a2)
 		a4 = D*beta_o/(2.*lambda_mu_beta[k])
 		a5 = 1/2.*np.log(np.linalg.det(lambda_mu_beta[k]*Delta_o))	
-		a6 = a3 + a4 + a5
+		a6 = a3+a4+a5
 		ELBO -= a6
 		b1 = phi[:,k].T
-		b2 = -np.log(phi[:,k])
-		b3 = 1/2.*np.log(np.linalg.det(Delta_o)/(2.*math.pi))
-		b4 = xn-lambda_mu_m[k,:]
-		b5 = np.dot(Delta_o,(xn-lambda_mu_m[k,:]).T)
-		b6 = 1/2.*np.diagonal(np.dot(b4, b5))
-		b7 = D/(2.*lambda_mu_beta[k])
-		b8 = b2+b3-b6-b7
+		b2 = dirichlet_expectation(lambda_pi)[k]
+		b3 = np.log(phi[:,k])
+		b4 = 1/2.*np.log(np.linalg.det(Delta_o)/(2.*math.pi))
+		b5 = xn-lambda_mu_m[k,:]
+		b6 = np.dot(Delta_o, (xn-lambda_mu_m[k,:]).T)
+		b7 = 1/2.*np.diagonal(np.dot(b5, b6))
+		b8 = D/(2.*lambda_mu_beta[k])
+		b8 = b2-b3+b4-b7-b8
 		ELBO += np.dot(b1, b8)
 	return ELBO
 
