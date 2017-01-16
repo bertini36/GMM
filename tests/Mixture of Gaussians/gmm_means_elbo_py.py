@@ -31,9 +31,7 @@ def ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m, lambda_m
 		b6 = 1/2.*np.diagonal(np.dot(b4, b5))
 		b7 = D/(2.*lambda_mu_beta[k])
 		b8 = b2+b3-b6-b7
-		print('ELBO={}'.format(ELBO))
 		ELBO += np.dot(b1, b8)
-		print('ELBO={}'.format(ELBO))
 	return ELBO
 
 def initialize(xn, K, alpha, m_o, beta_o, Delta_o):
@@ -70,4 +68,4 @@ Delta_o = np.array([[1.0, 0.0], [0.0, 1.0]])
 lambda_pi, phi, lambda_mu_m, lambda_mu_beta = initialize(xn, K, alpha, m_o, beta_o, Delta_o)
 
 elbo = ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m, lambda_mu_beta, phi)
-print('Final ELBO={}'.format(elbo))
+print('ELBO={}'.format(elbo))
