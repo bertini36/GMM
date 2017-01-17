@@ -33,7 +33,6 @@ def ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m, lambda_m
 			b6 = np.dot(Delta_o, (xn[n,:]-lambda_mu_m[k,:]).T)
 			b7 = 1/2.*np.dot(b5, b6)
 			b8 = D/(2.*lambda_mu_beta[k])
-			inc_ELBO += b1*(b2-b3+b4-b7-b8)
 			ELBO += b1*(b2-b3+b4-b7-b8)
 	return ELBO
 
