@@ -23,9 +23,6 @@ with open('../../data/data_k2_100.pkl', 'r') as inputfile:
 	data = pkl.load(inputfile)
 	xn = data['xn']
 
-# plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']))
-# plt.show()
-
 N, D = xn.shape
 K = 2
 alpha_aux = [1.0, 1.0]

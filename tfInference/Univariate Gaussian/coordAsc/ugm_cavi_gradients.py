@@ -5,22 +5,20 @@ import numpy as np
 import tensorflow as tf
 
 DEBUG = True
-MAX_EPOCHS = 1000
+MAX_EPOCHS = 1000000000
 PRECISON = 0.0000001
 N = 100
 DATA_MEAN = 5
+THRESHOLD =  1e-6
 
+# np.random.seed(7)
 
+# TODO: Adjust learning rates
 # Learning rates
 #        a     b    mu   beta
-lrs = [1e-6, 1e-6, 1e-3, 1e-3]
+lrs = [1e-3, 1e-3, 1.0, 1.0]
 
-def printf(s):
-    if DEBUG:
-        print(s) 
-
-# Data
-# np.random.seed(7)
+# Data generation
 xn = tf.convert_to_tensor(np.random.normal(DATA_MEAN, 1, N), dtype=tf.float64)
 
 m = tf.Variable(0., dtype=tf.float64)
@@ -62,36 +60,34 @@ LB = tf.sub(LB, tf.mul(tf.cast(1./2, tf.float64), tf.mul(tf.div(a_gamma, b_gamma
 LB = tf.add(LB, tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)))
 LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu)))))
 
-# Optimizer definition (Coordinate descent simulation)
+# Optimizer definition (Coordinate ascent simulation)
 mode = tf.placeholder(tf.int32, shape=[], name='mode')
 learning_rate = tf.placeholder(tf.float32, shape=[], name='learning_rate')
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 grads_and_vars = None
 def f0(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[a_gamma_var])
-    return optimizer.apply_gradients(grads_and_vars)
+	grads_and_vars = optimizer.compute_gradients(-LB, var_list=[a_gamma_var])
+	return optimizer.apply_gradients(grads_and_vars)
 def f1(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[b_gamma_var])
-    return optimizer.apply_gradients(grads_and_vars)
+	grads_and_vars = optimizer.compute_gradients(-LB, var_list=[b_gamma_var])
+	return optimizer.apply_gradients(grads_and_vars)
 def f2(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[m_mu])
-    return optimizer.apply_gradients(grads_and_vars)
+	grads_and_vars = optimizer.compute_gradients(-LB, var_list=[m_mu])
+	return optimizer.apply_gradients(grads_and_vars)
 def f3(): 
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[beta_mu_var])
-    return optimizer.apply_gradients(grads_and_vars)
+	grads_and_vars = optimizer.compute_gradients(-LB, var_list=[beta_mu_var])
+	return optimizer.apply_gradients(grads_and_vars)
 train = tf.case({tf.cast(mode==0, dtype=tf.bool): f0, 
-                 tf.cast(mode==1, dtype=tf.bool): f1, 
-                 tf.cast(mode==2, dtype=tf.bool): f2, 
-                 tf.cast(mode==3, dtype=tf.bool): f3}, 
-                default=f0, exclusive=True)
+				 tf.cast(mode==1, dtype=tf.bool): f1, 
+				 tf.cast(mode==2, dtype=tf.bool): f2, 
+				 tf.cast(mode==3, dtype=tf.bool): f3}, 
+				default=f0, exclusive=True)
 
 # Summaries definition
 tf.summary.histogram('m_mu', m_mu)
 tf.summary.histogram('beta_mu', beta_mu)
 tf.summary.histogram('a_gamma', a_gamma)
 tf.summary.histogram('b_gamma', b_gamma)
-tf.summary.histogram('mode', mode)
-tf.summary.histogram('learning_rate', learning_rate)
 merged = tf.summary.merge_all()
 file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
 run_calls = 0
@@ -99,20 +95,23 @@ run_calls = 0
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
-    sess.run(init)
-    epoch = 0
-    while epoch < MAX_EPOCHS:
-        # TODO: Aplicar factores de escala del learning rate en funcion de la variable
-        sess.run(train, feed_dict={mode: 0, learning_rate: lrs[0]})
-        sess.run(train, feed_dict={mode: 1, learning_rate: lrs[1]})
-        sess.run(train, feed_dict={mode: 2, learning_rate: lrs[2]})
-        _, mer, lb, m_mu_out, a_gamma_out, b_gamma_out = sess.run([train, merged, LB, m_mu, a_gamma_var, b_gamma_var], feed_dict={mode: 3, learning_rate: lrs[3]})
-        printf('Epoch {}: Mu={} Precision={} ELBO={}'.format(epoch, m_mu_out, a_gamma_out/b_gamma_out, lb))
-        run_calls += 1
-        file_writer.add_summary(mer, run_calls)
-        if epoch > 0:
-            inc = (old_lb-lb)/old_lb*100
-            if inc < 1e-8:
-                break
-        old_lb = lb
-        epoch += 1
+	sess.run(init)
+	for epoch in xrange(MAX_EPOCHS):
+		
+		# Parameter updates
+		sess.run(train, feed_dict={mode: 0, learning_rate: lrs[0]})
+		sess.run(train, feed_dict={mode: 1, learning_rate: lrs[1]})
+		sess.run(train, feed_dict={mode: 2, learning_rate: lrs[2] * epoch/100})
+		sess.run(train, feed_dict={mode: 3, learning_rate: lrs[3]})
+
+		# ELBO computation
+		mer, lb, mu_out, beta_out, a_out, b_out = sess.run([merged, LB, m_mu, beta_mu_var, a_gamma_var, b_gamma_var])
+		print('Epoch {}: Mu={} Precision={} ELBO={}'.format(epoch, mu_out, a_out/b_out, lb))
+		run_calls += 1
+		file_writer.add_summary(mer, run_calls)
+		
+		# Break condition
+		if epoch > 0: 
+			if abs(lb-old_lb) < THRESHOLD:
+				break
+		old_lb = lb

@@ -5,16 +5,15 @@ import numpy as np
 import tensorflow as tf
 import pickle as pkl
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 DEBUG = True
 MAX_EPOCHS = 100
+DATASET = 'data_k2_100.pkl'
+K = 2
+THRESHOLD = 1e-6
 
-np.random.seed(7)
-sess = tf.Session()
-
-def printf(s):
-	if DEBUG:
-		print(s) 
+# np.random.seed(7)
 
 def tf_log_beta_function(x):
 	return tf.sub(tf.reduce_sum(tf.lgamma(tf.add(x, np.finfo(np.float32).eps))), \
@@ -32,16 +31,16 @@ def tf_exp_normalize(aux):
 				  tf.reduce_sum(tf.add(tf.exp(tf.sub(aux, tf.reduce_max(aux))), np.finfo(np.float32).eps)))
 
 # Get data
-with open('../../../data/data_k2_100.pkl', 'r') as inputfile:
+with open('../../../data/{}'.format(DATASET), 'r') as inputfile:
 	data = pkl.load(inputfile)
 	xn = data['xn']
+	xn_tf = tf.convert_to_tensor(xn , dtype=tf.float64)
 
-plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']))
+plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']), cmap=cm.bwr)
 plt.show()
 
 # Configurations
 N, D = xn.shape
-K = 2
 alpha_aux = [1.0, 1.0]
 alpha = tf.convert_to_tensor([alpha_aux], dtype=tf.float64)
 m_o_aux = np.array([0.0, 0.0])
@@ -56,15 +55,13 @@ phi_aux = np.random.dirichlet(alpha_aux, N)
 lambda_pi_aux = alpha_aux + np.sum(phi_aux, axis=0)
 lambda_mu_beta_aux = beta_o_aux + np.sum(phi_aux, axis=0)
 lambda_mu_m_aux = np.tile(1./lambda_mu_beta_aux, (2, 1)).T * \
-				(beta_o_aux * m_o_aux + np.dot(phi_aux.T, data['xn']))
+				(beta_o_aux * m_o_aux + np.dot(phi_aux.T, xn))
 
 # Variational parameters
 phi = tf.Variable(phi_aux, dtype=tf.float64)
 lambda_pi = tf.Variable(lambda_pi_aux, dtype=tf.float64)
 lambda_mu_beta = tf.Variable(lambda_mu_beta_aux, dtype=tf.float64)
 lambda_mu_m = tf.Variable(lambda_mu_m_aux, dtype=tf.float64)
-
-xn_tf = tf.convert_to_tensor(xn , dtype=tf.float64)
 
 # Reshapes
 lambda_mu_beta_res = tf.reshape(lambda_mu_beta, [K, 1])
@@ -96,9 +93,6 @@ for k in range(K):
 	b9 = tf.reshape(b9, [N,1])
 	LB = tf.add(LB, tf.reshape(tf.matmul(b1, b9), [1]))
 
-init = tf.global_variables_initializer()
-sess.run(init)
-
 # Parameter updates
 assign_lambda_pi = lambda_pi.assign(tf.reshape(tf.add(alpha, tf.reduce_sum(phi, 0)), [K,]))
 c1 = tf_dirichlet_expectation(lambda_pi)
@@ -129,10 +123,8 @@ run_calls = 0
 
 # Main program
 init = tf.global_variables_initializer()
-elbos = []
 with tf.Session() as sess:
 	sess.run(init)
-	epoch = 0
 	for epoch in xrange(MAX_EPOCHS):
 
 		# Parameter updates
@@ -140,20 +132,19 @@ with tf.Session() as sess:
 		sess.run(assign_phi)
 		sess.run(assign_lambda_mu_beta)
 		sess.run(assign_lambda_mu_m)
-		m_mu_out, beta_mu_out, lambda_pi_out, phi_out = sess.run([lambda_mu_m, lambda_mu_beta, lambda_pi, phi])
+		mu_out, beta_out, pi_out, phi_out = sess.run([lambda_mu_m, lambda_mu_beta, lambda_pi, phi])
 		
-		# Compute ELBO
-		mer, elbo = sess.run([merged, LB])
-		printf('Epoch {}: Mus={} Precision={} Pi={} ELBO={}'.format(epoch, m_mu_out, beta_mu_out, lambda_pi_out, elbo))
+		# ELBO computation
+		mer, lb = sess.run([merged, LB])
+		print('Epoch {}: Mus={} Precision={} Pi={} ELBO={}'.format(epoch, mu_out, beta_out, pi_out, lb))
 		run_calls += 1
 		file_writer.add_summary(mer, run_calls)
 
 		# Break condition
 		if epoch > 0: 
-			if (elbo-elbos[-1])/abs(elbo)<1e-6:
-				elbos.append(elbo)
+			if abs(lb-old_lb) < THRESHOLD:
 				break
-		elbos.append(elbo)
+		old_lb = lb
 
-	plt.scatter(xn[:,0], xn[:,1], c=np.array(1*[np.random.choice(K, 1, p=phi_out[n,:])[0] for n in xrange(N)]))
+	plt.scatter(xn[:,0], xn[:,1], c=np.array(1*[np.random.choice(K, 1, p=phi_out[n,:])[0] for n in xrange(N)]), cmap=cm.bwr)
 	plt.show()

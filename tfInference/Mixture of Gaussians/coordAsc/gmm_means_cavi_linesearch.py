@@ -8,8 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 DEBUG = True
-MAX_EPOCHS = 1000000000
-LR = 0.01
+MAX_EPOCHS = 100
 DATASET = 'data_k2_100.pkl'
 K = 2
 THRESHOLD =  1e-6
@@ -42,6 +41,7 @@ plt.show()
 
 # Configurations
 N, D = xn.shape
+K = 2
 alpha_aux = [1.0, 1.0]
 alpha = tf.convert_to_tensor([alpha_aux], dtype=tf.float64)
 m_o_aux = np.array([0.0, 0.0])
@@ -55,14 +55,14 @@ Delta_o = tf.convert_to_tensor(Delta_o_aux , dtype=tf.float64)
 phi_aux = np.random.dirichlet(alpha_aux, N)
 lambda_pi_aux = alpha_aux + np.sum(phi_aux, axis=0)
 lambda_mu_beta_aux = beta_o_aux + np.sum(phi_aux, axis=0)
-lambda_mu_m_aux = np.tile(1./lambda_mu_beta_aux, (K, 1)).T * \
+lambda_mu_m_aux = np.tile(1./lambda_mu_beta_aux, (2, 1)).T * \
 				(beta_o_aux * m_o_aux + np.dot(phi_aux.T, xn))
 
 # Variational parameters
-phi_var = tf.Variable(phi_aux, dtype=tf.float64)
-lambda_pi_var = tf.Variable(lambda_pi_aux, dtype=tf.float64)
-lambda_mu_beta_var = tf.Variable(lambda_mu_beta_aux, dtype=tf.float64)
-lambda_mu_m = tf.Variable(lambda_mu_m_aux, dtype=tf.float64)
+phi_var = tf.Variable(phi_aux, dtype=tf.float64, name='phi_var')
+lambda_pi_var = tf.Variable(lambda_pi_aux, dtype=tf.float64, name='lambda_pi_var')
+lambda_mu_beta_var = tf.Variable(lambda_mu_beta_aux, dtype=tf.float64, name='lambda_mu_beta_var')
+lambda_mu_m = tf.Variable(lambda_mu_m_aux, dtype=tf.float64, name='lambda_mu_m')
 
 # Maintain numerical stability
 lambda_pi = tf.nn.softplus(lambda_pi_var)
@@ -99,10 +99,62 @@ for k in range(K):
 	b9 = tf.reshape(b9, [N,1])
 	LB = tf.add(LB, tf.reshape(tf.matmul(b1, b9), [1]))
 
-# Optimizer definition
-optimizer = tf.train.AdamOptimizer(learning_rate=LR)
-grads_and_vars = optimizer.compute_gradients(-LB, var_list=[phi_var, lambda_pi_var, lambda_mu_beta_var, lambda_mu_m])
-train = optimizer.apply_gradients(grads_and_vars)
+def compute_learning_rate(var, alpha_step):
+	"""
+	:param var: Var to optimize
+	:param alpha_step: Initial learning rate
+	"""
+	# Obtaining the gradients
+	optimizer = tf.train.GradientDescentOptimizer(learning_rate=alpha_step)
+	grads_and_vars = optimizer.compute_gradients(-LB, var_list=[var])
+	grads = sess.run(grads_and_vars)
+	tmp_var = grads[0][1]
+	tmp_grad = grads[0][0]
+
+	# Gradient descent update
+	fx = sess.run(-LB)
+	tmp_mod = tmp_var - alpha_step * tmp_grad
+	assign_op = var.assign(tmp_mod)
+	sess.run(assign_op)
+	fxgrad = sess.run(-LB)
+
+	# Loop for problematic vars that produces Infs and Nans
+	while np.isinf(fxgrad) or np.isnan(fxgrad):
+		alpha_step /= 10.
+		tmp_mod = tmp_var - alpha_step * tmp_grad
+		assign_op = var.assign(tmp_mod)
+		sess.run(assign_op)
+		fxgrad = sess.run(-LB)
+
+	m = tmp_grad**2
+	c = 0.5
+	tau = 0.2
+
+	# The values update depart from the variable dimensions
+	if var.name == 'lambda_pi_var:0' or var.name == 'lambda_mu_beta_var:0':
+		for i in xrange(len(m)):
+			while (fxgrad >= fx-alpha_step*c*m[i]):
+				alpha_step *= tau
+				tmp_mod = tmp_var - alpha_step * tmp_grad
+				assign_op = var.assign(tmp_mod)
+				sess.run(assign_op)
+				fxgrad = sess.run(-LB)
+				if alpha_step < 1e-10:
+					alpha_step = 0
+					break
+	elif var.name == 'phi_var:0' or var.name == 'lambda_mu_m:0':
+		for i in xrange(len(m)):
+			for j in xrange(len(m[0])):
+				while (fxgrad >= fx-alpha_step*c*m[i,j]):
+					alpha_step *= tau
+					tmp_mod = tmp_var - alpha_step * tmp_grad
+					assign_op = var.assign(tmp_mod)
+					sess.run(assign_op)
+					fxgrad = sess.run(-LB)
+					if alpha_step < 1e-10:
+						alpha_step = 0
+						break
+
 
 # Summaries definition
 tf.summary.histogram('phi', phi)
@@ -117,14 +169,20 @@ run_calls = 0
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
 	sess.run(init)
-	epoch = 0
+	alpha_step = 1e10
 	for epoch in xrange(MAX_EPOCHS):
 
+		# Parameter updates with individual learning rates
+		compute_learning_rate(lambda_pi_var, alpha_step)
+		compute_learning_rate(phi_var, alpha_step)
+		compute_learning_rate(lambda_mu_m, alpha_step)
+		compute_learning_rate(lambda_mu_beta_var, alpha_step)
+		
 		# ELBO computation
-		_, mer, lb, mu_out, beta_out, pi_out, phi_out = sess.run([train, merged, LB, lambda_mu_m, lambda_mu_beta, lambda_pi, phi])
+		mer, lb, pi_out, phi_out, mu_out, beta_out = sess.run([merged, LB, lambda_pi, phi, lambda_mu_m, lambda_mu_beta])
+		print('Epoch {}: Mus={} Precision={} Pi={} ELBO={}'.format(epoch, mu_out, beta_out, pi_out, lb))
 		run_calls += 1
 		file_writer.add_summary(mer, run_calls)
-		print('Epoch {}: Mus={} Precision={} Pi={} ELBO={}'.format(epoch, mu_out, beta_out, pi_out, lb))
 
 		# Break condition
 		if epoch > 0: 

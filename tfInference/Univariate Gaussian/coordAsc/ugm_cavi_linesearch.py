@@ -8,13 +8,11 @@ DEBUG = True
 MAX_EPOCHS = 100
 N = 100
 DATA_MEAN = 5
+THRESHOLD =  1e-6
 
-def printf(s):
-    if DEBUG:
-        print(s) 
+# np.random.seed(7)
 
-# Data
-np.random.seed(7)
+# Data generation
 xn = tf.convert_to_tensor(np.random.normal(DATA_MEAN, 1, N), dtype=tf.float64)
 
 m = tf.Variable(0., dtype=tf.float64)
@@ -58,45 +56,45 @@ LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), 
 
 
 def compute_learning_rate(var, alpha):
-    """
-    :param var: Var to optimize
-    :param alpha: Initial learning rate
-    """
-    # Obtaining the gradients
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
-    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[var])
-    grads = sess.run(grads_and_vars)
-    tmp_var = grads[0][1]
-    tmp_grad = grads[0][0]
+	"""
+	:param var: Var to optimize
+	:param alpha: Initial learning rate
+	"""
+	# Obtaining the gradients
+	optimizer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
+	grads_and_vars = optimizer.compute_gradients(-LB, var_list=[var])
+	grads = sess.run(grads_and_vars)
+	tmp_var = grads[0][1]
+	tmp_grad = grads[0][0]
 
-    # Gradient descent update
-    fx = sess.run(-LB)
-    tmp_mod = tmp_var - alpha * tmp_grad
-    assign_op = var.assign(tmp_mod)
-    sess.run(assign_op)
-    fxgrad = sess.run(-LB)
+	# Gradient descent update
+	fx = sess.run(-LB)
+	tmp_mod = tmp_var - alpha * tmp_grad
+	assign_op = var.assign(tmp_mod)
+	sess.run(assign_op)
+	fxgrad = sess.run(-LB)
 
-    # Loop for problematic vars that produces Infs and Nans
-    while np.isinf(fxgrad) or np.isnan(fxgrad):
-        alpha /= 10.
-        tmp_mod = tmp_var - alpha * tmp_grad
-        assign_op = var.assign(tmp_mod)
-        sess.run(assign_op)
-        fxgrad = sess.run(-LB)
+	# Loop for problematic vars that produces Infs and Nans
+	while np.isinf(fxgrad) or np.isnan(fxgrad):
+		alpha /= 10.
+		tmp_mod = tmp_var - alpha * tmp_grad
+		assign_op = var.assign(tmp_mod)
+		sess.run(assign_op)
+		fxgrad = sess.run(-LB)
 
-    m = tmp_grad**2
-    c = 0.5
-    tau = 0.2
+	m = tmp_grad**2
+	c = 0.5
+	tau = 0.2
 
-    while (fxgrad >= fx-alpha*c*m):
-        alpha *= tau
-        tmp_mod = tmp_var - alpha * tmp_grad
-        assign_op = var.assign(tmp_mod)
-        sess.run(assign_op)
-        fxgrad = sess.run(-LB)
-        if alpha < 1e-10:
-            alpha = 0
-            break
+	while (fxgrad >= fx-alpha*c*m):
+		alpha *= tau
+		tmp_mod = tmp_var - alpha * tmp_grad
+		assign_op = var.assign(tmp_mod)
+		sess.run(assign_op)
+		fxgrad = sess.run(-LB)
+		if alpha < 1e-10:
+			alpha = 0
+			break
 
 # Summaries definition
 tf.summary.histogram('m_mu', m_mu)
@@ -110,21 +108,24 @@ run_calls = 0
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
-    sess.run(init)
-    epoch = 0
-    while epoch < MAX_EPOCHS:
-        alpha = 1e10
-        compute_learning_rate(a_gamma_var, alpha)
-        compute_learning_rate(b_gamma_var, alpha)
-        compute_learning_rate(m_mu, alpha)
-        compute_learning_rate(beta_mu_var, alpha)
-        mer, lb, mu, beta, a, b = sess.run([merged, LB, m_mu, beta_mu, a_gamma, b_gamma])
-        printf('Epoch {}: Mean={} Precision={} ELBO={}'.format(epoch, mu, a/b, lb))
-        run_calls += 1
-        file_writer.add_summary(mer, run_calls)
-        if epoch > 0:
-            inc = (old_lb-lb)/old_lb*100
-            if inc < 1e-8:
-                break
-        old_lb = lb
-        epoch += 1
+	sess.run(init)
+	alpha = 1e10
+	for epoch in xrange(MAX_EPOCHS):
+
+		# Parameter updates with individual learning rates
+		compute_learning_rate(a_gamma_var, alpha)
+		compute_learning_rate(b_gamma_var, alpha)
+		compute_learning_rate(m_mu, alpha)
+		compute_learning_rate(beta_mu_var, alpha)
+
+		# ELBO computation
+		mer, lb, mu_out, beta_out, a_out, b_out = sess.run([merged, LB, m_mu, beta_mu, a_gamma, b_gamma])
+		print('Epoch {}: Mean={} Precision={} ELBO={}'.format(epoch, mu_out, a_out/b_out, lb))
+		run_calls += 1
+		file_writer.add_summary(mer, run_calls)
+
+		# Break condition
+		if epoch > 0: 
+			if abs(lb-old_lb) < THRESHOLD:
+				break
+		old_lb = lb

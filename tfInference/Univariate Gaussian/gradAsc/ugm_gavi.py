@@ -9,13 +9,11 @@ MAX_EPOCHS = 1000
 N = 100
 DATA_MEAN = 5
 LR = 100.
+THRESHOLD =  1e-6
 
-def printf(s):
-    if DEBUG:
-        print(s) 
-
-## Data
 # np.random.seed(42)
+
+# Data generation
 xn = tf.convert_to_tensor(np.random.normal(DATA_MEAN, 1, N), dtype=tf.float64)
 
 m = tf.Variable(0., dtype=tf.float64)
@@ -75,16 +73,16 @@ run_calls = 0
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    epoch = 0
-    while epoch < MAX_EPOCHS:
-        sess.run(train)
-        mer, lb, m_mu_out, beta_mu_out, a_gamma_out, b_gamma_out  = sess.run([merged, LB, m_mu, beta_mu, a_gamma, b_gamma])
+    for epoch in xrange(MAX_EPOCHS):
+
+        # ELBO computation
+        _, mer, lb, mu_out, beta_out, a__out, b_out  = sess.run([train, merged, LB, m_mu, beta_mu, a_gamma, b_gamma])
+        print('Epoch {}: Mean={} Precision={} ELBO={}'.format(epoch, mu_out, a_out/b_out, lb))
         run_calls += 1
         file_writer.add_summary(mer, run_calls)
-        if epoch > 0:
-            inc = (old_lb-lb)/old_lb*100
-            printf('Epoch {}: Mu={} Precision={} ELBO={} Inc={}'.format(epoch, m_mu_out, a_gamma_out/b_gamma_out, lb, inc))
-        else:
-            printf('Epoch {}: Mu={} Precision={} ELBO={}'.format(epoch, m_mu_out, a_gamma_out/b_gamma_out, lb))
-        old_lb = lb
-        epoch += 1
+
+        # Break condition
+		if epoch > 0: 
+			if abs(lb-old_lb) < THRESHOLD:
+				break
+		old_lb = lb
