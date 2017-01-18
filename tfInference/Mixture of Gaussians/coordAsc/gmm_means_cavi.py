@@ -7,7 +7,6 @@ import pickle as pkl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-DEBUG = True
 MAX_EPOCHS = 100
 DATASET = 'data_k2_100.pkl'
 K = 2
@@ -39,15 +38,19 @@ with open('../../../data/{}'.format(DATASET), 'r') as inputfile:
 plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']), cmap=cm.bwr)
 plt.show()
 
-# Configurations
 N, D = xn.shape
-alpha_aux = [1.0, 1.0]
-alpha = tf.convert_to_tensor([alpha_aux], dtype=tf.float64)
+
+# Model hyperparameters
+alpha_aux = [1.0]*K
 m_o_aux = np.array([0.0, 0.0])
-m_o = tf.convert_to_tensor([list(m_o_aux)], dtype=tf.float64)
 beta_o_aux = 0.01
-beta_o = tf.convert_to_tensor(beta_o_aux, dtype=tf.float64)
-Delta_o_aux = np.array([[1.0, 0.0], [0.0, 1.0]])
+Delta_o_aux = np.zeros((D, D), long)
+np.fill_diagonal(Delta_o_aux, 1)
+
+# Configurations
+alpha = tf.convert_to_tensor([alpha_aux], dtype=tf.float64)
+m_o = tf.convert_to_tensor([list(m_o_aux)], dtype=tf.float64)
+beta_o = tf.convert_to_tensor(beta_o_aux, dtype=tf.float64) 
 Delta_o = tf.convert_to_tensor(Delta_o_aux , dtype=tf.float64)
 
 # Initializations
@@ -100,15 +103,15 @@ phi_tmp = []
 for n in xrange(N):
 	k_list = []
 	for k in xrange(K):
-		c2 = tf.reshape(tf.sub(xn_tf[n,:], lambda_mu_m[k,:]), [1, K])
-		c3 = tf.matmul(Delta_o, tf.reshape(tf.transpose(tf.sub(xn_tf[n,:], lambda_mu_m[k,:])), [K,1]))
+		c2 = tf.reshape(tf.sub(xn_tf[n,:], lambda_mu_m[k,:]), [1, D])
+		c3 = tf.matmul(Delta_o, tf.reshape(tf.transpose(tf.sub(xn_tf[n,:], lambda_mu_m[k,:])), [D,1]))
 		c4 = tf.mul(tf.cast(-1/2., tf.float64), tf.matmul(c2, c3))
 		c5 = tf.div(tf.cast(D, tf.float64), tf.mul(tf.cast(2., tf.float64), lambda_mu_beta[k]))
 		k_list.append(tf.add(c1[k], tf.sub(c4, c5)))
 	phi_tmp.append(tf.reshape(tf_exp_normalize(tf.pack(k_list)), [K,1]))
 assign_phi = phi.assign(tf.reshape(tf.pack(phi_tmp), [N, K]))
 assign_lambda_mu_beta = lambda_mu_beta.assign(tf.add(beta_o, tf.reduce_sum(phi, axis=0)))
-d1 = tf.transpose(tf.reshape(tf.tile(tf.div(tf.cast(1., tf.float64), lambda_mu_beta), [K]), [K,K]))
+d1 = tf.transpose(tf.reshape(tf.tile(tf.div(tf.cast(1., tf.float64), lambda_mu_beta), [D]), [D,K]))
 d2 = tf.add(tf.mul(m_o, beta_o), tf.matmul(tf.transpose(phi), xn_tf))
 assign_lambda_mu_m = lambda_mu_m.assign(tf.mul(d1, d2))
 
