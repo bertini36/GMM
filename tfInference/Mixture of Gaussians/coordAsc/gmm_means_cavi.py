@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 MAX_EPOCHS = 100
-DATASET = 'data_k2_100.pkl'
-K = 2
+DATASET = 'data_k8_100.pkl'
+K = 8
 THRESHOLD = 1e-6
 
 # np.random.seed(7)
@@ -35,7 +35,7 @@ with open('../../../data/{}'.format(DATASET), 'r') as inputfile:
 	xn = data['xn']
 	xn_tf = tf.convert_to_tensor(xn , dtype=tf.float64)
 
-plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']), cmap=cm.bwr)
+plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']), cmap=cm.gist_rainbow)
 plt.show()
 
 N, D = xn.shape
@@ -47,7 +47,7 @@ beta_o_aux = 0.01
 Delta_o_aux = np.zeros((D, D), long)
 np.fill_diagonal(Delta_o_aux, 1)
 
-# Configurations
+# TF castings
 alpha = tf.convert_to_tensor([alpha_aux], dtype=tf.float64)
 m_o = tf.convert_to_tensor([list(m_o_aux)], dtype=tf.float64)
 beta_o = tf.convert_to_tensor(beta_o_aux, dtype=tf.float64) 
@@ -149,5 +149,5 @@ with tf.Session() as sess:
 				break
 		old_lb = lb
 
-	plt.scatter(xn[:,0], xn[:,1], c=np.array(1*[np.random.choice(K, 1, p=phi_out[n,:])[0] for n in xrange(N)]), cmap=cm.bwr)
+	plt.scatter(xn[:,0], xn[:,1], c=np.array(1*[np.random.choice(K, 1, p=phi_out[n,:])[0] for n in xrange(N)]), cmap=cm.gist_rainbow)
 	plt.show()
