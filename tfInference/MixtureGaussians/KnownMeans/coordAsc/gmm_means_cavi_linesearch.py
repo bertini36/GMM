@@ -1,5 +1,10 @@
 # -*- coding: UTF-8 -*-
 
+"""
+Coordinate Ascent Variational Inference with linesearch process to 
+approximate a Mixture of Gaussians with common variance for all classes
+"""
+
 import math
 import numpy as np
 import tensorflow as tf

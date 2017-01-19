@@ -1,5 +1,10 @@
 # -*- coding: UTF-8 -*-
 
+"""
+Coordinate Ascent Variational Inference process to approximate a Mixture
+of Gaussians with common variance for all classes
+"""
+
 import math
 import numpy as np
 import tensorflow as tf
@@ -8,8 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 MAX_EPOCHS = 100
-DATASET = 'data_k8_100.pkl'
-K = 8
+DATASET = 'data_k2_100.pkl'
+K = 2
 THRESHOLD = 1e-6
 
 # np.random.seed(7)
