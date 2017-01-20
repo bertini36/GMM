@@ -137,6 +137,7 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
 	sess.run(init)
 	alpha = 1e10
+	lbs = []
 	for i in xrange(MAX_ITERS):
 
 		# Parameter updates with individual learning rates
@@ -154,11 +155,11 @@ with tf.Session() as sess:
 
 		# Break condition
 		if i > 0: 
-			if abs(lb-old_lb) < THRESHOLD:
+			if abs(lb-lbs[i-1]) < THRESHOLD:
 				if args.getNIter:
 					n_iters = i + 1
 				break
-		old_lb = lb
+		lbs.append(lb)
 
 if args.timing:
 	final_time = time()
@@ -169,4 +170,4 @@ if args.getNIter:
 	print('Iterations: {}'.format(n_iters))
 
 if args.getELBO:
-	print('ELBO: {}'.format(lb))
+	print('ELBOs: {}'.format(lbs))
