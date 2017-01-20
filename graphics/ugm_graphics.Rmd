@@ -1,0 +1,39 @@
+---
+title: "Univariate Gaussian inferences comparison"
+author: "Alberto Pou Quirós"
+date: "20 de enero de 2017"
+output: html_document
+---
+
+This document shows the comparison between the Univariate Gaussian inference with Coordinate Ascend Variational Inference and with Gradient Ascent variational inference.
+
+```{r, echo=FALSE, fig.align="center"}
+path <- "/home/alberto/Dropbox/BSC/GMM/"
+data <- read.csv(paste(path, "timing/ugm_times.csv", sep=""), header=TRUE, sep=";")
+View(data)
+x <- data$Dataset.size[data$Inference.type == "coordAsc/ugm_cavi"]
+
+# Time comparison graphic
+y1 <- data$Time[data$Inference.type == "coordAsc/ugm_cavi"]
+y2 <- data$Time[data$Inference.type == "gradAsc/ugm_gavi"]
+plot(x, y1, type="b", main="Time comparison", xlab="Dataset size (100, 500, 1000)", 
+     ylab="Time (seconds)", ylim=range(c(y1,y2)), col="blue")
+lines(x, y2, type="b", col="green")
+legend("topright", legend=c("CAVI", "GAVI"), col=c("blue", "green"), lty=1:2, cex=0.8, title="Inference types", text.font=4)
+
+# Iterations comparison graphic
+y1 <- data$Iterations[data$Inference.type == "coordAsc/ugm_cavi"]
+y2 <- data$Iterations[data$Inference.type == "gradAsc/ugm_gavi"]
+plot(x, y1, type="b", main="Iterations comparison", xlab="Dataset size (100, 500, 1000)", 
+     ylab="Iterations", ylim=range(c(y1,y2)), col="blue")
+lines(x, y2, type="b", col="green")
+legend("topright", legend=c("CAVI", "GAVI"), col=c("blue", "green"), lty=1:2, cex=0.8, title="Inference types", text.font=4)
+
+# ELBO comparison graphic 
+y1 <- data$ELBO[data$Inference.type == "coordAsc/ugm_cavi"]
+y2 <- data$ELBO[data$Inference.type == "gradAsc/ugm_gavi"]
+plot(x, y1, type="b", main="ELBO comparison", xlab="Dataset size (100, 500, 1000)", 
+     ylab="ELBO values", ylim=range(c(y1,y2)), col="blue")
+lines(x, y2, type="b", col="green")
+legend("topright", legend=c("CAVI", "GAVI"), col=c("blue", "green"), lty=1:2, cex=0.8, title="Inference types", text.font=4)
+```
