@@ -6,16 +6,40 @@ approximate a Mixture of Gaussians with common variance for all classes
 """
 
 import math
+import argparse
 import numpy as np
-import tensorflow as tf
 import pickle as pkl
-import matplotlib.pyplot as plt
+from time import time
+import tensorflow as tf
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 
-DEBUG = True
-MAX_EPOCHS = 100
-DATASET = 'data_k2_100.pkl'
-K = 2
+parser = argparse.ArgumentParser(description='CAVI with Linesearch in Mixture of Gaussians')
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
+parser.add_argument('-dataset', metavar='dataset', type=str, default='../../../../data/data_k2_100.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
+parser.add_argument('--timing', dest='timing', action='store_true')
+parser.add_argument('--no-timing', dest='timing', action='store_false')
+parser.set_defaults(timing=False)
+parser.add_argument('--getNIter', dest='getNIter', action='store_true')
+parser.add_argument('--no-getNIter', dest='getNIter', action='store_false')
+parser.set_defaults(getNIter=False)
+parser.add_argument('--getELBO', dest='getELBO', action='store_true')
+parser.add_argument('--no-getELBO', dest='getELBO', action='store_false')
+parser.set_defaults(getELBO=False)
+parser.add_argument('--debug', dest='debug', action='store_true')
+parser.add_argument('--no-debug', dest='debug', action='store_false')
+parser.set_defaults(debug=True)
+parser.add_argument('--plot', dest='plot', action='store_true')
+parser.add_argument('--no-plot', dest='plot', action='store_false')
+parser.set_defaults(plot=True)
+args = parser.parse_args()
+
+if args.timing:
+	init_time = time() 
+
+MAX_ITERS = args.maxIter
+K = args.k
 THRESHOLD =  1e-6
 
 # np.random.seed(7)
@@ -36,13 +60,14 @@ def tf_exp_normalize(aux):
 				  tf.reduce_sum(tf.add(tf.exp(tf.sub(aux, tf.reduce_max(aux))), np.finfo(np.float32).eps)))
 
 # Get data
-with open('../../../data/{}'.format(DATASET), 'r') as inputfile:
+with open('{}'.format(args.dataset), 'r') as inputfile:
 	data = pkl.load(inputfile)
 	xn = data['xn']
 	xn_tf = tf.convert_to_tensor(xn , dtype=tf.float64)
 
-plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']), cmap=cm.gist_rainbow)
-plt.show()
+if args.plot:
+	plt.scatter(xn[:,0],xn[:,1], c=(1.*data['zn'])/max(data['zn']), cmap=cm.gist_rainbow)
+	plt.show()
 
 N, D = xn.shape
 
@@ -178,7 +203,7 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
 	sess.run(init)
 	alpha_step = 1e10
-	for epoch in xrange(MAX_EPOCHS):
+	for i in xrange(MAX_ITERS):
 
 		# Parameter updates with individual learning rates
 		compute_learning_rate(lambda_pi_var, alpha_step)
@@ -188,15 +213,30 @@ with tf.Session() as sess:
 		
 		# ELBO computation
 		mer, lb, pi_out, phi_out, mu_out, beta_out = sess.run([merged, LB, lambda_pi, phi, lambda_mu_m, lambda_mu_beta])
-		print('Epoch {}: Mus={} Precision={} Pi={} ELBO={}'.format(epoch, mu_out, beta_out, pi_out, lb))
+		if args.debug:
+			print('Iter {}: Mus={} Precision={} Pi={} ELBO={}'.format(i, mu_out, beta_out, pi_out, lb))
 		run_calls += 1
 		file_writer.add_summary(mer, run_calls)
 
 		# Break condition
-		if epoch > 0: 
+		if i > 0: 
 			if abs(lb-old_lb) < THRESHOLD:
+				if args.getNIter:
+					n_iters = i + 1
 				break
 		old_lb = lb
 
-	plt.scatter(xn[:,0], xn[:,1], c=np.array(1*[np.random.choice(K, 1, p=phi_out[n,:])[0] for n in xrange(N)]), cmap=cm.gist_rainbow)
-	plt.show()
+	if args.plot:
+		plt.scatter(xn[:,0], xn[:,1], c=np.array(1*[np.random.choice(K, 1, p=phi_out[n,:])[0] for n in xrange(N)]), cmap=cm.gist_rainbow)
+		plt.show()
+
+if args.timing:
+	final_time = time()
+	exec_time = final_time - init_time
+	print('Time: {} seconds'.format(exec_time))
+
+if args.getNIter:
+	print('Iterations: {}'.format(n_iters))
+
+if args.getELBO:
+	print('ELBO: {}'.format(lb))

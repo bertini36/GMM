@@ -15,21 +15,26 @@ import tensorflow as tf
 
 parser = argparse.ArgumentParser(description='CAVI in Univariate Gaussian')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
+parser.add_argument('-nElements', metavar='nElements', type=int, default=100)
 parser.add_argument('--timing', dest='timing', action='store_true')
 parser.add_argument('--no-timing', dest='timing', action='store_false')
-parser.set_defaults(feature=False)
+parser.set_defaults(timing=False)
 parser.add_argument('--getNIter', dest='getNIter', action='store_true')
 parser.add_argument('--no-getNIter', dest='getNIter', action='store_false')
-parser.set_defaults(feature=False)
+parser.set_defaults(getNIter=False)
+parser.add_argument('--getELBO', dest='getELBO', action='store_true')
+parser.add_argument('--no-getELBO', dest='getELBO', action='store_false')
+parser.set_defaults(getELBO=False)
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
-parser.set_defaults(feature=True)
+parser.set_defaults(debug=True)
 args = parser.parse_args()
 
 if args.timing:
 	init_time = time() 
 
-N = 100
+N = args.nElements
+MAX_ITERS = args.maxIter
 DATA_MEAN = 7
 THRESHOLD =  1e-6
 
@@ -94,7 +99,7 @@ run_calls = 0
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
 	sess.run(init)
-	for i in xrange(args.maxIter):
+	for i in xrange(MAX_ITERS):
 
 		# Parameter updates
 		sess.run([assign_m_mu, assign_beta_mu, assign_a_gamma])
@@ -123,3 +128,6 @@ if args.timing:
 
 if args.getNIter:
 	print('Iterations: {}'.format(n_iters))
+
+if args.getELBO:
+	print('ELBO: {}'.format(lb))
