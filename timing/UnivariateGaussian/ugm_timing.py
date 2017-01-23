@@ -18,7 +18,7 @@ def main():
             ['Inference type', 'Dataset size', 'Time', 'Iterations', 'ELBO'])
 
         inferences = ['coordAsc/ugm_cavi', 'gradAsc/ugm_gavi']
-        nelements = [100, 500, 1000]
+        nelements = [100, 500, 1000, 2000, 4000]
         iterations = 10
 
         for inference in inferences:
