@@ -179,12 +179,12 @@ def compute_learning_rate(var, alpha_step):
         sess.run(assign_op)
         fxgrad = sess.run(-LB)
 
+    tmp_grad = sess.run(tf.sqrt(tf.reduce_sum(tf.square(tmp_grad))))
     m = tmp_grad ** 2
     c = 0.5
     tau = 0.2
-    maximum = sess.run(tf.reduce_max(m))
 
-    while fxgrad >= fx - alpha_step * c * maximum:
+    while fxgrad >= fx - alpha_step * c * m:
         alpha_step *= tau
         tmp_mod = tmp_var - alpha_step * tmp_grad
         assign_op = var.assign(tmp_mod)

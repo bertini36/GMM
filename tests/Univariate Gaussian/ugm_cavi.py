@@ -18,7 +18,7 @@ m_mu = np.random.normal(m, (beta) ** (-1.), 1)[0]
 beta_mu = np.random.gamma(a_gamma, b_gamma, 1)[0]
 
 
-def lowerbound(m_mu, beta_mu, a_gamma, g_gamma):
+def lowerbound(m_mu, beta_mu, a_gamma, b_gamma):
     LB = 0
     LB += 1. / 2 * np.log(beta / beta_mu) + 1. / 2 * (
     m_mu ** 2 + 1. / beta_mu) * (beta_mu - beta) - m_mu * (

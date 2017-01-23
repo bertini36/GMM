@@ -1,5 +1,9 @@
 # -*- coding: UTF-8 -*-
 
+"""
+Script to time different Mixture of Gaussians inferences
+"""
+
 import csv
 import subprocess
 
@@ -7,9 +11,6 @@ PATH = '../../tfInference/MixtureGaussians/KnownMeans/'
 
 
 def main():
-    """
-    Script to time different Mixture of Gaussians inferences
-    """
     with open('csv/gmm_means_times.csv', 'wb') as csvfile:
 
         writer = csv.writer(csvfile, delimiter=';')
@@ -31,7 +32,8 @@ def main():
                     for i in xrange(iterations):
                         output = subprocess.check_output(
                             ['python', script, '-dataset',
-                             '../../data/data_k{}_{}.pkl'.format(str(k), str(nelem)),
+                             '../../data/data_k{}_{}.pkl'
+                                 .format(str(k), str(nelem)),
                              '-k', str(k), '--timing', '--getNIter',
                              '--getELBO', '--no-debug', '--no-plot'])
                         time = output.split('\n')[0]
@@ -45,9 +47,9 @@ def main():
                         total_time += time
                         total_iters += iters
                         total_elbos += elbo
-                    writer.writerow([inference, nelem, k, total_time / iterations,
-                                     total_iters / iterations,
-                                     total_elbos / iterations])
+                    writer.writerow([inference, nelem, k, total_time/iterations,
+                                     total_iters/iterations,
+                                     total_elbos/iterations])
 
             with open('csv/{}_elbos_1000.csv'
                       .format(inference.split('/')[1]),

@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
 
 """
-Coordinate Ascent Variational Inference process to approximate an
-Univariate Gaussian
+Coordinate Ascent Variational Inference
+process to approximate an Univariate Gaussian
 """
 
 import math

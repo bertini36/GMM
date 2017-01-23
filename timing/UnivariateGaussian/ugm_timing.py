@@ -1,5 +1,9 @@
 # -*- coding: UTF-8 -*-
 
+"""
+Script to time different Univariate Gaussian inferences
+"""
+
 import csv
 import subprocess
 
@@ -7,9 +11,6 @@ PATH = '../../tfInference/UnivariateGaussian/'
 
 
 def main():
-    """
-    Script to time different Univariate Gaussian inferences
-    """
     with open('csv/ugm_times.csv', 'wb') as csvfile:
 
         writer = csv.writer(csvfile, delimiter=';')
