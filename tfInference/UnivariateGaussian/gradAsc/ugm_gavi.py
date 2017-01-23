@@ -11,8 +11,6 @@ import numpy as np
 from time import time
 import tensorflow as tf
 
-# np.random.seed(42)
-
 parser = argparse.ArgumentParser(description='GAVI in Univariate Gaussian')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-nElements', metavar='nElements', type=int, default=100)
@@ -31,7 +29,7 @@ parser.set_defaults(debug=True)
 args = parser.parse_args()
 
 if args.timing:
-	init_time = time() 
+    init_time = time()
 
 N = args.nElements
 MAX_ITERS = args.maxIter
@@ -55,8 +53,10 @@ b_gamma_ini = np.random.gamma(1, 1, 1)[0]
 # Variational parameters
 a_gamma_var = tf.Variable(a_gamma_ini, dtype=tf.float64)
 b_gamma_var = tf.Variable(b_gamma_ini, dtype=tf.float64)
-m_mu = tf.Variable(np.random.normal(0., (0.0001)**(-1.), 1)[0], dtype=tf.float64)
-beta_mu_var = tf.Variable(np.random.gamma(a_gamma_ini, b_gamma_ini, 1)[0], dtype=tf.float64)
+m_mu = tf.Variable(np.random.normal(0., (0.0001) ** (-1.), 1)[0],
+                   dtype=tf.float64)
+beta_mu_var = tf.Variable(np.random.gamma(a_gamma_ini, b_gamma_ini, 1)[0],
+                          dtype=tf.float64)
 
 # Maintain numerical stability
 a_gamma = tf.nn.softplus(a_gamma_var)
@@ -64,27 +64,45 @@ b_gamma = tf.nn.softplus(b_gamma_var)
 beta_mu = tf.nn.softplus(beta_mu_var)
 
 # Lower Bound definition
-LB = tf.mul(tf.cast(1./2, tf.float64), tf.log(tf.div(beta, beta_mu)))
-LB = tf.add(LB, tf.mul(tf.mul(tf.cast(1./2, tf.float64), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))), tf.sub(beta_mu, beta)))
+LB = tf.mul(tf.cast(1. / 2, tf.float64), tf.log(tf.div(beta, beta_mu)))
+LB = tf.add(LB, tf.mul(tf.mul(tf.cast(1. / 2, tf.float64),
+                              tf.add(tf.pow(m_mu, 2),
+                                     tf.div(tf.cast(1., tf.float64), beta_mu))),
+                       tf.sub(beta_mu, beta)))
 LB = tf.sub(LB, tf.mul(m_mu, tf.sub(tf.mul(beta_mu, m_mu), tf.mul(beta, m))))
-LB = tf.add(LB, tf.mul(tf.cast(1./2, tf.float64), tf.sub(tf.mul(beta_mu, tf.pow(m_mu, 2)), tf.mul(beta, tf.pow(m, 2)))))
+LB = tf.add(LB, tf.mul(tf.cast(1. / 2, tf.float64),
+                       tf.sub(tf.mul(beta_mu, tf.pow(m_mu, 2)),
+                              tf.mul(beta, tf.pow(m, 2)))))
 
 LB = tf.add(LB, tf.mul(a, tf.log(b)))
 LB = tf.sub(LB, tf.mul(a_gamma, tf.log(b_gamma)))
 LB = tf.add(LB, tf.lgamma(a_gamma))
 LB = tf.sub(LB, tf.lgamma(a))
-LB = tf.add(LB, tf.mul(tf.sub(tf.digamma(a_gamma), tf.log(b_gamma)), tf.sub(a, a_gamma)))
+LB = tf.add(LB, tf.mul(tf.sub(tf.digamma(a_gamma), tf.log(b_gamma)),
+                       tf.sub(a, a_gamma)))
 LB = tf.add(LB, tf.mul(tf.div(a_gamma, b_gamma), tf.sub(b_gamma, b)))
 
-LB = tf.add(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.sub(tf.digamma(a_gamma), tf.log(b_gamma))))
-LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.log(tf.mul(tf.cast(2., tf.float64), math.pi))))
-LB = tf.sub(LB, tf.mul(tf.cast(1./2, tf.float64), tf.mul(tf.div(a_gamma, b_gamma), tf.reduce_sum(tf.pow(xn, 2)))))
-LB = tf.add(LB, tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)))
-LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)), tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu)))))
+LB = tf.add(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
+                       tf.sub(tf.digamma(a_gamma), tf.log(b_gamma))))
+LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
+                       tf.log(tf.mul(tf.cast(2., tf.float64), math.pi))))
+LB = tf.sub(LB, tf.mul(tf.cast(1. / 2, tf.float64),
+                       tf.mul(tf.div(a_gamma, b_gamma),
+                              tf.reduce_sum(tf.pow(xn, 2)))))
+LB = tf.add(LB,
+            tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)))
+LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
+                       tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2),
+                                                               tf.div(
+                                                                   tf.cast(1.,
+                                                                           tf.float64),
+                                                                   beta_mu)))))
 
 # Optimizer definition
 optimizer = tf.train.AdamOptimizer(learning_rate=LR)
-grads_and_vars = optimizer.compute_gradients(-LB, var_list=[a_gamma_var, b_gamma_var, m_mu, beta_mu_var])
+grads_and_vars = optimizer.compute_gradients(-LB,
+                                             var_list=[a_gamma_var, b_gamma_var,
+                                                       m_mu, beta_mu_var])
 train = optimizer.apply_gradients(grads_and_vars)
 
 # Summaries definition
@@ -99,32 +117,35 @@ run_calls = 0
 # Main program
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
-	sess.run(init)
-	lbs = []
-	for i in xrange(MAX_ITERS):
+    sess.run(init)
+    lbs = []
+    for i in xrange(MAX_ITERS):
 
-		# ELBO computation
-		_, mer, lb, mu_out, beta_out, a_out, b_out  = sess.run([train, merged, LB, m_mu, beta_mu, a_gamma, b_gamma])
-		if args.debug:
-			print('Iter {}: Mean={} Precision={} ELBO={}'.format(i, mu_out, a_out/b_out, lb))
-		run_calls += 1
-		file_writer.add_summary(mer, run_calls)
+        # ELBO computation
+        _, mer, lb, mu_out, beta_out, a_out, b_out = sess.run(
+            [train, merged, LB, m_mu, beta_mu, a_gamma, b_gamma])
+        if args.debug:
+            print('Iter {}: Mean={} Precision={} ELBO={}'.format(i, mu_out,
+                                                                 a_out / b_out,
+                                                                 lb))
+        run_calls += 1
+        file_writer.add_summary(mer, run_calls)
 
-		# Break condition
-		if i > 0: 
-			if abs(lb-lbs[i-1]) < THRESHOLD:
-				if args.getNIter:
-					n_iters = i + 1
-				break
-		lbs.append(lb)
+        # Break condition
+        if i > 0:
+            if abs(lb - lbs[i - 1]) < THRESHOLD:
+                if args.getNIter:
+                    n_iters = i + 1
+                break
+        lbs.append(lb)
 
 if args.timing:
-	final_time = time()
-	exec_time = final_time - init_time
-	print('Time: {} seconds'.format(exec_time))
+    final_time = time()
+    exec_time = final_time - init_time
+    print('Time: {} seconds'.format(exec_time))
 
 if args.getNIter:
-	print('Iterations: {}'.format(n_iters))
+    print('Iterations: {}'.format(n_iters))
 
 if args.getELBO:
-	print('ELBOs: {}'.format(lbs))
+    print('ELBOs: {}'.format(lbs))
