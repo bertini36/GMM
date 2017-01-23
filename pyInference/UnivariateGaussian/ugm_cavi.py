@@ -28,35 +28,26 @@ parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=True)
 args = parser.parse_args()
 
-if args.timing:
-    init_time = time()
-
 N = args.nElements
 MAX_ITERS = args.maxIter
 DATA_MEAN = 7
 THRESHOLD = 1e-6
 
-# Model hyperparameters
-m = 0.
-beta = 0.0001
-a = 0.001
-b = 0.001
 
-
-def ELBO(xn, m_mu, beta_mu, a_gamma, b_gamma):
-    LB = 0
-    LB += 1. / 2 * np.log(beta / beta_mu) + 1. / 2 * (
-    m_mu ** 2 + 1. / beta_mu) * (beta_mu - beta) - m_mu * (
+def elbo(xn, m, beta, a, b, m_mu, beta_mu, a_gamma, b_gamma):
+    lb = 0
+    lb += 1. / 2 * np.log(beta / beta_mu) + 1. / 2 * (
+        m_mu ** 2 + 1. / beta_mu) * (beta_mu - beta) - m_mu * (
         beta_mu * m_mu - beta * m) + 1. / 2 * (
-    beta_mu * m_mu ** 2 - beta * m ** 2)
-    LB += a * np.log(b) - a_gamma * np.log(b_gamma) + gammaln(
+        beta_mu * m_mu ** 2 - beta * m ** 2)
+    lb += a * np.log(b) - a_gamma * np.log(b_gamma) + gammaln(
         a_gamma) - gammaln(a) + (psi(a_gamma) - np.log(b_gamma)) * (
         a - a_gamma) + a_gamma / b_gamma * (b_gamma - b)
-    LB += N / 2. * (psi(a_gamma) - np.log(b_gamma)) - N / 2. * np.log(
+    lb += N / 2. * (psi(a_gamma) - np.log(b_gamma)) - N / 2. * np.log(
         2 * math.pi) - 1. / 2 * a_gamma / b_gamma * sum(
         xn ** 2) + a_gamma / b_gamma * sum(
         xn) * m_mu - N / 2. * a_gamma / b_gamma * (m_mu ** 2 + 1. / beta_mu)
-    return LB
+    return lb
 
 
 def dirichlet_expectation(alpha):
@@ -76,8 +67,17 @@ def log_beta_function(x):
 
 
 def main():
+    if args.timing:
+        init_time = time()
+
     # Data generation
     xn = np.random.normal(DATA_MEAN, 1, N)
+
+    # Model hyperparameters
+    m = 0.
+    beta = 0.0001
+    a = 0.001
+    b = 0.001
 
     # Variational parameters
     a_gamma = np.random.gamma(1, 1, 1)[0]
@@ -97,11 +97,10 @@ def main():
             m_mu ** 2 + 1. / beta_mu)
 
         # ELBO computation
-        lb = ELBO(xn, m_mu, beta_mu, a_gamma, b_gamma)
+        lb = elbo(xn, m, beta, a, b, m_mu, beta_mu, a_gamma, b_gamma)
         if args.debug:
-            print('Iter {}: Mu={} Precision={} ELBO={}'.format(i, m_mu,
-                                                               a_gamma / b_gamma,
-                                                               lb))
+            print('Iter {}: Mu={} Precision={} ELBO={}'
+                  .format(i, m_mu, a_gamma / b_gamma, lb))
 
         # Break condition
         if i > 0:
