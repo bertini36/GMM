@@ -46,11 +46,11 @@ def main():
                                  total_iters / iterations,
                                  total_elbos / iterations])
 
-            with open('csv/{}_elbos_1000.csv'
+            with open('csv/{}_elbos_500.csv'
                       .format(inference.split('/')[1]),
                       'wb') as csvfile2:
                 output = subprocess.check_output(
-                    ['python', script, '-nElements', str(nelements[2]),
+                    ['python', script, '-nElements', str(nelements[1]),
                      '--getELBO', '--no-debug'])
                 elbos = ((output.split(': [')[1]).split(']')[0]).split(', ')
                 writer2 = csv.writer(csvfile2, delimiter=';')

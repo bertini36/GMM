@@ -14,13 +14,12 @@ def main():
     with open('csv/gmm_means_times.csv', 'wb') as csvfile:
 
         writer = csv.writer(csvfile, delimiter=';')
-        writer.writerow(
-            ['Inference type', 'Dataset size', 'K', 'Time', 'Iterations',
-             'ELBO'])
+        writer.writerow(['Inference type', 'Dataset size',
+                         'K', 'Time', 'Iterations', 'ELBO'])
 
         inferences = ['coordAsc/gmm_means_cavi', 'gradAsc/gmm_means_gavi']
         nelements = [100, 500, 1000]
-        iterations = 10
+        iterations = 1
 
         for inference in inferences:
             for nelem in nelements:
@@ -36,30 +35,31 @@ def main():
                                  .format(str(k), str(nelem)),
                              '-k', str(k), '--timing', '--getNIter',
                              '--getELBO', '--no-debug', '--no-plot'])
-                        time = output.split('\n')[0]
-                        time = time.split(': ')[1]
-                        time = float(time.split(' ')[0])
-                        iters = output.split('\n')[1]
-                        iters = int(iters.split(': ')[1])
-                        elbo = output.split('\n')[2]
-                        elbo = elbo.split(': [[')[1]
-                        elbo = float(elbo.split(']]')[0])
+                        time = float(((output.split('\n')[0])
+                                      .split(': ')[1]).split(' ')[0])
+                        iters = int((output.split('\n')[1]).split(': ')[1])
+                        elbos = [float(lb)
+                                 for lb in (((output.split('\n')[2])
+                                             .split('[')[1]).split(']')[0])
+                                     .split(',')]
                         total_time += time
                         total_iters += iters
-                        total_elbos += elbo
+                        total_elbos += elbos[-1]
                     writer.writerow([inference, nelem, k, total_time/iterations,
                                      total_iters/iterations,
                                      total_elbos/iterations])
 
-            with open('csv/{}_elbos_1000.csv'
+            with open('csv/{}_elbos_500.csv'
                       .format(inference.split('/')[1]),
                       'wb') as csvfile2:
                 output = subprocess.check_output(
                     ['python', script, '-dataset',
-                     '../../data/data_k{}_1000.pkl'.format(str(2)),
-                     '--getELBO', '--no-debug'])
-                elbos = ((output.split(': [')[1]).split(']')[0]).split(
-                    ', ')
+                     '../../data/data_k{}_500.pkl'.format(str(2)),
+                     '--getELBO', '--no-debug', '--no-plot'])
+                elbos = [float(lb)
+                         for lb in (((output.split('\n')[2])
+                                     .split('[')[1]).split(']')[0])
+                             .split(',')]
                 writer2 = csv.writer(csvfile2, delimiter=';')
                 writer2.writerow(['Iteration', 'ELBO'])
                 for i, elbo in enumerate(elbos):

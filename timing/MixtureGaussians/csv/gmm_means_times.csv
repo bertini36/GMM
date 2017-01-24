@@ -1,6 +1,0 @@
-Inference type;Dataset size;K;Time;Iterations;ELBO
-coordAsc/gmm_means_cavi;100;2;63.4256298542;3;-267.04750369
-coordAsc/gmm_means_cavi;100;4;117.647567987;43;-605.66602655
-coordAsc/gmm_means_cavi;100;8;195.271495104;10;-874.36128943
-coordAsc/gmm_means_cavi;500;2;244.051877975;9;-1061.91145364
-coordAsc/gmm_means_cavi;500;4;554.434375048;933;-2446.44999118
