@@ -34,7 +34,7 @@ def main():
                              '../../data/data_k{}_{}.pkl'
                                  .format(str(k), str(nelem)),
                              '-k', str(k), '--timing', '--getNIter',
-                             '--getELBO', '--no-debug', '--no-plot'])
+                             '--getELBOs', '--no-debug', '--no-plot'])
                         time = float(((output.split('\n')[0])
                                       .split(': ')[1]).split(' ')[0])
                         iters = int((output.split('\n')[1]).split(': ')[1])
@@ -55,7 +55,7 @@ def main():
                 output = subprocess.check_output(
                     ['python', script, '-dataset',
                      '../../data/data_k{}_500.pkl'.format(str(2)),
-                     '--getELBO', '--no-debug', '--no-plot'])
+                     '--getELBOs', '--no-debug', '--no-plot'])
                 elbos = [float(lb)
                          for lb in (((output.split('\n')[2])
                                      .split('[')[1]).split(']')[0])

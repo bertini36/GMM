@@ -31,7 +31,7 @@ def main():
                     output = subprocess.check_output(
                         ['python', script, '-nElements',
                          str(nelem), '--timing', '--getNIter',
-                         '--getELBO', '--no-debug'])
+                         '--getELBOs', '--no-debug'])
                     time = float(
                         ((output.split('\n')[0]).split(': ')[1]).split(' ')[0])
                     iters = int((output.split('\n')[1]).split(': ')[1])
@@ -51,7 +51,7 @@ def main():
                       'wb') as csvfile2:
                 output = subprocess.check_output(
                     ['python', script, '-nElements', str(nelements[1]),
-                     '--getELBO', '--no-debug'])
+                     '--getELBOs', '--no-debug'])
                 elbos = ((output.split(': [')[1]).split(']')[0]).split(', ')
                 writer2 = csv.writer(csvfile2, delimiter=';')
                 writer2.writerow(['Iteration', 'ELBO'])

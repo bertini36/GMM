@@ -25,8 +25,8 @@ parser.set_defaults(timing=False)
 parser.add_argument('--getNIter', dest='getNIter', action='store_true')
 parser.add_argument('--no-getNIter', dest='getNIter', action='store_false')
 parser.set_defaults(getNIter=False)
-parser.add_argument('--getELBO', dest='getELBO', action='store_true')
-parser.add_argument('--no-getELBO', dest='getELBO', action='store_false')
+parser.add_argument('--getELBOs', dest='getELBOs', action='store_true')
+parser.add_argument('--no-getELBOs', dest='getELBOs', action='store_false')
 parser.set_defaults(getELBO=False)
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
@@ -207,7 +207,7 @@ def main():
     if args.getNIter:
         print('Iterations: {}'.format(n_iters))
 
-    if args.getELBO:
+    if args.getELBOs:
         print('ELBOs: {}'.format(lbs))
 
 

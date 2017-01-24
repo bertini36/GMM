@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
 
 """
-Coordinate Ascent Variational Inference
-process to approximate Mixture of Gaussians
+Coordinate Ascent Variational Inference process to
+approximate Mixture of Gaussians with known variances
 """
 
 import math
@@ -25,9 +25,9 @@ parser.set_defaults(timing=False)
 parser.add_argument('--getNIter', dest='getNIter', action='store_true')
 parser.add_argument('--no-getNIter', dest='getNIter', action='store_false')
 parser.set_defaults(getNIter=False)
-parser.add_argument('--getELBO', dest='getELBO', action='store_true')
-parser.add_argument('--no-getELBO', dest='getELBO', action='store_false')
-parser.set_defaults(getELBO=False)
+parser.add_argument('--getELBOs', dest='getELBOs', action='store_true')
+parser.add_argument('--no-getELBOs', dest='getELBOs', action='store_false')
+parser.set_defaults(getELBOs=False)
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=True)
@@ -89,6 +89,7 @@ def main():
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
         xn = data['xn']
+    N, D = xn.shape
 
     if args.timing:
         init_time = time()
@@ -97,8 +98,6 @@ def main():
         plt.scatter(xn[:, 0], xn[:, 1], c=(1. * data['zn']) / max(data['zn']),
                     cmap=cm.gist_rainbow, s=5)
         plt.show()
-
-    N, D = xn.shape
 
     # Model hyperparameters
     alpha = [1.0]*K
@@ -163,7 +162,7 @@ def main():
     if args.getNIter:
         print('Iterations: {}'.format(n_iters))
 
-    if args.getELBO:
+    if args.getELBOs:
         print('ELBOs: {}'.format(lbs))
 
 

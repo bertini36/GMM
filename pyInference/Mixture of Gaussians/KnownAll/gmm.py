@@ -1,11 +1,62 @@
 # -*- coding: UTF-8 -*-
 
+"""
+Coordinate Ascent Variational Inference
+process to approximate Mixture of Gaussians
+"""
+
+import argparse
 import numpy as np
 import pickle as pkl
-import argparse
+from time import time
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-from scipy.special import psi
-from utils import dirichlet_expectation, exp_normalize
+from scipy.special import psi, gammaln
+
+parser = argparse.ArgumentParser(description='CAVI in Mixture of Gaussians')
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
+parser.add_argument('-dataset', metavar='dataset',
+                    type=str, default='../../../data/data_k2_100.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
+parser.add_argument('--timing', dest='timing', action='store_true')
+parser.add_argument('--no-timing', dest='timing', action='store_false')
+parser.set_defaults(timing=False)
+parser.add_argument('--getNIter', dest='getNIter', action='store_true')
+parser.add_argument('--no-getNIter', dest='getNIter', action='store_false')
+parser.set_defaults(getNIter=False)
+parser.add_argument('--getELBO', dest='getELBO', action='store_true')
+parser.add_argument('--no-getELBO', dest='getELBO', action='store_false')
+parser.set_defaults(getELBO=False)
+parser.add_argument('--debug', dest='debug', action='store_true')
+parser.add_argument('--no-debug', dest='debug', action='store_false')
+parser.set_defaults(debug=True)
+parser.add_argument('--plot', dest='plot', action='store_true')
+parser.add_argument('--no-plot', dest='plot', action='store_false')
+parser.set_defaults(plot=True)
+args = parser.parse_args()
+
+MAX_ITERS = args.maxIter
+K = args.k
+THRESHOLD = 1e-6
+
+
+def dirichlet_expectation(alpha):
+    if len(alpha.shape) == 1:
+        return psi(alpha + np.finfo(np.float32).eps) - psi(np.sum(alpha))
+    return psi(alpha) - psi(np.sum(alpha, 1))[:, np.newaxis]
+
+
+def exp_normalize(aux):
+    return (np.exp(aux-np.max(aux))+ np.finfo(np.float32).eps) / \
+           (np.sum(np.exp(aux-np.max(aux))+np.finfo(np.float32).eps))
+
+
+def log_beta_function(x):
+    return np.sum(gammaln(x + np.finfo(np.float32).eps)) - \
+           gammaln(np.sum(x + np.finfo(np.float32).eps))
+
+def elbo():
+    pass
 
 
 def initialize(xn, K, alpha, m_o, beta_o, nu_o, Delta_o):
@@ -16,8 +67,8 @@ def initialize(xn, K, alpha, m_o, beta_o, nu_o, Delta_o):
     xk_ = np.tile(1. / Nk, (2, 1)).T * np.dot(phi.T, xn)
     lambda_mu_beta = beta_o + Nk
     lambda_delta_nu = nu_o + Nk
-    lambda_mu_m = np.tile(1. / lambda_mu_beta, (2, 1)).T * (
-        m_o * beta_o + np.dot(phi.T, xn))
+    lambda_mu_m = np.tile(1. / lambda_mu_beta, (2, 1)).T *\
+                  (m_o * beta_o + np.dot(phi.T, xn))
     lambda_delta_W = np.zeros((K, D, D))
     for k in xrange(K):
         S = 1. / Nk[k] * np.dot((xn - xk_[k, :]).T,
@@ -27,45 +78,33 @@ def initialize(xn, K, alpha, m_o, beta_o, nu_o, Delta_o):
             + beta_o * Nk[k] / (beta_o + Nk[k]) * np.dot(
                 np.tile((xk_[k, :] - m_o), (1, 1)).T,
                 np.tile(xk_[k, :] - m_o, (1, 1))))
-
     return lambda_pi, phi, lambda_mu_m, lambda_mu_beta, \
            lambda_delta_nu, lambda_delta_W
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Inference in the gaussian mixture data with unknown means')
-    parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
-    parser.add_argument('-K', metavar='K', type=int, default=2)
-    parser.add_argument('-filename', metavar='filename', type=str,
-                        default="data_means.pkl")
-    parser.add_argument('-alpha', metavar='alpha', nargs='+', type=float,
-                        default=[1.] * 2)
-    parser.add_argument('-m_o', metavar='m_o', nargs='+', type=float,
-                        default=[0., 0.])
-    parser.add_argument('-beta_o', metavar='beta_o', type=float, default=0.01)
-    parser.add_argument('-Delta_o', metavar='Delta_o', nargs='+', type=float,
-                        default=[1., 0., 0., 1.])
-    parser.add_argument('-nu_o', metavar='nu_o', type=float, default=2.)
-    args = parser.parse_args()
-
-    with open('data/' + args.filename, 'r') as inputfile:
+def main():
+    # Get data
+    with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
-    xn = data['xn']
-
-    plt.scatter(xn[:, 0], xn[:, 1], c=(1. * data['zn']) / max(data['zn']))
-    plt.show()
-
+        xn = data['xn']
     N, D = xn.shape
-    K = args.K
+
+    if args.timing:
+        init_time = time()
+
+    if args.plot:
+        plt.scatter(xn[:, 0], xn[:, 1], c=(1. * data['zn']) / max(data['zn']),
+                    cmap=cm.gist_rainbow, s=5)
+        plt.show()
+
     alpha = args.alpha
     m_o = np.array(args.m_o)
     beta_o = args.beta_o
     Delta_o = np.array([args.Delta_o[0:D], args.Delta_o[D:2 * D]])
     nu_o = args.nu_o
 
-    lambda_pi, phi, lambda_mu_m, lambda_mu_beta, lambda_delta_nu, lambda_delta_W = initialize(
-        xn, K, alpha, m_o, beta_o, nu_o, Delta_o)
+    lambda_pi, phi, lambda_mu_m, lambda_mu_beta, lambda_delta_nu,\
+        lambda_delta_W = initialize(xn, K, alpha, m_o, beta_o, nu_o, Delta_o)
 
     for it in xrange(args.maxIter):
         print it
@@ -108,3 +147,6 @@ if __name__ == '__main__':
     plt.scatter(xn[:, 0], xn[:, 1], c=np.array(
         1 * [np.random.choice(K, 1, p=phi[n, :])[0] for n in xrange(N)]))
     plt.show()
+
+
+if __name__ == '__main__': main()
