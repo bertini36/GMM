@@ -28,17 +28,19 @@ parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=True)
 args = parser.parse_args()
 
-if args.timing:
-    init_time = time()
-
 N = args.nElements
 MAX_ITERS = args.maxIter
 DATA_MEAN = 7
 LR = 100.
 THRESHOLD = 1e-6
 
+sess = tf.Session()
+
 # Data generation
 xn = tf.convert_to_tensor(np.random.normal(DATA_MEAN, 1, N), dtype=tf.float64)
+
+if args.timing:
+    init_time = time()
 
 # Model hyperparameters
 m = tf.Variable(0., dtype=tf.float64)
@@ -112,13 +114,14 @@ tf.summary.histogram('a_gamma', a_gamma)
 tf.summary.histogram('b_gamma', b_gamma)
 merged = tf.summary.merge_all()
 file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
-run_calls = 0
 
-# Main program
-init = tf.global_variables_initializer()
-with tf.Session() as sess:
+
+def main():
+    init = tf.global_variables_initializer()
+    run_calls = 0
     sess.run(init)
     lbs = []
+
     for i in xrange(MAX_ITERS):
 
         # ELBO computation
@@ -139,13 +142,17 @@ with tf.Session() as sess:
                 break
         lbs.append(lb)
 
-if args.timing:
-    final_time = time()
-    exec_time = final_time - init_time
-    print('Time: {} seconds'.format(exec_time))
+    if args.timing:
+        final_time = time()
+        exec_time = final_time - init_time
+        print('Time: {} seconds'.format(exec_time))
 
-if args.getNIter:
-    print('Iterations: {}'.format(n_iters))
+    if args.getNIter:
+        print('Iterations: {}'.format(n_iters))
 
-if args.getELBO:
-    print('ELBOs: {}'.format(lbs))
+    if args.getELBO:
+        print('ELBOs: {}'.format(lbs))
+
+
+if __name__ == '__main__': main()
+

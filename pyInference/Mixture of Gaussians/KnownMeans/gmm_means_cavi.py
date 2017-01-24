@@ -85,13 +85,13 @@ def log_beta_function(x):
 
 
 def main():
-    if args.timing:
-        init_time = time()
-
     # Get data
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
         xn = data['xn']
+
+    if args.timing:
+        init_time = time()
 
     if args.plot:
         plt.scatter(xn[:, 0], xn[:, 1], c=(1. * data['zn']) / max(data['zn']),

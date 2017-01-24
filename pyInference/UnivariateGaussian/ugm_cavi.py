@@ -67,11 +67,11 @@ def log_beta_function(x):
 
 
 def main():
-    if args.timing:
-        init_time = time()
-
     # Data generation
     xn = np.random.normal(DATA_MEAN, 1, N)
+
+    if args.timing:
+        init_time = time()
 
     # Model hyperparameters
     m = 0.

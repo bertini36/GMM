@@ -36,16 +36,13 @@ parser.add_argument('--no-plot', dest='plot', action='store_false')
 parser.set_defaults(plot=True)
 args = parser.parse_args()
 
-if args.timing:
-    init_time = time()
-
 MAX_ITERS = args.maxIter
 K = args.k
 LR = 0.01
 THRESHOLD = 1e-6
 
+sess = tf.Session()
 
-# np.random.seed(7)
 
 def tf_log_beta_function(x):
     return tf.sub(tf.reduce_sum(tf.lgamma(tf.add(x, np.finfo(np.float32).eps))),
@@ -72,13 +69,10 @@ with open('{}'.format(args.dataset), 'r') as inputfile:
     data = pkl.load(inputfile)
     xn = data['xn']
     xn_tf = tf.convert_to_tensor(xn, dtype=tf.float64)
-
-if args.plot:
-    plt.scatter(xn[:, 0], xn[:, 1], c=(1. * data['zn']) / max(data['zn']),
-                cmap=cm.gist_rainbow, s=5)
-    plt.show()
-
 N, D = xn.shape
+
+if args.timing:
+    init_time = time()
 
 # Model hyperparameters
 alpha_aux = [1.0] * K
@@ -166,13 +160,20 @@ tf.summary.histogram('lambda_mu_m', lambda_mu_m)
 tf.summary.histogram('lambda_mu_beta', lambda_mu_beta)
 merged = tf.summary.merge_all()
 file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
-run_calls = 0
 
-# Main program
-init = tf.global_variables_initializer()
-with tf.Session() as sess:
+
+def main():
+    if args.plot:
+        plt.scatter(xn[:, 0], xn[:, 1],
+                    c=(1. * data['zn']) / max(data['zn']),
+                    cmap=cm.gist_rainbow, s=5)
+        plt.show()
+
+    run_calls = 0
+    init = tf.global_variables_initializer()
     sess.run(init)
     lbs = []
+
     for i in xrange(MAX_ITERS):
 
         # ELBO computation
@@ -181,10 +182,8 @@ with tf.Session() as sess:
         run_calls += 1
         file_writer.add_summary(mer, run_calls)
         if args.debug:
-            print('Iter {}: Mus={} Precision={} Pi={} ELBO={}'.format(i, mu_out,
-                                                                      beta_out,
-                                                                      pi_out,
-                                                                      lb))
+            print('Iter {}: Mus={} Precision={} Pi={} ELBO={}'
+                  .format(i, mu_out, beta_out, pi_out, lb))
 
         # Break condition
         if i > 0:
@@ -200,13 +199,16 @@ with tf.Session() as sess:
                  xrange(N)]), cmap=cm.gist_rainbow, s=5)
         plt.show()
 
-if args.timing:
-    final_time = time()
-    exec_time = final_time - init_time
-    print('Time: {} seconds'.format(exec_time))
+    if args.timing:
+        final_time = time()
+        exec_time = final_time - init_time
+        print('Time: {} seconds'.format(exec_time))
 
-if args.getNIter:
-    print('Iterations: {}'.format(n_iters))
+    if args.getNIter:
+        print('Iterations: {}'.format(n_iters))
 
-if args.getELBO:
-    print('ELBOs: {}'.format(lbs))
+    if args.getELBO:
+        print('ELBOs: {}'.format(lbs))
+
+
+if __name__ == '__main__': main()
