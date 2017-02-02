@@ -67,56 +67,65 @@ beta_mu = tf.Variable(np.random.gamma(a_gamma_ini, b_gamma_ini, 1)[0],
                       dtype=tf.float64)
 
 # Lower Bound definition
-LB = tf.mul(tf.cast(1. / 2, tf.float64), tf.log(tf.div(beta, beta_mu)))
-LB = tf.add(LB, tf.mul(tf.mul(tf.cast(1. / 2, tf.float64),
-                              tf.add(tf.pow(m_mu, 2),
-                                     tf.div(tf.cast(1., tf.float64), beta_mu))),
-                       tf.sub(beta_mu, beta)))
-LB = tf.sub(LB, tf.mul(m_mu, tf.sub(tf.mul(beta_mu, m_mu), tf.mul(beta, m))))
-LB = tf.add(LB, tf.mul(tf.cast(1. / 2, tf.float64),
-                       tf.sub(tf.mul(beta_mu, tf.pow(m_mu, 2)),
-                              tf.mul(beta, tf.pow(m, 2)))))
+LB = tf.multiply(tf.cast(1. / 2, tf.float64), tf.log(tf.div(beta, beta_mu)))
+LB = tf.add(LB, tf.multiply(tf.multiply(tf.cast(1. / 2, tf.float64),
+                                        tf.add(tf.pow(m_mu, 2),
+                                               tf.div(tf.cast(1., tf.float64),
+                                                      beta_mu))),
+                            tf.subtract(beta_mu, beta)))
+LB = tf.subtract(LB, tf.multiply(m_mu, tf.subtract(tf.multiply(beta_mu, m_mu),
+                                                   tf.multiply(beta, m))))
+LB = tf.add(LB, tf.multiply(tf.cast(1. / 2, tf.float64),
+                            tf.subtract(tf.multiply(beta_mu, tf.pow(m_mu, 2)),
+                                        tf.multiply(beta, tf.pow(m, 2)))))
 
-LB = tf.add(LB, tf.mul(a, tf.log(b)))
-LB = tf.sub(LB, tf.mul(a_gamma, tf.log(b_gamma)))
+LB = tf.add(LB, tf.multiply(a, tf.log(b)))
+LB = tf.subtract(LB, tf.multiply(a_gamma, tf.log(b_gamma)))
 LB = tf.add(LB, tf.lgamma(a_gamma))
-LB = tf.sub(LB, tf.lgamma(a))
-LB = tf.add(LB, tf.mul(tf.sub(tf.digamma(a_gamma), tf.log(b_gamma)),
-                       tf.sub(a, a_gamma)))
-LB = tf.add(LB, tf.mul(tf.div(a_gamma, b_gamma), tf.sub(b_gamma, b)))
+LB = tf.subtract(LB, tf.lgamma(a))
+LB = tf.add(LB, tf.multiply(tf.subtract(tf.digamma(a_gamma), tf.log(b_gamma)),
+                            tf.subtract(a, a_gamma)))
+LB = tf.add(LB, tf.multiply(tf.div(a_gamma, b_gamma), tf.subtract(b_gamma, b)))
 
-LB = tf.add(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
-                       tf.sub(tf.digamma(a_gamma), tf.log(b_gamma))))
-LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
-                       tf.log(tf.mul(tf.cast(2., tf.float64), math.pi))))
-LB = tf.sub(LB, tf.mul(tf.cast(1. / 2, tf.float64),
-                       tf.mul(tf.div(a_gamma, b_gamma),
-                              tf.reduce_sum(tf.pow(xn, 2)))))
 LB = tf.add(LB,
-            tf.mul(tf.div(a_gamma, b_gamma), tf.mul(tf.reduce_sum(xn), m_mu)))
-LB = tf.sub(LB, tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
-                       tf.mul(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2),
-                                                               tf.div(
-                                                                   tf.cast(1.,
-                                                                           tf.float64),
-                                                                   beta_mu)))))
+            tf.multiply(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
+                        tf.subtract(tf.digamma(a_gamma), tf.log(b_gamma))))
+LB = tf.subtract(LB, tf.multiply(
+    tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
+    tf.log(tf.multiply(tf.cast(2., tf.float64), math.pi))))
+LB = tf.subtract(LB, tf.multiply(tf.cast(1. / 2, tf.float64),
+                                 tf.multiply(tf.div(a_gamma, b_gamma),
+                                             tf.reduce_sum(tf.pow(xn, 2)))))
+LB = tf.add(LB,
+            tf.multiply(tf.div(a_gamma, b_gamma),
+                        tf.multiply(tf.reduce_sum(xn), m_mu)))
+LB = tf.subtract(LB, tf.multiply(
+    tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
+    tf.multiply(tf.div(a_gamma, b_gamma), tf.add(tf.pow(m_mu, 2),
+                                                 tf.div(
+                                                     tf.cast(1.,
+                                                             tf.float64),
+                                                     beta_mu)))))
 
 # Parameter updates
-assign_m_mu = m_mu.assign(tf.div(tf.add(tf.mul(beta, m),
-                                        tf.mul(tf.div(a_gamma, b_gamma),
-                                               tf.reduce_sum(xn))),
-                                 tf.add(beta, tf.mul(tf.cast(N, tf.float64),
-                                                     tf.div(a_gamma,
-                                                            b_gamma)))))
+assign_m_mu = m_mu.assign(tf.div(tf.add(tf.multiply(beta, m),
+                                        tf.multiply(tf.div(a_gamma, b_gamma),
+                                                    tf.reduce_sum(xn))),
+                                 tf.add(beta,
+                                        tf.multiply(tf.cast(N, tf.float64),
+                                                    tf.div(a_gamma,
+                                                           b_gamma)))))
 assign_beta_mu = beta_mu.assign(
-    tf.add(beta, tf.mul(tf.cast(N, tf.float64), tf.div(a_gamma, b_gamma))))
+    tf.add(beta, tf.multiply(tf.cast(N, tf.float64), tf.div(a_gamma, b_gamma))))
 assign_a_gamma = a_gamma.assign(
     tf.add(a, tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64))))
 assign_b_gamma = b_gamma.assign(tf.add(b, tf.add(
-    tf.sub(tf.mul(tf.cast(1. / 2, tf.float64), tf.reduce_sum(tf.pow(xn, 2))),
-           tf.mul(m_mu, tf.reduce_sum(xn))),
-    tf.mul(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
-           tf.add(tf.pow(m_mu, 2), tf.div(tf.cast(1., tf.float64), beta_mu))))))
+    tf.subtract(
+        tf.multiply(tf.cast(1. / 2, tf.float64), tf.reduce_sum(tf.pow(xn, 2))),
+        tf.multiply(m_mu, tf.reduce_sum(xn))),
+    tf.multiply(tf.div(tf.cast(N, tf.float64), tf.cast(2., tf.float64)),
+                tf.add(tf.pow(m_mu, 2),
+                       tf.div(tf.cast(1., tf.float64), beta_mu))))))
 
 # Summaries definition
 tf.summary.histogram('m_mu', m_mu)
@@ -128,7 +137,6 @@ file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
 
 
 def main():
-
     if args.plot:
         plt.plot(xn_np, 'go')
         plt.show()

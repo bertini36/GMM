@@ -38,7 +38,7 @@ xn = np.random.normal(7, 1, N)
 
 # Inference
 inference = ed.KLqp({mu: qmu, sigma: qsigma}, data={x: xn})
-inference.run(n_samples=100, n_iter=100000)
+inference.run(n_samples=10, n_iter=100000)
 
 sess = ed.get_session()
 

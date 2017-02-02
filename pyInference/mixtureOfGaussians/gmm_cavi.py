@@ -3,6 +3,7 @@
 """
 Coordinate Ascent Variational Inference
 process to approximate a mixture of gaussians
+[DOING]
 """
 
 import argparse
