@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Mixture of Gaussians data generator with common variance for all classes
+mixtureOfGaussians data generator with common variance for all classes
 """
 
 import math

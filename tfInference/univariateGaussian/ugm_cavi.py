@@ -2,16 +2,19 @@
 
 """
 Coordinate Ascent Variational Inference
-process to approximate an Univariate Gaussian
+process to approximate an univariate gaussian
 """
 
-import math
 import argparse
-import numpy as np
+import math
 from time import time
+
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
 
-parser = argparse.ArgumentParser(description='CAVI in Univariate Gaussian')
+parser = argparse.ArgumentParser(description='CAVI in univariate gaussian')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-nElements', metavar='nElements', type=int, default=100)
 parser.add_argument('--timing', dest='timing', action='store_true')
@@ -26,6 +29,9 @@ parser.set_defaults(getELBOs=False)
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=True)
+parser.add_argument('--plot', dest='plot', action='store_true')
+parser.add_argument('--no-plot', dest='plot', action='store_false')
+parser.set_defaults(plot=True)
 args = parser.parse_args()
 
 N = args.nElements
@@ -36,7 +42,8 @@ THRESHOLD = 1e-6
 sess = tf.Session()
 
 # Data generation
-xn = tf.convert_to_tensor(np.random.normal(DATA_MEAN, 1, N), dtype=tf.float64)
+xn_np = np.random.normal(DATA_MEAN, 1, N)
+xn = tf.convert_to_tensor(xn_np, dtype=tf.float64)
 
 if args.timing:
     init_time = time()
@@ -54,7 +61,7 @@ b_gamma_ini = np.random.gamma(1, 1, 1)[0]
 # Variational parameters
 a_gamma = tf.Variable(a_gamma_ini, dtype=tf.float64)
 b_gamma = tf.Variable(b_gamma_ini, dtype=tf.float64)
-m_mu = tf.Variable(np.random.normal(0., (0.0001) ** (-1.), 1)[0],
+m_mu = tf.Variable(np.random.normal(0., 0.0001 ** (-1.), 1)[0],
                    dtype=tf.float64)
 beta_mu = tf.Variable(np.random.gamma(a_gamma_ini, b_gamma_ini, 1)[0],
                       dtype=tf.float64)
@@ -121,6 +128,11 @@ file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
 
 
 def main():
+
+    if args.plot:
+        plt.plot(xn_np, 'go')
+        plt.show()
+
     init = tf.global_variables_initializer()
     sess.run(init)
     lbs = []
@@ -149,6 +161,10 @@ def main():
                     n_iters = i + 1
                 break
         lbs.append(lb)
+
+    if args.plot:
+        plt.scatter(xn_np, mlab.normpdf(xn_np, mu_out, a_out / b_out), s=5)
+        plt.show()
 
     if args.timing:
         final_time = time()

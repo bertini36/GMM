@@ -1,23 +1,24 @@
 # -*- coding: UTF-8 -*-
 
 """
-Coordinate Ascent Variational Inference process to approximate a Mixture
-of Gaussians with common variance for all classes
+Coordinate Ascent Variational Inference process to approximate a mixture
+of gaussians with common variance for all classes
 """
 
-import math
 import argparse
-import numpy as np
+import math
 import pickle as pkl
 from time import time
-import tensorflow as tf
+
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
 
-parser = argparse.ArgumentParser(description='CAVI in Mixture of Gaussians')
+parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-dataset', metavar='dataset',
-                    type=str, default='../../../../data/data_k2_100.pkl')
+                    type=str, default='../../../data/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--timing', dest='timing', action='store_true')
 parser.add_argument('--no-timing', dest='timing', action='store_false')

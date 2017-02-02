@@ -1,13 +1,13 @@
 # -*- coding: UTF-8 -*-
 
 """
-Script to time different Univariate Gaussian inferences
+Script to time different univariate gaussian inferences
 """
 
 import csv
 import subprocess
 
-PATH = '../../tfInference/UnivariateGaussian/'
+PATH = '../../tfInference/univariateGaussian/'
 
 
 def main():
@@ -17,9 +17,9 @@ def main():
         writer.writerow(
             ['Inference type', 'Dataset size', 'Time', 'Iterations', 'ELBO'])
 
-        inferences = ['coordAsc/ugm_cavi', 'gradAsc/ugm_gavi']
-        nelements = [100, 500, 1000, 2000, 4000]
-        iterations = 10
+        inferences = ['ugm_cavi', 'ugm_gavi']
+        nelements = [100, 500, 1000, 2000]
+        iterations = 1
 
         for inference in inferences:
             script = '{}{}.py'.format(PATH, inference)
@@ -31,7 +31,7 @@ def main():
                     output = subprocess.check_output(
                         ['python', script, '-nElements',
                          str(nelem), '--timing', '--getNIter',
-                         '--getELBOs', '--no-debug'])
+                         '--getELBOs', '--no-debug', '--no-plot'])
                     time = float(
                         ((output.split('\n')[0]).split(': ')[1]).split(' ')[0])
                     iters = int((output.split('\n')[1]).split(': ')[1])
@@ -47,11 +47,11 @@ def main():
                                  total_elbos / iterations])
 
             with open('csv/{}_elbos_500.csv'
-                      .format(inference.split('/')[1]),
+                      .format(inference),
                       'wb') as csvfile2:
                 output = subprocess.check_output(
                     ['python', script, '-nElements', str(nelements[1]),
-                     '--getELBOs', '--no-debug'])
+                     '--getELBOs', '--no-debug', '--no-plot'])
                 elbos = ((output.split(': [')[1]).split(']')[0]).split(', ')
                 writer2 = csv.writer(csvfile2, delimiter=';')
                 writer2.writerow(['Iteration', 'ELBO'])

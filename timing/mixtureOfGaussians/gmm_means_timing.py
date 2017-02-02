@@ -1,13 +1,13 @@
 # -*- coding: UTF-8 -*-
 
 """
-Script to time different Mixture of Gaussians inferences
+Script to time different mixture of gaussians inferences
 """
 
 import csv
 import subprocess
 
-PATH = '../../tfInference/MixtureGaussians/KnownMeans/'
+PATH = '../../tfInference/mixtureOfGaussians/knownPrecisions/'
 
 
 def main():
@@ -17,14 +17,14 @@ def main():
         writer.writerow(['Inference type', 'Dataset size',
                          'K', 'Time', 'Iterations', 'ELBO'])
 
-        inferences = ['coordAsc/gmm_means_cavi', 'gradAsc/gmm_means_gavi']
-        nelements = [100, 500, 1000]
+        inferences = ['gmm_means_cavi', 'gmm_means_gavi']
+        nelements = [100, 500]
         iterations = 1
 
         for inference in inferences:
             for nelem in nelements:
                 script = '{}{}.py'.format(PATH, inference)
-                for k in [2, 4, 8]:
+                for k in [2, 4]:
                     total_time = 0
                     total_iters = 0
                     total_elbos = 0

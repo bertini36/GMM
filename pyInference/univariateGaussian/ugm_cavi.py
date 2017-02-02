@@ -1,17 +1,20 @@
 # -*- coding: UTF-8 -*-
 
 """
-Coordinate Ascent Variational Inference
-process to approximate an Univariate Gaussian
+Coordinate Ascent Variational Inference process
+to approximate an univariate gaussian
 """
 
-import math
 import argparse
-import numpy as np
+import math
 from time import time
-from scipy.special import psi, gammaln
 
-parser = argparse.ArgumentParser(description='CAVI in Univariate Gaussian')
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.special import gammaln, psi
+
+parser = argparse.ArgumentParser(description='CAVI in univariate gaussian')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-nElements', metavar='nElements', type=int, default=100)
 parser.add_argument('--timing', dest='timing', action='store_true')
@@ -26,6 +29,9 @@ parser.set_defaults(getELBOs=False)
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=True)
+parser.add_argument('--plot', dest='plot', action='store_true')
+parser.add_argument('--no-plot', dest='plot', action='store_false')
+parser.set_defaults(plot=True)
 args = parser.parse_args()
 
 N = args.nElements
@@ -50,25 +56,13 @@ def elbo(xn, m, beta, a, b, m_mu, beta_mu, a_gamma, b_gamma):
     return lb
 
 
-def dirichlet_expectation(alpha):
-    if len(alpha.shape) == 1:
-        return psi(alpha + np.finfo(np.float32).eps) - psi(np.sum(alpha))
-    return psi(alpha) - psi(np.sum(alpha, 1))[:, np.newaxis]
-
-
-def exp_normalize(aux):
-    return (np.exp(aux - np.max(aux)) + np.finfo(np.float32).eps) / (
-        np.sum(np.exp(aux - np.max(aux)) + np.finfo(np.float32).eps))
-
-
-def log_beta_function(x):
-    return np.sum(gammaln(x + np.finfo(np.float32).eps)) - gammaln(
-        np.sum(x + np.finfo(np.float32).eps))
-
-
 def main():
     # Data generation
     xn = np.random.normal(DATA_MEAN, 1, N)
+
+    if args.plot:
+        plt.plot(xn, 'go')
+        plt.show()
 
     if args.timing:
         init_time = time()
@@ -82,6 +76,7 @@ def main():
     # Variational parameters
     a_gamma = np.random.gamma(1, 1, 1)[0]
     b_gamma = np.random.gamma(1, 1, 1)[0]
+    # m_mu = np.random.normal(0., beta ** (-1.), 1)[0]
     # m_mu = np.random.normal(0., beta ** (-1.), 1)[0]
     # beta_mu = np.random.gamma(a_gamma, b_gamma, 1)[0]
 
@@ -109,6 +104,10 @@ def main():
                     n_iters = i + 1
                 break
         lbs.append(lb)
+
+    if args.plot:
+        plt.scatter(xn, mlab.normpdf(xn, m_mu, a_gamma / b_gamma), s=5)
+        plt.show()
 
     if args.timing:
         final_time = time()

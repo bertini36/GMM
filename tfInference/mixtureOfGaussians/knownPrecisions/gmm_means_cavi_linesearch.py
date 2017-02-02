@@ -1,23 +1,25 @@
 # -*- coding: UTF-8 -*-
 
 """
-Gradient Ascent Variational Inference process to approximate a Mixture
-of Gaussians with common variance for all classes
+Coordinate Ascent Variational Inference with linesearch process to 
+approximate a mixture of gaussians with common variance for all classes
 """
 
-import math
 import argparse
-import numpy as np
+import math
 import pickle as pkl
 from time import time
-import tensorflow as tf
+
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
 
-parser = argparse.ArgumentParser(description='GAVI in Mixture of Gaussians')
+parser = argparse.ArgumentParser(
+    description='CAVI with Linesearch in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../../data/data_k2_100.pkl')
+                    default='../../../data/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--timing', dest='timing', action='store_true')
 parser.add_argument('--no-timing', dest='timing', action='store_false')
@@ -27,7 +29,7 @@ parser.add_argument('--no-getNIter', dest='getNIter', action='store_false')
 parser.set_defaults(getNIter=False)
 parser.add_argument('--getELBOs', dest='getELBOs', action='store_true')
 parser.add_argument('--no-getELBOs', dest='getELBOs', action='store_false')
-parser.set_defaults(getELBO=False)
+parser.set_defaults(getELBOs=False)
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=True)
@@ -38,7 +40,6 @@ args = parser.parse_args()
 
 MAX_ITERS = args.maxIter
 K = args.k
-LR = 0.01
 THRESHOLD = 1e-6
 
 sess = tf.Session()
@@ -95,10 +96,12 @@ lambda_mu_m_aux = np.tile(1. / lambda_mu_beta_aux, (2, 1)).T * \
                   (beta_o_aux * m_o_aux + np.dot(phi_aux.T, xn))
 
 # Variational parameters
-phi_var = tf.Variable(phi_aux, dtype=tf.float64)
-lambda_pi_var = tf.Variable(lambda_pi_aux, dtype=tf.float64)
-lambda_mu_beta_var = tf.Variable(lambda_mu_beta_aux, dtype=tf.float64)
-lambda_mu_m = tf.Variable(lambda_mu_m_aux, dtype=tf.float64)
+phi_var = tf.Variable(phi_aux, dtype=tf.float64, name='phi_var')
+lambda_pi_var = tf.Variable(lambda_pi_aux, dtype=tf.float64,
+                            name='lambda_pi_var')
+lambda_mu_beta_var = tf.Variable(lambda_mu_beta_aux, dtype=tf.float64,
+                                 name='lambda_mu_beta_var')
+lambda_mu_m = tf.Variable(lambda_mu_m_aux, dtype=tf.float64, name='lambda_mu_m')
 
 # Maintain numerical stability
 lambda_pi = tf.nn.softplus(lambda_pi_var)
@@ -145,13 +148,49 @@ for k in range(K):
     b9 = tf.reshape(b9, [N, 1])
     LB = tf.add(LB, tf.reshape(tf.matmul(b1, b9), [1]))
 
-# Optimizer definition
-optimizer = tf.train.AdamOptimizer(learning_rate=LR)
-grads_and_vars = optimizer.compute_gradients(-LB,
-                                             var_list=[phi_var, lambda_pi_var,
-                                                       lambda_mu_beta_var,
-                                                       lambda_mu_m])
-train = optimizer.apply_gradients(grads_and_vars)
+
+def compute_learning_rate(var, alpha_step):
+    """
+    :param var: Var to optimize
+    :param alpha_step: Initial learning rate
+    """
+    # Obtaining the gradients
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=alpha_step)
+    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[var])
+    grads = sess.run(grads_and_vars)
+    tmp_var = grads[0][1]
+    tmp_grad = grads[0][0]
+
+    # Gradient descent update
+    fx = sess.run(-LB)
+    tmp_mod = tmp_var - alpha_step * tmp_grad
+    assign_op = var.assign(tmp_mod)
+    sess.run(assign_op)
+    fxgrad = sess.run(-LB)
+
+    # Loop for problematic vars that produces Infs and Nans
+    while np.isinf(fxgrad) or np.isnan(fxgrad):
+        alpha_step /= 10.
+        tmp_mod = tmp_var - alpha_step * tmp_grad
+        assign_op = var.assign(tmp_mod)
+        sess.run(assign_op)
+        fxgrad = sess.run(-LB)
+
+    tmp_grad = sess.run(tf.sqrt(tf.reduce_sum(tf.square(tmp_grad))))
+    m = tmp_grad ** 2
+    c = 0.5
+    tau = 0.2
+
+    while fxgrad >= fx - alpha_step * c * m:
+        alpha_step *= tau
+        tmp_mod = tmp_var - alpha_step * tmp_grad
+        assign_op = var.assign(tmp_mod)
+        sess.run(assign_op)
+        fxgrad = sess.run(-LB)
+        if alpha_step < 1e-10:
+            alpha_step = 0
+            break
+
 
 # Summaries definition
 tf.summary.histogram('phi', phi)
@@ -169,21 +208,28 @@ def main():
                     cmap=cm.gist_rainbow, s=5)
         plt.show()
 
-    run_calls = 0
     init = tf.global_variables_initializer()
+    run_calls = 0
     sess.run(init)
+    alpha_step = 1e10
     lbs = []
 
     for i in xrange(MAX_ITERS):
 
+        # Parameter updates with individual learning rates
+        compute_learning_rate(lambda_pi_var, alpha_step)
+        compute_learning_rate(phi_var, alpha_step)
+        compute_learning_rate(lambda_mu_m, alpha_step)
+        compute_learning_rate(lambda_mu_beta_var, alpha_step)
+
         # ELBO computation
-        _, mer, lb, mu_out, beta_out, pi_out, phi_out = sess.run(
-            [train, merged, LB, lambda_mu_m, lambda_mu_beta, lambda_pi, phi])
-        run_calls += 1
-        file_writer.add_summary(mer, run_calls)
+        mer, lb, pi_out, phi_out, mu_out, beta_out = sess.run(
+            [merged, LB, lambda_pi, phi, lambda_mu_m, lambda_mu_beta])
         if args.debug:
             print('Iter {}: Mus={} Precision={} Pi={} ELBO={}'
                   .format(i, mu_out, beta_out, pi_out, lb))
+        run_calls += 1
+        file_writer.add_summary(mer, run_calls)
 
         # Break condition
         if i > 0:

@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Mixture of Gaussians data generator
+mixtureOfGaussians data generator
 """
 
 import math

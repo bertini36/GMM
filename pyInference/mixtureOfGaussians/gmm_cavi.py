@@ -2,7 +2,7 @@
 
 """
 Coordinate Ascent Variational Inference
-process to approximate Mixture of Gaussians
+process to approximate a mixture of gaussians
 """
 
 import argparse
@@ -13,7 +13,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from scipy.special import psi, gammaln
 
-parser = argparse.ArgumentParser(description='CAVI in Mixture of Gaussians')
+parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-dataset', metavar='dataset',
                     type=str, default='../../../data/data_k2_100.pkl')
@@ -54,6 +54,7 @@ def exp_normalize(aux):
 def log_beta_function(x):
     return np.sum(gammaln(x + np.finfo(np.float32).eps)) - \
            gammaln(np.sum(x + np.finfo(np.float32).eps))
+
 
 def elbo():
     pass
