@@ -10,16 +10,17 @@ sess = tf.Session()
 
 
 def tf_log_beta_function(x):
-    return tf.sub(tf.reduce_sum(tf.lgamma(tf.add(x, np.finfo(np.float32).eps))),
-                  tf.lgamma(tf.reduce_sum(tf.add(x, np.finfo(np.float32).eps))))
+    return tf.subtract(
+        tf.reduce_sum(tf.lgamma(tf.add(x, np.finfo(np.float32).eps))),
+        tf.lgamma(tf.reduce_sum(tf.add(x, np.finfo(np.float32).eps))))
 
 
 def tf_dirichlet_expectation(alpha):
     if len(alpha.get_shape()) == 1:
-        return tf.sub(tf.digamma(tf.add(alpha, np.finfo(np.float32).eps)),
-                      tf.digamma(tf.reduce_sum(alpha)))
-    return tf.sub(tf.digamma(alpha),
-                  tf.digamma(tf.reduce_sum(alpha, 1))[:, tf.newaxis])
+        return tf.subtract(tf.digamma(tf.add(alpha, np.finfo(np.float32).eps)),
+                           tf.digamma(tf.reduce_sum(alpha)))
+    return tf.subtract(tf.digamma(alpha),
+                       tf.digamma(tf.reduce_sum(alpha, 1))[:, tf.newaxis])
 
 
 with open('../../../data/data_k2_100.pkl', 'r') as inputfile:
@@ -59,39 +60,39 @@ sess.run(init)
 
 # ELBO 
 ELBO = tf_log_beta_function(lambda_pi)
-ELBO = tf.sub(ELBO, tf_log_beta_function(alpha))
-ELBO = tf.add(ELBO, tf.matmul(tf.sub(alpha, lambda_pi),
+ELBO = tf.subtract(ELBO, tf_log_beta_function(alpha))
+ELBO = tf.add(ELBO, tf.matmul(tf.subtract(alpha, lambda_pi),
                               tf.reshape(tf_dirichlet_expectation(lambda_pi),
                                          [K, 1])))
-ELBO = tf.add(ELBO, tf.mul(tf.cast(K / 2., tf.float64), tf.log(
-    tf.matrix_determinant(tf.mul(beta_o, Delta_o)))))
+ELBO = tf.add(ELBO, tf.multiply(tf.cast(K / 2., tf.float64), tf.log(
+    tf.matrix_determinant(tf.multiply(beta_o, Delta_o)))))
 ELBO = tf.add(ELBO, tf.cast(K * (D / 2.), tf.float64))
 for k in range(K):
-    a1 = tf.sub(lambda_mu_m[k, :], m_o)
-    a2 = tf.matmul(Delta_o, tf.transpose(tf.sub(lambda_mu_m[k, :], m_o)))
-    a3 = tf.mul(tf.div(beta_o, 2.), tf.matmul(a1, a2))
-    a4 = tf.div(tf.mul(tf.cast(D, tf.float64), beta_o),
-                tf.mul(tf.cast(2., tf.float64), lambda_mu_beta_res[k]))
-    a5 = tf.mul(tf.cast(1 / 2., tf.float64), tf.log(
-        tf.mul(tf.pow(lambda_mu_beta_res[k], 2),
-               tf.matrix_determinant(Delta_o))))
+    a1 = tf.subtract(lambda_mu_m[k, :], m_o)
+    a2 = tf.matmul(Delta_o, tf.transpose(tf.subtract(lambda_mu_m[k, :], m_o)))
+    a3 = tf.multiply(tf.div(beta_o, 2.), tf.matmul(a1, a2))
+    a4 = tf.div(tf.multiply(tf.cast(D, tf.float64), beta_o),
+                tf.multiply(tf.cast(2., tf.float64), lambda_mu_beta_res[k]))
+    a5 = tf.multiply(tf.cast(1 / 2., tf.float64), tf.log(
+        tf.multiply(tf.pow(lambda_mu_beta_res[k], 2),
+                    tf.matrix_determinant(Delta_o))))
     a6 = tf.add(a3, tf.add(a4, a5))
-    ELBO = tf.sub(ELBO, a6)
+    ELBO = tf.subtract(ELBO, a6)
     for n in range(N):
         b1 = phi[n, k]
         b2 = tf_dirichlet_expectation(lambda_pi)[k]
         b3 = tf.log(phi[n, k])
-        b4 = tf.mul(tf.cast(1 / 2., tf.float64), tf.log(
+        b4 = tf.multiply(tf.cast(1 / 2., tf.float64), tf.log(
             tf.div(tf.matrix_determinant(Delta_o), 2. * math.pi)))
-        b5 = tf.sub(xn[n, :], lambda_mu_m[k, :])
+        b5 = tf.subtract(xn[n, :], lambda_mu_m[k, :])
         b6 = tf.matmul(Delta_o, tf.reshape(
-            tf.transpose(tf.sub(xn[n, :], lambda_mu_m[k, :])), [D, 1]))
-        b7 = tf.mul(tf.cast(1 / 2., tf.float64),
-                    tf.matmul(tf.reshape(b5, [1, K]), b6))
+            tf.transpose(tf.subtract(xn[n, :], lambda_mu_m[k, :])), [D, 1]))
+        b7 = tf.multiply(tf.cast(1 / 2., tf.float64),
+                         tf.matmul(tf.reshape(b5, [1, K]), b6))
         b8 = tf.div(tf.cast(D, tf.float64),
-                    tf.mul(tf.cast(2., tf.float64), lambda_mu_beta[k]))
-        ELBO = tf.add(ELBO, tf.mul(b1, tf.sub(
-            tf.sub(tf.add(tf.sub(b2, b3), b4), b7), b8)))
+                    tf.multiply(tf.cast(2., tf.float64), lambda_mu_beta[k]))
+        ELBO = tf.add(ELBO, tf.multiply(b1, tf.subtract(
+            tf.subtract(tf.add(tf.subtract(b2, b3), b4), b7), b8)))
 
 elbo = sess.run(ELBO)
 print('ELBO={}'.format(elbo))
