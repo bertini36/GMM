@@ -171,6 +171,7 @@ def main():
         plt.scatter(xn[:, 0], xn[:, 1],
                     c=(1. * data['zn']) / max(data['zn']),
                     cmap=cm.gist_rainbow, s=5)
+        plt.title('Simulated dataset')
         plt.show()
 
     run_calls = 0
@@ -201,6 +202,7 @@ def main():
         plt.scatter(xn[:, 0], xn[:, 1], c=np.array(
             1 * [np.random.choice(K, 1, p=phi_out[n, :])[0] for n in
                  xrange(N)]), cmap=cm.gist_rainbow, s=5)
+        plt.title('Predicted cluster assignments')
         plt.show()
 
     if args.timing:

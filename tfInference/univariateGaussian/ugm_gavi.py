@@ -132,6 +132,7 @@ file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
 def main():
     if args.plot:
         plt.plot(xn_np, 'go')
+        plt.title('Simulated dataset')
         plt.show()
 
     init = tf.global_variables_initializer()
@@ -161,6 +162,7 @@ def main():
 
     if args.plot:
         plt.scatter(xn_np, mlab.normpdf(xn_np, mu_out, a_out / b_out), s=5)
+        plt.title('Results')
         plt.show()
 
     if args.timing:

@@ -62,6 +62,7 @@ def main():
 
     if args.plot:
         plt.plot(xn, 'go')
+        plt.title('Simulated dataset')
         plt.show()
 
     if args.timing:
@@ -107,6 +108,7 @@ def main():
 
     if args.plot:
         plt.scatter(xn, mlab.normpdf(xn, m_mu, a_gamma / b_gamma), s=5)
+        plt.title('Result')
         plt.show()
 
     if args.timing:

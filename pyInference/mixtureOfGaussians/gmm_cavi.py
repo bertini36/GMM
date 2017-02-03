@@ -7,12 +7,13 @@ process to approximate a mixture of gaussians
 """
 
 import argparse
-import numpy as np
 import pickle as pkl
 from time import time
+
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-from scipy.special import psi, gammaln
+import numpy as np
+from scipy.special import gammaln, psi
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
