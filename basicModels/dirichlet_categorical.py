@@ -2,10 +2,10 @@
 
 """
 Dirichlet-Categorical model
+Posterior exact inference
 """
 
 import numpy as np
-from scipy.special import psi
 
 N = 1000
 K = 4

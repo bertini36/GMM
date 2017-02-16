@@ -2,12 +2,13 @@
 
 """
 NormalInverseWishart-Normal Model
+Posterior exact inference
 """
 
-import numpy as np
-from scipy.stats import invwishart
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import invwishart
 
 N = 1000
 D = 2
