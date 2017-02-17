@@ -2,7 +2,8 @@
 
 """
 NormalInverseWishart-Normal Model
-Posterior inference with Edward MFVI
+Posterior inference with Edward BBVI
+[DOING]
 """
 
 import edward as ed
@@ -10,7 +11,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from edward.models import Normal, MultivariateNormalDiag, WishartFull
+from edward.models import MultivariateNormalDiag, WishartFull
 from scipy.stats import invwishart
 
 N = 1000
@@ -37,8 +38,8 @@ plt.show()
 
 # Prior definition
 v_prior = tf.Variable(3., dtype=tf.float64, trainable=False)
-W_prior = tf.Variable(np.array([[1., 0.], [0., 1.]]), dtype=tf.float64,
-                      trainable=False)
+W_prior = tf.Variable(np.array([[1., 0.], [0., 1.]]),
+                      dtype=tf.float64, trainable=False)
 m_prior = tf.Variable(np.array([0.5, 0.5]), dtype=tf.float64, trainable=False)
 k_prior = tf.Variable(0.6, dtype=tf.float64, trainable=False)
 
@@ -49,10 +50,11 @@ print('sigma: {}'.format(sigma))
 mu = MultivariateNormalDiag(m_prior, tf.diag_part(k_prior * sigma))
 print('mu: {}'.format(mu))
 xn = MultivariateNormalDiag(tf.ones([N, D], dtype=tf.float64) * mu,
-                            tf.ones([N, 1], dtype=tf.float64) * tf.reshape(
-                                tf.diag_part(
-                                    tf.ones([D, D], dtype=tf.float64) * sigma),
-                                [1, D]))
+                            tf.ones([N, 1], dtype=tf.float64) *
+                            tf.reshape(tf.diag_part(
+                                tf.ones([D, D], dtype=tf.float64) * sigma),
+                                       [1, D]))
+print('xn: {}'.format(xn))
 
 # Variational model
 qmu = MultivariateNormalDiag(
@@ -65,6 +67,7 @@ qsigma = WishartFull(
 print('qsigma: {}'.format(qsigma))
 
 # Inference
+print('xn_data: {}'.format(xn_data.dtype))
 inference = ed.KLqp({mu: qmu, sigma: qsigma}, data={xn: xn_data})
 inference.run(n_iter=5000)
 

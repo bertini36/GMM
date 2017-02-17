@@ -2,7 +2,7 @@
 
 """
 Dirichlet-Categorical model
-Posterior inference with Edward MFVI
+Posterior inference with Edward BBVI
 """
 
 import edward as ed
@@ -33,7 +33,7 @@ qpi = Dirichlet(alpha=tf.nn.softplus(tf.Variable(
 
 # Inference
 inference = ed.KLqp({pi: qpi}, data={zn: zn_data})
-inference.run(n_iter=5000)
+inference.run(n_iter=1500, n_samples=30)
 
 sess = ed.get_session()
-print('qpi={}'.format(sess.run(qpi.mean())))
+print('Inferred pi={}'.format(sess.run(qpi.mean())))

@@ -17,7 +17,7 @@ z = np.array([np.random.choice(K, 1, p=pi)[0] for n in xrange(N)])
 print('pi={}'.format(pi))
 
 # Prior definition
-alpha_prior = np.array([2., 3., 1., 1.])
+alpha_prior = np.array([1., 1., 1., 1.])
 
 # Posterior computation
 
