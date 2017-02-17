@@ -15,21 +15,21 @@ K = 4
 
 # Data generation
 alpha = np.array([20., 30., 10., 10.])
-pi = np.random.dirichlet(alpha)
+pi = np.random.dirichlet(alpha).astype(np.float32)
 zn_data = np.array([np.random.choice(K, 1, p=pi)[0] for n in xrange(N)])
 print('pi={}'.format(pi))
 
 # Prior definition
-alpha_prior = tf.Variable(np.array([1., 1., 1., 1.]), trainable=False)
+alpha_prior = tf.Variable(np.array([1., 1., 1., 1.]),
+                          dtype=tf.float32, trainable=False)
 
-# Posterior inference MFVI
+# Posterior inference
 # Probabilistic model
 pi = Dirichlet(alpha=alpha_prior)
-zn = Categorical(p=tf.ones([N, 1], dtype=tf.float64)*pi)
+zn = Categorical(p=tf.ones([N, 1])*pi)
 
 # Variational model
-qpi = Dirichlet(alpha=tf.nn.softplus(tf.Variable(
-    tf.random_normal([K], dtype=tf.float64))))
+qpi = Dirichlet(alpha=tf.nn.softplus(tf.Variable(tf.random_normal([K]))))
 
 # Inference
 inference = ed.KLqp({pi: qpi}, data={zn: zn_data})
