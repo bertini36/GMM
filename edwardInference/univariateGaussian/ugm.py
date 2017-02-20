@@ -3,6 +3,7 @@
 """
 Gradient Ascent Variational Inference
 process to approximate an univariate gaussian
+[DOING]
 """
 
 import edward as ed

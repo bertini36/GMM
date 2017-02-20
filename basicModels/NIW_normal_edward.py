@@ -43,7 +43,7 @@ W_prior = tf.Variable(np.array([[1., 0.], [0., 1.]]),
 m_prior = tf.Variable(np.array([0.5, 0.5]), dtype=tf.float64, trainable=False)
 k_prior = tf.Variable(0.6, dtype=tf.float64, trainable=False)
 
-# Posterior inference MFVI
+# Posterior inference
 # Probabilistic model
 sigma = WishartFull(df=v_prior, scale=W_prior)
 print('sigma: {}'.format(sigma))

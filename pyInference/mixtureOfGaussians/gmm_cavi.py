@@ -13,7 +13,7 @@ from time import time
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import invwishart
+from scipy.special import psi
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
@@ -75,24 +75,15 @@ def main():
     m_o = np.array([[0.0, 0.0]] * K)
     beta_o = np.array([0.8] * K)
 
-    print('Shape alpha_o: {}'.format(alpha_o.shape))
-    print('Shape nu_o: {}'.format(nu_o.shape))
-    print('Shape W_o: {}'.format(W_o.shape))
-    print('Shape m_o: {}'.format(m_o.shape))
-    print('Shape beta_o: {}'.format(beta_o.shape))
-
     # Initializations
     # Shape (N, K) = (100, 2)
     lambda_phi = np.random.dirichlet(alpha_o, N)
-    print('Shape lambda_phi: {}'.format(lambda_phi.shape))
 
     # Shape (K, 1) = (2, 1)
     lambda_pi = alpha_o + np.sum(lambda_phi, axis=0)
-    print('Shape lambda_pi: {}'.format(lambda_pi.shape))
 
     # Shape (D, K) = (2, 2)
     lambda_m = m_o.T * beta_o + np.sum(np.dot(lambda_phi.T, xn), axis=0)
-    print('Shape lambda_m: {}'.format(lambda_m.shape))
 
     # Shape (D, D, K) = (2, 2, 2)
     lambda_W = W_o + m_o * m_o.T + \
@@ -102,23 +93,38 @@ def main():
     # Shape (K)
     ns = getNs(lambda_phi)
     lambda_beta = beta_o + ns
-    print('Shape lambda_beta: {}'.format(lambda_beta.shape))
 
     # Shape (K)
     lambda_nu = nu_o + D + 2 + ns
-    print('Shape lambda_nu: {}'.format(lambda_nu.shape))
 
     lbs = []
     for i in xrange(MAX_ITERS):
 
+        # TODO: Error al hacer la inversa de lambda_W[:, :, k]: singularidad
+        # (el codigo comentado)
+
         # Parameter updates
-        # lambda_phi =
+        for n in xrange(N):
+            for k in xrange(K):
+                lambda_phi[n, k] = psi(lambda_pi[k]) - np.sum(psi(lambda_pi))
+                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * np.linalg.inv(lambda_W[:, :, k]), lambda_m[:, k]), xn[n, :])
+                lambda_phi[n, k] -= np.dot(np.dot(1 / 2. * lambda_nu[k] * np.linalg.inv(lambda_W[:, :, k]), xn[n, :]), xn[n, :].T)
+                lambda_phi[n, k] -= 1 / 2 * np.power(lambda_beta[k], -1)
+                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[:, k].T, np.linalg.inv(lambda_W[:, :, k])), lambda_m[:, k])
+                lambda_phi[n, k] += D / 2 * np.log(2)
+                lambda_phi[n, k] += 1 / 2 * np.sum(psi([((lambda_nu[k] / 2) + ((1 - i) / 2)) for i in xrange(D)]))
+                lambda_phi[n, k] -= 1 / 2 * np.log(np.linalg.det(lambda_W[:, :, k])) * np.log(np.sum(lambda_phi, axis=0)[k])
+        print(lambda_phi)
+
         lambda_pi = alpha_o + np.sum(lambda_phi, axis=0)
+
         lambda_m = m_o.T * beta_o + np.sum(np.dot(lambda_phi.T, xn), axis=0)
-        lambda_W = W_o + m_o * m_o.T + \
-                   np.sum(np.dot(np.dot(lambda_phi.T, xn), xn.T))
+
+        lambda_W = W_o + m_o * m_o.T + np.sum(np.dot(np.dot(lambda_phi.T, xn), xn.T))
+
         ns = getNs(lambda_phi)
         lambda_beta = beta_o + ns
+
         lambda_nu = nu_o + D + 2 + ns
 
         # ELBO computation

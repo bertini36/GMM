@@ -33,7 +33,7 @@ qpi = Dirichlet(alpha=tf.nn.softplus(tf.Variable(tf.random_normal([K]))))
 
 # Inference
 inference = ed.KLqp({pi: qpi}, data={zn: zn_data})
-inference.run(n_iter=1500, n_samples=30)
+inference.run(n_iter=1500, n_samples=30, logdir='/tmp/train/')
 
 sess = ed.get_session()
 print('Inferred pi={}'.format(sess.run(qpi.mean())))
