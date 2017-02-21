@@ -14,23 +14,19 @@ N = 1000
 D = 2
 
 # Data generation
-
 # NIW Inverse Wishart hyperparameters
 v = 3.
 W = np.array([[20., 30.], [25., 40.]])
 sigma = invwishart.rvs(v, W)
-
 # NIW Normal hyperparameters
 m = np.array([1., 1.])
 k = 0.8
 mu = np.random.multivariate_normal(m, sigma/k)
-
-print('mu={}'.format(mu))
-print('sigma={}'.format(sigma))
-
 x = np.random.multivariate_normal(mu, sigma, N)
 plt.scatter(x[:, 0], x[:, 1], cmap=cm.gist_rainbow, s=5)
 plt.show()
+print('mu={}'.format(mu))
+print('sigma={}'.format(sigma))
 
 # Prior definition
 v_prior = 3.

@@ -101,7 +101,6 @@ def main():
     for i in xrange(MAX_ITERS):
 
         # TODO: Error al hacer la inversa de lambda_W[:, :, k]: singularidad
-        # (el codigo comentado)
 
         # Parameter updates
         for n in xrange(N):
