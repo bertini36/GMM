@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-NormalInverseWishart-Normal Model
+NormalWishart-Normal Model
 Posterior inference with Edward BBVI
 [DOING]
 """

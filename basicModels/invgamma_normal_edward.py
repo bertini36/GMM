@@ -13,8 +13,8 @@ from edward.models import InverseGamma, Normal
 N = 1000
 
 # Data generation (known mean)
-mu = 7.
-sigma = 0.50
+mu = 7.0
+sigma = 0.55
 xn_data = np.random.normal(mu, sigma, N)
 print('sigma={}'.format(sigma))
 
@@ -25,7 +25,7 @@ beta = tf.Variable(0.5, dtype=tf.float32, trainable=False)
 # Posterior inference
 # Probabilistic model
 ig = InverseGamma(alpha=alpha, beta=beta)
-xn = Normal(mu=mu, sigma=tf.ones([N]) * ig)
+xn = Normal(mu=mu, sigma=tf.ones([N]) * tf.sqrt(ig))
 
 # Variational model
 qig = InverseGamma(alpha=tf.nn.softplus(tf.Variable(tf.random_normal([]))),
@@ -36,4 +36,4 @@ inference = ed.KLqp({ig: qig}, data={xn: xn_data})
 inference.run(n_iter=2000, n_samples=150, logdir='/tmp/train/')
 
 sess = ed.get_session()
-print('Inferred sigma={}'.format(sess.run(qig.mean())))
+print('Inferred sigma={}'.format(sess.run(tf.sqrt(qig.mean()))))
