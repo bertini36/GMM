@@ -50,7 +50,7 @@ def getNs(lambda_phi):
     ns = np.array([0] * K)
     for i in xrange(len(lambda_phi)):
         ns[np.random.choice(K, 1, p=lambda_phi[i])] += 1
-    return ns
+    return np.array(ns)
 
 
 def main():
@@ -70,37 +70,58 @@ def main():
 
     # Model hyperparameters (priors)
     alpha_o = np.array([1.0] * K)
-    nu_o = np.array([3.0] * K)
-    W_o = np.array([[[20., 30.], [25., 40.]]] * K)
-    m_o = np.array([[0.0, 0.0]] * K)
-    beta_o = np.array([0.8] * K)
+    nu_o = np.array([3.0])
+    W_o = np.array([[20., 30.], [25., 40.]])
+    m_o = np.array([0.0, 0.0])
+    beta_o = np.array([0.8])
 
     # Initializations
-    # Shape (N, K) = (100, 2)
+    # Shape lambda_phi: (N, K)
     lambda_phi = np.random.dirichlet(alpha_o, N)
+    print('lambda_phi: {}'.format(lambda_phi))
+    print('Shape lambda_phi: {}'.format(lambda_phi.shape))
 
-    # Shape (K, 1) = (2, 1)
+    # Shape lambda_pi: (K)
     lambda_pi = alpha_o + np.sum(lambda_phi, axis=0)
+    print('lambda_pi: {}'.format(lambda_pi))
+    print('Shape lambda_pi: {}'.format(lambda_pi.shape))
 
-    # Shape (D, K) = (2, 2)
-    lambda_m = m_o.T * beta_o + np.sum(np.dot(lambda_phi.T, xn), axis=0)
+    # Shape lambda_beta: (K)
+    ns = getNs(lambda_phi)
+    lambda_beta = np.zeros(shape=K)
+    for k in range(K):
+        lambda_beta[k] = beta_o + ns[k]
+    print('lambda_beta: {}'.format(lambda_beta))
+    print('Shape lambda_beta: {}'.format(lambda_beta.shape))
 
-    # Shape (D, D, K) = (2, 2, 2)
-    lambda_W = W_o + m_o * m_o.T + \
-               np.sum(np.dot(np.dot(lambda_phi.T, xn), xn.T))
+    # Shape lambda_nu: (K)
+    lambda_nu = np.zeros(shape=K)
+    for k in range(K):
+        lambda_nu[k] = nu_o + ns[k]
+    print('lambda_nu: {}'.format(lambda_nu))
+    print('Shape lambda_nu: {}'.format(lambda_nu.shape))
+
+    # Shape lambda_m: (K, D)
+    lambda_m = np.zeros(shape=(K, D))
+    for k in range(K):
+        lambda_m[k] = (np.outer(m_o.T, beta_o)
+                       + np.sum(np.dot(lambda_phi.T, xn), axis=0))[k] \
+                      / lambda_beta[k]
+    print('lambda_m: {}'.format(lambda_m))
+    print('Shape lambda_m: {}'.format(lambda_m.shape))
+
+    # Shape lambda_W: (K, D, D)
+    lambda_W = np.zeros(shape=(K, D, D))
+    for k in range(K):
+        lambda_W[k] = W_o + np.outer(m_o, m_o.T) + \
+                      np.sum(np.dot(np.dot(lambda_phi.T, xn), xn.T), axis=0)[k]\
+                      - lambda_beta[k] * np.outer(lambda_m[k], lambda_m[k].T)
+    print('lambda_W: {}'.format(lambda_W))
     print('Shape lambda_W: {}'.format(lambda_W.shape))
 
-    # Shape (K)
-    ns = getNs(lambda_phi)
-    lambda_beta = beta_o + ns
-
-    # Shape (K)
-    lambda_nu = nu_o + D + 2 + ns
-
+    """
     lbs = []
     for i in xrange(MAX_ITERS):
-
-        # TODO: Error al hacer la inversa de lambda_W[:, :, k]: singularidad
 
         # Parameter updates
         for n in xrange(N):
@@ -113,18 +134,19 @@ def main():
                 lambda_phi[n, k] += D / 2 * np.log(2)
                 lambda_phi[n, k] += 1 / 2 * np.sum(psi([((lambda_nu[k] / 2) + ((1 - i) / 2)) for i in xrange(D)]))
                 lambda_phi[n, k] -= 1 / 2 * np.log(np.linalg.det(lambda_W[:, :, k])) * np.log(np.sum(lambda_phi, axis=0)[k])
-        print(lambda_phi)
 
         lambda_pi = alpha_o + np.sum(lambda_phi, axis=0)
 
-        lambda_m = m_o.T * beta_o + np.sum(np.dot(lambda_phi.T, xn), axis=0)
-
-        lambda_W = W_o + m_o * m_o.T + np.sum(np.dot(np.dot(lambda_phi.T, xn), xn.T))
-
         ns = getNs(lambda_phi)
-        lambda_beta = beta_o + ns
-
-        lambda_nu = nu_o + D + 2 + ns
+        for k in range(K):
+            lambda_beta[k] = beta_o + ns[k]
+            lambda_nu[k] = nu_o + ns[k]
+            lambda_m[k] = (np.outer(m_o.T, beta_o)
+                           + np.sum(np.dot(lambda_phi.T, xn), axis=0))[k] \
+                          / lambda_beta[k]
+            lambda_W[k] = W_o + np.outer(m_o, m_o.T) + \
+                          np.sum(np.dot(np.dot(lambda_phi.T, xn), xn.T),
+                                 axis=0)[k] - np.outer(lambda_beta[k], np.outer(lambda_m[k], lambda_m[k]))
 
         # ELBO computation
         lb = elbo()
@@ -150,6 +172,6 @@ def main():
 
     if args.getELBOs:
         print('ELBOs: {}'.format(lbs))
-
+    """
 
 if __name__ == '__main__': main()
