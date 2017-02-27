@@ -16,7 +16,7 @@ import numpy as np
 from scipy.special import psi
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=2)
 parser.add_argument('-dataset', metavar='dataset',
                     type=str, default='../../data/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -119,35 +119,56 @@ def main():
     print('lambda_W: {}'.format(lambda_W))
     print('Shape lambda_W: {}'.format(lambda_W.shape))
 
-    """
     lbs = []
     for i in xrange(MAX_ITERS):
+        print('******* ITERATION {} ********'.format(i))
 
         # Parameter updates
         for n in xrange(N):
             for k in xrange(K):
-                lambda_phi[n, k] = psi(lambda_pi[k]) - np.sum(psi(lambda_pi))
-                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * np.linalg.inv(lambda_W[:, :, k]), lambda_m[:, k]), xn[n, :])
-                lambda_phi[n, k] -= np.dot(np.dot(1 / 2. * lambda_nu[k] * np.linalg.inv(lambda_W[:, :, k]), xn[n, :]), xn[n, :].T)
-                lambda_phi[n, k] -= 1 / 2 * np.power(lambda_beta[k], -1)
-                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[:, k].T, np.linalg.inv(lambda_W[:, :, k])), lambda_m[:, k])
-                lambda_phi[n, k] += D / 2 * np.log(2)
-                lambda_phi[n, k] += 1 / 2 * np.sum(psi([((lambda_nu[k] / 2) + ((1 - i) / 2)) for i in xrange(D)]))
-                lambda_phi[n, k] -= 1 / 2 * np.log(np.linalg.det(lambda_W[:, :, k])) * np.log(np.sum(lambda_phi, axis=0)[k])
+                lambda_phi[n, k] = psi(lambda_pi[k]) - np.sum(psi(lambda_pi[k]))
+                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * np.linalg.inv(lambda_W[k, :, :]), lambda_m[k, :]), xn[n, :])
+                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * np.linalg.inv(lambda_W[k, :, :]), xn[n, :]), xn[n, :].T)
+                lambda_phi[n, k] -= (1 / 2.) * (1/lambda_beta[k])
+                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, np.linalg.inv(lambda_W[k, :, :])), lambda_m[k, :])
+                lambda_phi[n, k] += (D / 2.) * np.log(2.)
+                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in xrange(D)]))
+
+                # TODO: Problema con el determinante de lambda_W[k] que da un valor negativo
+                if n == 0 and k in [0, 1]:
+                    print('1 --> lambda_phi[{}, {}]: {}'.format(n, k, lambda_phi[n, k]))
+                    print('lambda_W[k, :, :]: {}'.format(lambda_W[k, :, :]))
+                    print('np.linalg.det(lambda_W[k, :, :]): {}'.format(np.linalg.det(lambda_W[k, :, :])))
+                    print('np.log(np.linalg.det(lambda_W[k, :, :])): {}'.format(np.log(np.linalg.det(lambda_W[k, :, :]))))
+                lambda_phi[n, k] -= (1 / 2.) * np.log(np.linalg.det(lambda_W[k, :, :]))
+                if n == 0 and k in [0, 1]:
+                    print('2 --> lambda_phi[{}, {}]: {}'.format(n, k, lambda_phi[n, k]))
+
+                lambda_phi[n, k] = np.exp(lambda_phi[n, k])
+            lambda_phi[n, k] = lambda_phi[n, k] / np.sum(lambda_phi[n, :])
+
+        print('lambda_phi: {}'.format(lambda_phi))
 
         lambda_pi = alpha_o + np.sum(lambda_phi, axis=0)
 
         ns = getNs(lambda_phi)
         for k in range(K):
+
             lambda_beta[k] = beta_o + ns[k]
+
             lambda_nu[k] = nu_o + ns[k]
+
             lambda_m[k] = (np.outer(m_o.T, beta_o)
                            + np.sum(np.dot(lambda_phi.T, xn), axis=0))[k] \
                           / lambda_beta[k]
+
             lambda_W[k] = W_o + np.outer(m_o, m_o.T) + \
                           np.sum(np.dot(np.dot(lambda_phi.T, xn), xn.T),
-                                 axis=0)[k] - np.outer(lambda_beta[k], np.outer(lambda_m[k], lambda_m[k]))
+                                 axis=0)[k] \
+                          - lambda_beta[k] * np.outer(lambda_m[k],
+                                                      lambda_m[k].T)
 
+        """
         # ELBO computation
         lb = elbo()
 
@@ -173,5 +194,6 @@ def main():
     if args.getELBOs:
         print('ELBOs: {}'.format(lbs))
     """
+
 
 if __name__ == '__main__': main()
