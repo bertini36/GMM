@@ -14,9 +14,10 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import psi
+from scipy.stats import invwishart, multivariate_normal
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=5)
 parser.add_argument('-dataset', metavar='dataset',
                     type=str, default='../../data/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -34,7 +35,7 @@ parser.add_argument('--no-debug', dest='debug', action='store_false')
 parser.set_defaults(debug=True)
 parser.add_argument('--plot', dest='plot', action='store_true')
 parser.add_argument('--no-plot', dest='plot', action='store_false')
-parser.set_defaults(plot=False)
+parser.set_defaults(plot=True)
 args = parser.parse_args()
 
 MAX_ITERS = args.maxIter
@@ -42,20 +43,20 @@ K = args.k
 THRESHOLD = 1e-6
 
 
-def elbo():
-    return 100
-
-
-def getNs(lambda_phi):
-    ns = np.array([0] * K)
-    for i in xrange(len(lambda_phi)):
-        ns[np.random.choice(K, 1, p=lambda_phi[i])] += 1
-    return np.array(ns)
+def getNs(x):
+    ns = np.zeros(shape=K)
+    for i in xrange(len(x)):
+        ns[np.random.choice(K, 1, p=x[i])] += 1
+    return ns
 
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0)
+
+
+def elbo():
+    pass
 
 
 def main():
@@ -86,7 +87,9 @@ def main():
     print('Shape lambda_phi: {}'.format(lambda_phi.shape))
 
     # Shape lambda_pi: (K)
-    lambda_pi = alpha_o + np.sum(lambda_phi, axis=0)
+    lambda_pi = np.zeros(shape=K)
+    for k in range(K):
+        lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
     print('lambda_pi: {}'.format(lambda_pi))
     print('Shape lambda_pi: {}'.format(lambda_pi.shape))
 
@@ -108,9 +111,6 @@ def main():
     # Shape lambda_m: (K, D)
     lambda_m = np.zeros(shape=(K, D))
     for k in range(K):
-        print('Shape 1: {}'.format(np.outer(m_o.T, beta_o).shape))
-        print('Shape 2: {}'.format(np.sum(np.dot(lambda_phi[:, k], xn)).shape))
-        print('Shape 3: {}'.format(lambda_beta[k].shape))
         lambda_m[k] = ((np.outer(m_o.T, beta_o) + np.sum(np.dot(lambda_phi[:, k], xn))) / lambda_beta[k]).T
     print('lambda_m: {}'.format(lambda_m))
     print('Shape lambda_m: {}'.format(lambda_m.shape))
@@ -118,55 +118,51 @@ def main():
     # Shape lambda_W: (K, D, D)
     lambda_W = np.zeros(shape=(K, D, D))
     for k in range(K):
-        print('Shape: {}'.format(np.dot(np.dot(lambda_phi[:, k], xn), xn.T).shape))
         lambda_W[k] = W_o + np.outer(m_o, m_o.T) + np.sum(np.dot(np.dot(lambda_phi[:, k], xn), xn.T)) - lambda_beta[k] * np.dot(lambda_m[k, :], lambda_m[k, :].T)
     print('lambda_W: {}'.format(lambda_W))
     print('Shape lambda_W: {}'.format(lambda_W.shape))
 
     lbs = []
     for i in xrange(MAX_ITERS):
-        print('******* ITERATION {} ********'.format(i))
+        print('************************* ITERATION {} *************************'.format(i))
 
         # Parameter updates
         for n in xrange(N):
             for k in xrange(K):
-                lambda_phi[n, k] = psi(lambda_pi[k]) - np.sum(psi(lambda_pi))
+                lambda_phi[n, k] = psi(lambda_pi[k]) - np.sum(psi(lambda_pi[k]))
                 lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * np.linalg.inv(lambda_W[k, :, :]), lambda_m[k, :]), xn[n, :])
                 lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * np.linalg.inv(lambda_W[k, :, :]), xn[n, :]), xn[n, :].T)
                 lambda_phi[n, k] -= (1 / 2.) * (1/lambda_beta[k])
                 lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, np.linalg.inv(lambda_W[k, :, :])), lambda_m[k, :])
                 lambda_phi[n, k] += (D / 2.) * np.log(2.)
                 lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in xrange(D)]))
-                if n == 0 and k in [0, 1]:
-                    print('1 --> lambda_phi[{}, {}]: {}'.format(n, k, lambda_phi[n, k]))
-                    print('lambda_W[k, :, :]: {}'.format(lambda_W[k, :, :]))
-                    print('np.linalg.det(lambda_W[k, :, :]): {}'.format(np.linalg.det(lambda_W[k, :, :])))
-                    print('np.log(np.linalg.det(lambda_W[k, :, :])): {}'.format(np.log(np.linalg.det(lambda_W[k, :, :]))))
                 lambda_phi[n, k] -= (1 / 2.) * np.log(np.linalg.det(lambda_W[k, :, :]))
-                if n == 0 and k in [0, 1]:
-                    print('2 --> lambda_phi[{}, {}]: {}'.format(n, k, lambda_phi[n, k]))
+            # print('Antes: {}'.format(lambda_phi[n, :]))
             lambda_phi[n, :] = softmax(lambda_phi[n, :])
+            # print('Despues: {}'.format(lambda_phi[n, :]))
 
-        print('lambda_phi: {}'.format(lambda_phi))
-
-        lambda_pi = alpha_o + np.sum(lambda_phi, axis=0)
+        for k in range(K):
+            lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
 
         ns = getNs(lambda_phi)
-        lambda_beta = np.zeros(shape=K)
         for k in range(K):
             lambda_beta[k] = beta_o + ns[k]
 
-        lambda_nu = np.zeros(shape=K)
         for k in range(K):
             lambda_nu[k] = nu_o + ns[k]
 
-        lambda_m = np.zeros(shape=(K, D))
         for k in range(K):
             lambda_m[k] = ((np.outer(m_o.T, beta_o) + np.sum(np.dot(lambda_phi[:, k], xn))) / lambda_beta[k]).T
 
-        lambda_W = np.zeros(shape=(K, D, D))
         for k in range(K):
             lambda_W[k] = W_o + np.outer(m_o, m_o.T) + np.sum(np.dot(np.dot(lambda_phi[:, k], xn), xn.T)) - lambda_beta[k] * np.dot(lambda_m[k, :], lambda_m[k, :].T)
+
+        print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
+        print('lambda_pi: {}'.format(lambda_pi))
+        print('lambda_beta: {}'.format(lambda_beta))
+        print('lambda_nu: {}'.format(lambda_nu))
+        print('lambda_m: {}'.format(lambda_m))
+        print('lambda_W: {}'.format(lambda_W))
 
         """
         # ELBO computation
@@ -179,7 +175,17 @@ def main():
                     n_iters = i + 1
                 break
         lbs.append(lb)
+    """
 
+    print('************************* RESULTS ****************************')
+    sigma_c1 = invwishart.rvs(lambda_nu[0], lambda_W[0, :, :])
+    sigma_c2 = invwishart.rvs(lambda_nu[1], lambda_W[1, :, :])
+    print('Sigma c1: {}'.format(sigma_c1 / lambda_beta[0]))
+    print('Sigma c2: {}'.format(sigma_c2 / lambda_beta[1]))
+    print('Mu c1: {}'.format(lambda_m[0, :]))
+    print('Mu c2: {}'.format(lambda_m[1, :]))
+
+    """
     if args.plot:
         pass
 
