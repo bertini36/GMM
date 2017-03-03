@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-mixtureOfGaussians data generator
+Mixture of gaussians data generator
 """
 
 import math
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('-beta_mu', metavar='beta_mu', type=float, default=0.01)
     parser.add_argument('-w_delta', metavar='w_delta', nargs='+', type=float, default=[1., 0., 0., 1.])
     parser.add_argument('-nu_delta', metavar='nu_delta', type=float, default=2.)
-    parser.add_argument('-filename', metavar='filename', type=str, default='data.pkl')
+    parser.add_argument('-filename', metavar='filename', type=str, default='data_k2_50.pkl')
     args = parser.parse_args()
     
     N = args.N 
@@ -43,16 +43,16 @@ if __name__ == '__main__':
 
     for k in xrange(K):
         Deltak[k, :, :] = wishart.rvs(nu_Delta, W_Delta)
-        muk[k, :] = np.random.multivariate_normal(m_mu, np.linalg.inv(beta_mu*Deltak[k, :, :]))
+        muk[k, :] = np.random.multivariate_normal(
+            m_mu, np.linalg.inv(beta_mu*Deltak[k, :, :]))
 
     for n in xrange(N):
         zn[n] = np.random.choice(K, 1, p=pi)[0].astype(int)
-        xn[n, :] = np.random.multivariate_normal(muk[zn[n], :],np.linalg.inv(Deltak[zn[n], :, :]))
+        xn[n, :] = np.random.multivariate_normal(
+            muk[zn[n], :], np.linalg.inv(Deltak[zn[n], :, :]))
 
     with open(args.filename, 'w') as output:
-        pkl.dump({'zn':zn, 'xn':xn}, output)
+        pkl.dump({'zn': zn, 'xn': xn}, output)
 
-    plt.scatter(xn[:,0],xn[:,1], c=(1.*zn)/K)
+    plt.scatter(xn[:, 0], xn[:, 1], c=(1.*zn)/K)
     plt.show()
-
-    
