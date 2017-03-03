@@ -135,9 +135,11 @@ def main():
     lambda_m[1] = lambda_m[1] / count_1
     print('lambda_m: {}'.format(lambda_m))
     """
+    print('SHAPE np.dot(lambda_phi[:, k].T, xn): {}'.format(np.dot(lambda_phi[:, k].T, xn).shape))
+    print('SHAPE m_o.T * beta_o: {}'.format((m_o.T * beta_o).shape))
     lambda_m = np.zeros(shape=(K, D))
     for k in range(K):
-        lambda_m[k] = (m_o.T * beta_o + np.sum(np.dot(lambda_phi[:, k].T, xn))) / lambda_beta[k].T
+        lambda_m[k] = (m_o.T * beta_o + np.dot(lambda_phi[:, k].T, xn)) / lambda_beta[k].T
     print('lambda_m: {}'.format(lambda_m))
     print('Shape lambda_m: {}'.format(lambda_m.shape))
 
@@ -187,7 +189,7 @@ def main():
             lambda_nu[k] = nu_o + ns[k]
 
         for k in range(K):
-            lambda_m[k] = (m_o.T * beta_o + np.sum(np.dot(lambda_phi[:, k].T, xn))) / lambda_beta[k].T
+            lambda_m[k] = (m_o.T * beta_o + np.dot(lambda_phi[:, k].T, xn)) / lambda_beta[k].T
         """
 
         for k in range(K):
