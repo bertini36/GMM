@@ -120,6 +120,7 @@ def main():
     # print('Shape lambda_nu: {}'.format(lambda_nu.shape))
 
     # Shape lambda_m: (K, D)
+    """
     lambda_m = np.array([[0., 0.], [0., 0.]])
     count_0 = 0
     count_1 = 0
@@ -136,10 +137,9 @@ def main():
     """
     lambda_m = np.zeros(shape=(K, D))
     for k in range(K):
-        lambda_m[k] = ((np.outer(m_o.T, beta_o) + np.sum(np.dot(lambda_phi[:, k], xn))) / lambda_beta[k]).T
+        lambda_m[k] = (m_o.T * beta_o + np.sum(np.dot(lambda_phi[:, k].T, xn))) / lambda_beta[k].T
     print('lambda_m: {}'.format(lambda_m))
     print('Shape lambda_m: {}'.format(lambda_m.shape))
-    """
 
     # Shape lambda_W: (K, D, D)
     lambda_W = np.array([[[0., 0.], [0., 0.]], [[0., 0.], [0., 0.]]])
@@ -186,9 +186,9 @@ def main():
         for k in range(K):
             lambda_nu[k] = nu_o + ns[k]
 
-        """
         for k in range(K):
-            lambda_m[k] = ((np.outer(m_o.T, beta_o) + np.sum(np.dot(lambda_phi[:, k], xn))) / lambda_beta[k]).T
+            lambda_m[k] = (m_o.T * beta_o + np.sum(np.dot(lambda_phi[:, k].T, xn))) / lambda_beta[k].T
+        """
 
         for k in range(K):
             lambda_W[k] = W_o + np.outer(m_o, m_o.T) + np.sum(np.dot(np.dot(lambda_phi[:, k], xn), xn.T)) - lambda_beta[k] * np.dot(lambda_m[k, :], lambda_m[k, :].T)
@@ -197,7 +197,7 @@ def main():
         # print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
         print('lambda_beta: {}'.format(lambda_beta))
         print('lambda_nu: {}'.format(lambda_nu))
-        # print('lambda_m: {}'.format(lambda_m))
+        print('lambda_m: {}'.format(lambda_m))
         # print('lambda_W: {}'.format(lambda_W))
         print('lambda_pi: {}'.format(lambda_pi))
 
