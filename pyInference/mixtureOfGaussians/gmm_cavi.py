@@ -17,9 +17,9 @@ from scipy.special import psi
 from scipy.stats import invwishart
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=5)
 parser.add_argument('-dataset', metavar='dataset',
-                    type=str, default='../../data/data_k2_500.pkl')
+                    type=str, default='../../data/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--timing', dest='timing', action='store_true')
 parser.add_argument('--no-timing', dest='timing', action='store_false')
@@ -83,13 +83,12 @@ def main():
 
     # Initializations
     # Shape lambda_phi: (N, K)
+    """
     lambda_phi = np.array([[1, 0] if zn[n] == 0 else [0, 1] for n in range(N)])
     """
-    lambda_phi = np.array(lambda_phi)
     lambda_phi = np.random.dirichlet(alpha_o, N)
     # print('lambda_phi: {}'.format(lambda_phi))
     # print('Shape lambda_phi: {}'.format(lambda_phi.shape))
-    """
 
     # Shape lambda_pi: (K)
     lambda_pi = np.zeros(shape=K)
@@ -130,19 +129,18 @@ def main():
         aux = np.array([[0., 0.], [0., 0.]])
         for n in range(N):
             aux += lambda_phi[n, k] * xn_xnt[n]
-        lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - (lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T))
+        lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
     # print('lambda_W: {}'.format(lambda_W))
     # print('Shape lambda_W: {}'.format(lambda_W.shape))
 
     lbs = []
     for i in xrange(MAX_ITERS):
-        print('************************* ITERATION {} *************************'.format(i))
-        """
+        print('\n******* ITERATION {} *******'.format(i))
+
         # PROBLEMA: Cuando el determinante de lambda_W[k] da negativo. No debería
         #           ocurrir ya que lambda_W[k] es una matriz definida positiva
         for k in range(K):
-            print('Determinante lambda_W[{}]: {}'.format(k, np.linalg.det(
-                lambda_W[k, :, :])))
+            print('Determinante lambda_W[{}]: {}'.format(k, np.linalg.det(lambda_W[k, :, :])))
 
         # Parameter updates
         for n in xrange(N):
@@ -158,7 +156,6 @@ def main():
             # print('Antes: {}'.format(lambda_phi[n, :]))
             lambda_phi[n, :] = softmax(lambda_phi[n, :])
             # print('Despues: {}'.format(lambda_phi[n, :]))
-        """
 
         for k in range(K):
             lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
@@ -180,7 +177,7 @@ def main():
             aux = np.array([[0., 0.], [0., 0.]])
             for n in range(N):
                 aux += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - (lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T))
+            lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
 
         # print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
         print('lambda_beta: {}'.format(lambda_beta))
@@ -202,10 +199,16 @@ def main():
         lbs.append(lb)
     """
 
-    print('************************* RESULTS ****************************')
+    print('\n******* RESULTS *******')
     for k in range(K):
         print('Mu k{}: {}'.format(k, lambda_m[k, :]))
         print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k], lambda_W[k, :, :]) / lambda_beta[k]))
+
+    print('lambda_phi: {}'.format(lambda_phi))
+
+    if args.plot:
+        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
+        plt.show()
 
     """
     if args.plot:
