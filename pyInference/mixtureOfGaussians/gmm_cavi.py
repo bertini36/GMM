@@ -138,7 +138,10 @@ def main():
 
     lambda_m = np.zeros(shape=(K, D))
     for k in range(K):
-        lambda_m[k] = (m_o.T * beta_o + np.dot(lambda_phi[:, k].T, xn)) / lambda_beta[k].T
+        aux = 0
+        for n in range(N):
+            aux += lambda_phi[n, k] * xn[n, :]
+        lambda_m[k] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
     print('lambda_m: {}'.format(lambda_m))
     print('Shape lambda_m: {}'.format(lambda_m.shape))
 
@@ -194,7 +197,10 @@ def main():
             lambda_nu[k] = nu_o + ns[k]
 
         for k in range(K):
-            lambda_m[k] = (m_o.T * beta_o + np.dot(lambda_phi[:, k].T, xn)) / lambda_beta[k].T
+            aux = 0
+            for n in range(N):
+                aux += lambda_phi[n, k] * xn[n, :]
+            lambda_m[k] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
 
         for k in range(K):
             aux = np.array([[0., 0.], [0., 0.]])
@@ -213,7 +219,6 @@ def main():
         """
         # ELBO computation
         lb = elbo()
-
         # Break condition
         if i > 0:
             if abs(lb - lbs[i - 1]) < THRESHOLD:
@@ -234,15 +239,12 @@ def main():
     """
     if args.plot:
         pass
-
     if args.timing:
         final_time = time()
         exec_time = final_time - init_time
         print('Time: {} seconds'.format(exec_time))
-
     if args.getNIter:
         print('Iterations: {}'.format(n_iters))
-
     if args.getELBOs:
         print('ELBOs: {}'.format(lbs))
     """
