@@ -14,12 +14,12 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import psi
-from scipy.stats import invwishart, multivariate_normal
+from scipy.stats import invwishart
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=5)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10)
 parser.add_argument('-dataset', metavar='dataset',
-                    type=str, default='../../data/data_k2_50.pkl')
+                    type=str, default='../../data/data_k2_500.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--timing', dest='timing', action='store_true')
 parser.add_argument('--no-timing', dest='timing', action='store_false')
@@ -71,7 +71,7 @@ def main():
         init_time = time()
 
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1], c=(1. * data['zn']) / max(data['zn']), cmap=cm.gist_rainbow, s=5)
+        plt.scatter(xn[:, 0], xn[:, 1], c=data['zn'], cmap=cm.gist_rainbow, s=5)
         plt.show()
 
     # Model hyperparameters (priors)
@@ -83,18 +83,12 @@ def main():
 
     # Initializations
     # Shape lambda_phi: (N, K)
-    lambda_phi = []
-    for i in range(len(zn)):
-        if zn[i] == 0:
-            lambda_phi.append([1, 0])
-        else:
-            lambda_phi.append([0, 1])
-    lambda_phi = np.array(lambda_phi)
-    print('lambda_phi: {}'.format(lambda_phi))
+    lambda_phi = np.array([[1, 0] if zn[n] == 0 else [0, 1] for n in range(N)])
     """
+    lambda_phi = np.array(lambda_phi)
     lambda_phi = np.random.dirichlet(alpha_o, N)
-    print('lambda_phi: {}'.format(lambda_phi))
-    print('Shape lambda_phi: {}'.format(lambda_phi.shape))
+    # print('lambda_phi: {}'.format(lambda_phi))
+    # print('Shape lambda_phi: {}'.format(lambda_phi.shape))
     """
 
     # Shape lambda_pi: (K)
@@ -120,57 +114,36 @@ def main():
     # print('Shape lambda_nu: {}'.format(lambda_nu.shape))
 
     # Shape lambda_m: (K, D)
-    """
-    lambda_m = np.array([[0., 0.], [0., 0.]])
-    count_0 = 0
-    count_1 = 0
-    for i in range(len(xn)):
-        if zn[i] == 0:
-            lambda_m[0] += xn[i]
-            count_0 += 1
-        else:
-            lambda_m[1] += xn[i]
-            count_1 += 1
-    lambda_m[0] = lambda_m[0] / count_0
-    lambda_m[1] = lambda_m[1] / count_1
-    print('lambda_m: {}'.format(lambda_m))
-    """
-
     lambda_m = np.zeros(shape=(K, D))
     for k in range(K):
         aux = 0
         for n in range(N):
             aux += lambda_phi[n, k] * xn[n, :]
-        lambda_m[k] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
-    print('lambda_m: {}'.format(lambda_m))
-    print('Shape lambda_m: {}'.format(lambda_m.shape))
+        lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
+    # print('lambda_m: {}'.format(lambda_m))
+    # print('Shape lambda_m: {}'.format(lambda_m.shape))
 
     # Shape lambda_W: (K, D, D)
-    """
-    lambda_W = np.array([[[0., 0.], [0., 0.]], [[0., 0.], [0., 0.]]])
-    for i in range(len(xn)):
-        if zn[i] == 0:
-            lambda_W[0] += np.outer(xn[i], xn[i].T)
-        else:
-            lambda_W[1] += np.outer(xn[i], xn[i].T)
-    print('lambda_W: {}'.format(lambda_W))
-    """
     lambda_W = np.zeros(shape=(K, D, D))
-    xn_xnt = []  # Matrix list DxD
-    for n in range(N):
-        xn_xnt.append(np.outer(xn[n], xn[n].T))
+    xn_xnt = [np.outer(xn[n, :], xn[n, :].T) for n in range(N)]
     for k in range(K):
         aux = np.array([[0., 0.], [0., 0.]])
         for n in range(N):
             aux += lambda_phi[n, k] * xn_xnt[n]
-        lambda_W[k] = W_o + np.outer(m_o, m_o.T) + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
-    print('lambda_W: {}'.format(lambda_W))
-    print('Shape lambda_W: {}'.format(lambda_W.shape))
+        lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - (lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T))
+    # print('lambda_W: {}'.format(lambda_W))
+    # print('Shape lambda_W: {}'.format(lambda_W.shape))
 
     lbs = []
     for i in xrange(MAX_ITERS):
         print('************************* ITERATION {} *************************'.format(i))
         """
+        # PROBLEMA: Cuando el determinante de lambda_W[k] da negativo. No debería
+        #           ocurrir ya que lambda_W[k] es una matriz definida positiva
+        for k in range(K):
+            print('Determinante lambda_W[{}]: {}'.format(k, np.linalg.det(
+                lambda_W[k, :, :])))
+
         # Parameter updates
         for n in xrange(N):
             for k in xrange(K):
@@ -186,6 +159,7 @@ def main():
             lambda_phi[n, :] = softmax(lambda_phi[n, :])
             # print('Despues: {}'.format(lambda_phi[n, :]))
         """
+
         for k in range(K):
             lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
 
@@ -200,13 +174,13 @@ def main():
             aux = 0
             for n in range(N):
                 aux += lambda_phi[n, k] * xn[n, :]
-            lambda_m[k] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
+            lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
 
         for k in range(K):
             aux = np.array([[0., 0.], [0., 0.]])
             for n in range(N):
                 aux += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k] = W_o + np.outer(m_o, m_o.T) + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
+            lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - (lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T))
 
         # print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
         print('lambda_beta: {}'.format(lambda_beta))
@@ -229,12 +203,9 @@ def main():
     """
 
     print('************************* RESULTS ****************************')
-    sigma_c1 = invwishart.rvs(lambda_nu[0], lambda_W[0, :, :])
-    sigma_c2 = invwishart.rvs(lambda_nu[1], lambda_W[1, :, :])
-    print('Mu c1: {}'.format(lambda_m[0, :]))
-    print('Sigma c1: {}'.format(sigma_c1 / lambda_beta[0]))
-    print('Mu c2: {}'.format(lambda_m[1, :]))
-    print('Sigma c2: {}'.format(sigma_c2 / lambda_beta[1]))
+    for k in range(K):
+        print('Mu k{}: {}'.format(k, lambda_m[k, :]))
+        print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k], lambda_W[k, :, :]) / lambda_beta[k]))
 
     """
     if args.plot:
