@@ -13,13 +13,14 @@ from time import time
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.special import psi
+from numpy.linalg import det, inv
+from scipy.special import gammaln, psi
 from scipy.stats import invwishart
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=5)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10)
 parser.add_argument('-dataset', metavar='dataset',
-                    type=str, default='../../data/data_k2_100.pkl')
+                    type=str, default='../../data/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--timing', dest='timing', action='store_true')
 parser.add_argument('--no-timing', dest='timing', action='store_false')
@@ -43,11 +44,11 @@ K = args.k
 THRESHOLD = 1e-6
 
 
-def getNs(x):
-    ns = np.zeros(shape=K)
+def getNks(x):
+    Nks = np.zeros(shape=K)
     for i in xrange(len(x)):
-        ns[np.random.choice(K, 1, p=x[i])] += 1
-    return ns
+        Nks[np.random.choice(K, 1, p=x[i])] += 1
+    return Nks
 
 
 def softmax(x):
@@ -55,11 +56,18 @@ def softmax(x):
     return e_x / e_x.sum(axis=0)
 
 
-def elbo():
-    pass
+def elbo(N, D, alpha_o, lambda_phi):
+    e1 = np.zeros(shape=K)
+    for k in range(K):
+        e1[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
+    e2 = psi(alpha_o) - psi(np.sum(alpha_o))
+    e3 = np.dot(e1.T, e2)
+    e3 -= np.sum(gammaln(alpha_o) + gammaln(np.sum(alpha_o)))
+    e3 -= ((D * (N + 1)) / 2) * K * np.log(2 * np.pi)
 
 
 def main():
+
     # Get data
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
@@ -81,94 +89,34 @@ def main():
     m_o = np.array([0.0, 0.0])
     beta_o = np.array([0.8])
 
-    # Initializations
-    # Shape lambda_phi: (N, K)
-    """
-    lambda_phi = np.array([[1, 0] if zn[n] == 0 else [0, 1] for n in range(N)])
-    """
     lambda_phi = np.random.dirichlet(alpha_o, N)
-    # print('lambda_phi: {}'.format(lambda_phi))
-    # print('Shape lambda_phi: {}'.format(lambda_phi.shape))
-
-    # Shape lambda_pi: (K)
+    # lambda_phi = np.array([[1, 0] if zn[n] == 0 else [0, 1] for n in range(N)])
     lambda_pi = np.zeros(shape=K)
-    for k in range(K):
-        lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
-    # print('lambda_pi: {}'.format(lambda_pi))
-    # print('Shape lambda_pi: {}'.format(lambda_pi.shape))
-
-    # Shape lambda_beta: (K)
-    ns = getNs(lambda_phi)
     lambda_beta = np.zeros(shape=K)
-    for k in range(K):
-        lambda_beta[k] = beta_o + ns[k]
-    # print('lambda_beta: {}'.format(lambda_beta))
-    # print('Shape lambda_beta: {}'.format(lambda_beta.shape))
-
-    # Shape lambda_nu: (K)
     lambda_nu = np.zeros(shape=K)
-    for k in range(K):
-        lambda_nu[k] = nu_o + ns[k]
-    # print('lambda_nu: {}'.format(lambda_nu))
-    # print('Shape lambda_nu: {}'.format(lambda_nu.shape))
-
-    # Shape lambda_m: (K, D)
     lambda_m = np.zeros(shape=(K, D))
-    for k in range(K):
-        aux = 0
-        for n in range(N):
-            aux += lambda_phi[n, k] * xn[n, :]
-        lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
-    # print('lambda_m: {}'.format(lambda_m))
-    # print('Shape lambda_m: {}'.format(lambda_m.shape))
-
-    # Shape lambda_W: (K, D, D)
     lambda_W = np.zeros(shape=(K, D, D))
-    xn_xnt = [np.outer(xn[n, :], xn[n, :].T) for n in range(N)]
-    for k in range(K):
-        aux = np.array([[0., 0.], [0., 0.]])
-        for n in range(N):
-            aux += lambda_phi[n, k] * xn_xnt[n]
-        lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
-    # print('lambda_W: {}'.format(lambda_W))
-    # print('Shape lambda_W: {}'.format(lambda_W.shape))
 
+    xn_xnt = [np.outer(xn[n, :], xn[n, :].T) for n in range(N)]
+
+    # Inference
     lbs = []
-    for i in xrange(MAX_ITERS):
+    for i in range(MAX_ITERS):
         print('\n******* ITERATION {} *******'.format(i))
 
-        # PROBLEMA: Cuando el determinante de lambda_W[k] da negativo. No debería
-        #           ocurrir ya que lambda_W[k] es una matriz definida positiva
-        for k in range(K):
-            print('Determinante lambda_W[{}]: {}'.format(k, np.linalg.det(lambda_W[k, :, :])))
-
         # Parameter updates
-        for n in xrange(N):
-            for k in xrange(K):
-                lambda_phi[n, k] = psi(lambda_pi[k]) - np.sum(psi(lambda_pi[k]))
-                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * np.linalg.inv(lambda_W[k, :, :]), lambda_m[k, :]), xn[n, :])
-                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * np.linalg.inv(lambda_W[k, :, :]), xn[n, :]), xn[n, :].T)
-                lambda_phi[n, k] -= (1 / 2.) * (1/lambda_beta[k])
-                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, np.linalg.inv(lambda_W[k, :, :])), lambda_m[k, :])
-                lambda_phi[n, k] += (D / 2.) * np.log(2.)
-                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in xrange(D)]))
-                lambda_phi[n, k] -= (1 / 2.) * np.log(np.linalg.det(lambda_W[k, :, :]))
-            # print('Antes: {}'.format(lambda_phi[n, :]))
-            lambda_phi[n, :] = softmax(lambda_phi[n, :])
-            # print('Despues: {}'.format(lambda_phi[n, :]))
-
         for k in range(K):
             lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
 
-        ns = getNs(lambda_phi)
+        Nks = getNks(lambda_phi)
         for k in range(K):
-            lambda_beta[k] = beta_o + ns[k]
+            lambda_beta[k] = beta_o + Nks[k]
 
         for k in range(K):
-            lambda_nu[k] = nu_o + ns[k]
+            lambda_nu[k] = nu_o + Nks[k]
 
         for k in range(K):
-            aux = 0
+            aux = np.array([0., 0.])
             for n in range(N):
                 aux += lambda_phi[n, k] * xn[n, :]
             lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
@@ -177,15 +125,33 @@ def main():
             aux = np.array([[0., 0.], [0., 0.]])
             for n in range(N):
                 aux += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
+            lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
 
-        # print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
+        # PROBLEMA: Cuando el determinante de lambda_W[k] da negativo. No debería
+        #           ocurrir ya que lambda_W[k] es una matriz definida positiva
+        for k in range(K):
+            print('Determinante lambda_W[{}]: {}'.format(k, np.linalg.det(lambda_W[k, :, :])))
+
+        for n in range(N):
+            for k in range(K):
+                lambda_phi[n, k] = psi(lambda_pi[k]) - psi(np.sum(lambda_pi))
+                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
+                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]), xn[n, :].T)
+                lambda_phi[n, k] -= (1 / 2.) * (1 / lambda_beta[k])
+                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
+                lambda_phi[n, k] += (D / 2.) * np.log(2.)
+                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)]))
+                lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_W[k, :, :]))
+            # print('Antes: {}'.format(lambda_phi[n, :]))
+            lambda_phi[n, :] = softmax(lambda_phi[n, :])
+            # print('Despues: {}'.format(lambda_phi[n, :]))
+
+        print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
         print('lambda_beta: {}'.format(lambda_beta))
         print('lambda_nu: {}'.format(lambda_nu))
         print('lambda_m: {}'.format(lambda_m))
         print('lambda_W: {}'.format(lambda_W))
         print('lambda_pi: {}'.format(lambda_pi))
-
 
         """
         # ELBO computation
@@ -197,14 +163,14 @@ def main():
                     n_iters = i + 1
                 break
         lbs.append(lb)
-    """
+        """
 
     print('\n******* RESULTS *******')
     for k in range(K):
         print('Mu k{}: {}'.format(k, lambda_m[k, :]))
-        print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k], lambda_W[k, :, :]) / lambda_beta[k]))
+        print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k], lambda_W[k, :, :]) * lambda_beta[k]))
 
-    print('lambda_phi: {}'.format(lambda_phi))
+    # print('lambda_phi: {}'.format(lambda_phi))
 
     if args.plot:
         plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
