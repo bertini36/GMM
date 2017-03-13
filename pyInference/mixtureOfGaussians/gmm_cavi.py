@@ -87,7 +87,7 @@ def main():
     nu_o = np.array([3.0])
     W_o = np.array([[20., 30.], [25., 40.]])
     m_o = np.array([0.0, 0.0])
-    beta_o = np.array([0.8])
+    beta_o = np.array([0.7])
 
     lambda_phi = np.random.dirichlet(alpha_o, N)
     # lambda_phi = np.array([[1, 0] if zn[n] == 0 else [0, 1] for n in range(N)])
@@ -125,18 +125,20 @@ def main():
             aux = np.array([[0., 0.], [0., 0.]])
             for n in range(N):
                 aux += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k, :, :] = W_o + np.outer(m_o, m_o.T) + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
+            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
 
         # PROBLEMA: Cuando el determinante de lambda_W[k] da negativo. No debería
         #           ocurrir ya que lambda_W[k] es una matriz definida positiva
+        """
         for k in range(K):
             print('Determinante lambda_W[{}]: {}'.format(k, np.linalg.det(lambda_W[k, :, :])))
+        """
 
         for n in range(N):
             for k in range(K):
                 lambda_phi[n, k] = psi(lambda_pi[k]) - psi(np.sum(lambda_pi))
                 lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
-                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]), xn[n, :].T)
+                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
                 lambda_phi[n, k] -= (1 / 2.) * (1 / lambda_beta[k])
                 lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
                 lambda_phi[n, k] += (D / 2.) * np.log(2.)

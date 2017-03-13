@@ -39,24 +39,12 @@ W_prior = tf.Variable(np.array([[1., 0.], [0., 1.]]),
 m_prior = tf.Variable(np.array([0.5, 0.5]), dtype=tf.float64, trainable=False)
 k_prior = tf.Variable(0.6, dtype=tf.float64, trainable=False)
 
-print('***** PRIORS *****')
-print('v_prior: {}'.format(v_prior))
-print('W_prior: {}'.format(W_prior))
-print('m_prior: {}'.format(m_prior))
-print('k_prior: {}'.format(k_prior))
-
 # Posterior inference
 # Probabilistic model
 sigma = WishartCholesky(df=v_prior, scale=W_prior)
 mu = MultivariateNormalFull(m_prior, k_prior * sigma)
 xn = MultivariateNormalFull(tf.reshape(tf.tile(mu, [N]), [N, D]),
                             tf.reshape(tf.tile(sigma, [N, 1]), [N, 2, 2]))
-
-print('***** PROBABILISTIC MODEL *****')
-print('mu: {}'.format(mu))
-print('sigma: {}'.format(sigma))
-print('xn: {}'.format(xn))
-
 # Variational model
 qmu = MultivariateNormalFull(
     tf.Variable(tf.random_normal([D], dtype=tf.float64), name='v1'),
@@ -68,13 +56,11 @@ qsigma = WishartCholesky(
     scale=tf.nn.softplus(
         tf.Variable(tf.random_normal([D, D], dtype=tf.float64), name='v4')))
 
-print('***** VARIATIONAL MODEL *****')
-print('qmu: {}'.format(qmu))
-print('qsigma: {}'.format(qsigma))
-
 # Inference
-print('xn_data: {}'.format(xn_data.dtype))
 inference = ed.KLqp({mu: qmu, sigma: qsigma}, data={xn: xn_data})
-inference.run(n_iter=2000, n_samples=20)
+inference.run(n_iter=500, n_samples=20)
 
 sess = ed.get_session()
+
+print('Inferred mu: {}'.format(sess.run(qmu.mean())))
+print('Inferred sigma: {}'.format(sess.run(qsigma.mean())))
