@@ -58,45 +58,76 @@ def softmax(x):
 
 
 def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks):
-    e1 = np.zeros(shape=K)
-    e2 = np.zeros(shape=K)
+    ep1 = np.zeros(shape=K)
+    ep2 = np.zeros(shape=K)
     for k in range(K):
-        e1[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
-        e2[k] = dirichlet_expectation(lambda_pi[k])
-    elbop = np.dot(e1.T, e2)
+        ep1[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
+        ep2[k] = dirichlet_expectation(lambda_pi[k])
+    elbop = np.dot(ep1.T, ep2)
     elbop -= log_beta_function(alpha_o)
     elbop -= ((D * (N + 1)) / 2.) * K * np.log(2. * np.pi)
     print('elbop: {}'.format(elbop))
-    e4 = []
-    e5 = []
+    ep4 = []
+    ep5 = []
     for k in range(K):
         aux1 = np.array([0., 0.])
         aux2 = np.array([[0., 0.], [0., 0.]])
         for n in range(N):
             aux1 += lambda_phi[n, k] * xn[n, :]
             aux2 += lambda_phi[n, k] * xn_xnt[n]
-        e4.append([
+        ep4.append([
             m_o.T * beta_o + aux1,
             W_o + np.outer(beta_o * m_o, m_o.T) + aux2,
             beta_o + Nks[k],
             nu_o + D + 2. + Nks[k]
         ])
-        e5.append([
+        ep5.append([
             np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]),
             (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
             (-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
             (D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :]))
         ])
-    # TODO: ¿Como junto e4 y e5 para que de un escalar?
-    e4 = np.sum(e4, axis=0)
-    e5 = np.sum(e5, axis=0)
-    print('e4: {}'.format(e4))
-    print('e5: {}'.format(e5))
+    # TODO: ¿Como junto ep4 y ep5 para que de un escalar?
+    ep4 = np.sum(ep4, axis=0)
+    ep5 = np.sum(ep5, axis=0)
+    print('ep4: {}'.format(ep4))
+    print('ep5: {}'.format(ep5))
     elbop -= (K * nu_o * D * np.log(2.)) / 2.
     elbop -= K * gammaln(nu_o / 2.)
     elbop += (D / 2.) * K * np.log(beta_o)
     elbop += (nu_o / 2.) * K * np.log(det(W_o))
     print('elbop: {}'.format(elbop))
+
+    eq1 = np.zeros(shape=K)
+    eq2 = np.zeros(shape=K)
+    for k in range(K):
+        eq1[k] = lambda_pi[k] + np.sum(lambda_phi[:, k])
+        eq2[k] = dirichlet_expectation(lambda_pi[k])
+    elboq = np.dot(eq1.T, eq2)
+    elboq -= log_beta_function(lambda_pi)
+    elboq -= (D / 2.) * K * np.log(2. * np.pi)
+    print('elboq: {}'.format(elboq))
+    eq4 = []
+    eq5 = []
+    for k in range(K):
+        eq4.append([
+            lambda_m[k, :].T * lambda_beta[k],
+            lambda_W[k, :, :] + np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T),
+            lambda_beta[k],
+            lambda_nu[k] + D + 2
+        ])
+        eq5.append([
+            np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]),
+            (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
+            (-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
+            (D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :]))
+        ])
+    # TODO: ¿Como junto eq4 y eq5 para que de un escalar?
+    eq4 = np.sum(eq4, axis=0)
+    eq5 = np.sum(eq5, axis=0)
+    print('eq4: {}'.format(eq4))
+    print('eq5: {}'.format(eq5))
+
     return 0
 
 
