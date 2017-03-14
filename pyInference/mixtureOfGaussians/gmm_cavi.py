@@ -48,23 +48,60 @@ def dirichlet_expectation(alpha):
     return psi(alpha + np.finfo(np.float32).eps) - psi(np.sum(alpha))
 
 
+def log_beta_function(x):
+    return np.sum(gammaln(x + np.finfo(np.float32).eps)) - gammaln(np.sum(x + np.finfo(np.float32).eps))
+
+
 def softmax(x):
     e_x = np.exp(x - np.max(x))
-    return (e_x + np.finfo(np.float32).eps) / (
-    e_x.sum(axis=0) + np.finfo(np.float32).eps)
+    return (e_x + np.finfo(np.float32).eps) / (e_x.sum(axis=0) + np.finfo(np.float32).eps)
 
 
-def elbo(N, D, alpha_o, lambda_phi):
+def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks):
     e1 = np.zeros(shape=K)
+    e2 = np.zeros(shape=K)
     for k in range(K):
         e1[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
-    e2 = psi(alpha_o) - psi(np.sum(alpha_o))
-    e3 = np.dot(e1.T, e2)
-    e3 -= np.sum(gammaln(alpha_o) + gammaln(np.sum(alpha_o)))
-    e3 -= ((D * (N + 1)) / 2) * K * np.log(2 * np.pi)
+        e2[k] = dirichlet_expectation(lambda_pi[k])
+    elbop = np.dot(e1.T, e2)
+    elbop -= log_beta_function(alpha_o)
+    elbop -= ((D * (N + 1)) / 2.) * K * np.log(2. * np.pi)
+    print('elbop: {}'.format(elbop))
+    e4 = []
+    e5 = []
+    for k in range(K):
+        aux1 = np.array([0., 0.])
+        aux2 = np.array([[0., 0.], [0., 0.]])
+        for n in range(N):
+            aux1 += lambda_phi[n, k] * xn[n, :]
+            aux2 += lambda_phi[n, k] * xn_xnt[n]
+        e4.append([
+            m_o.T * beta_o + aux1,
+            W_o + np.outer(beta_o * m_o, m_o.T) + aux2,
+            beta_o + Nks[k],
+            nu_o + D + 2. + Nks[k]
+        ])
+        e5.append([
+            np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]),
+            (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
+            (-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
+            (D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :]))
+        ])
+    # TODO: ¿Como junto e4 y e5 para que de un escalar?
+    e4 = np.sum(e4, axis=0)
+    e5 = np.sum(e5, axis=0)
+    print('e4: {}'.format(e4))
+    print('e5: {}'.format(e5))
+    elbop -= (K * nu_o * D * np.log(2.)) / 2.
+    elbop -= K * gammaln(nu_o / 2.)
+    elbop += (D / 2.) * K * np.log(beta_o)
+    elbop += (nu_o / 2.) * K * np.log(det(W_o))
+    print('elbop: {}'.format(elbop))
+    return 0
 
 
 def main():
+
     # Get data
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
@@ -122,27 +159,17 @@ def main():
             aux = np.array([[0., 0.], [0., 0.]])
             for n in range(N):
                 aux += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o,
-                                               m_o.T) + aux - np.outer(
-                lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
+            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
 
         for n in range(N):
             for k in range(K):
                 lambda_phi[n, k] = dirichlet_expectation(lambda_pi[k])
-                lambda_phi[n, k] += np.dot(
-                    np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]),
-                           lambda_m[k, :]).T, xn[n, :])
-                lambda_phi[n, k] -= np.dot(
-                    np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
-                           xn[n, :]).T, xn[n, :])
+                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
+                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
                 lambda_phi[n, k] -= (1 / 2.) * (1 / lambda_beta[k])
-                lambda_phi[n, k] -= np.dot(
-                    np.dot(lambda_nu[k] * lambda_m[k, :].T,
-                           inv(lambda_W[k, :, :])), lambda_m[k, :])
+                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
                 lambda_phi[n, k] += (D / 2.) * np.log(2.)
-                lambda_phi[n, k] += (1 / 2.) * np.sum(psi(
-                    [((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in
-                     range(D)]))
+                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)]))
                 lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_W[k, :, :]))
             lambda_phi[n, :] = softmax(lambda_phi[n, :])
 
@@ -153,9 +180,10 @@ def main():
         print('lambda_W: {}'.format(lambda_W))
         print('lambda_pi: {}'.format(lambda_pi))
 
-        """
         # ELBO computation
-        lb = elbo()
+        lb = elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks)
+
+        """
         # Break condition
         if i > 0:
             if abs(lb - lbs[i - 1]) < THRESHOLD:
@@ -168,16 +196,12 @@ def main():
     print('\n******* RESULTS *******')
     for k in range(K):
         print('Mu k{}: {}'.format(k, lambda_m[k, :]))
-        print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k],
-                                                       lambda_W[k, :, :]) *
-                                     lambda_beta[k]))
+        print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k], lambda_W[k, :, :]) * lambda_beta[k]))
 
     # print('lambda_phi: {}'.format(lambda_phi))
 
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1],
-                    c=[np.argmax(lambda_phi[n]) for n in range(N)],
-                    cmap=cm.gist_rainbow, s=5)
+        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
         plt.show()
 
     """
