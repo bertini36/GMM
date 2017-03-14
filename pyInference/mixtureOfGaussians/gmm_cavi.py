@@ -44,16 +44,14 @@ K = args.k
 THRESHOLD = 1e-6
 
 
-def getNks(x):
-    Nks = np.zeros(shape=K)
-    for i in xrange(len(x)):
-        Nks[np.random.choice(K, 1, p=x[i])] += 1
-    return Nks
+def dirichlet_expectation(alpha):
+    return psi(alpha + np.finfo(np.float32).eps) - psi(np.sum(alpha))
 
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=0)
+    return (e_x + np.finfo(np.float32).eps) / (
+    e_x.sum(axis=0) + np.finfo(np.float32).eps)
 
 
 def elbo(N, D, alpha_o, lambda_phi):
@@ -67,7 +65,6 @@ def elbo(N, D, alpha_o, lambda_phi):
 
 
 def main():
-
     # Get data
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
@@ -82,15 +79,15 @@ def main():
         plt.scatter(xn[:, 0], xn[:, 1], c=data['zn'], cmap=cm.gist_rainbow, s=5)
         plt.show()
 
-    # Model hyperparameters (priors)
+    # Priors
     alpha_o = np.array([1.0] * K)
     nu_o = np.array([3.0])
     W_o = np.array([[20., 30.], [25., 40.]])
     m_o = np.array([0.0, 0.0])
     beta_o = np.array([0.7])
 
+    # Variational parameters
     lambda_phi = np.random.dirichlet(alpha_o, N)
-    # lambda_phi = np.array([[1, 0] if zn[n] == 0 else [0, 1] for n in range(N)])
     lambda_pi = np.zeros(shape=K)
     lambda_beta = np.zeros(shape=K)
     lambda_nu = np.zeros(shape=K)
@@ -104,11 +101,11 @@ def main():
     for i in range(MAX_ITERS):
         print('\n******* ITERATION {} *******'.format(i))
 
-        # Parameter updates
+        # Variational parameter updates
         for k in range(K):
             lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
 
-        Nks = getNks(lambda_phi)
+        Nks = np.sum(lambda_phi, axis=0)
         for k in range(K):
             lambda_beta[k] = beta_o + Nks[k]
 
@@ -125,28 +122,29 @@ def main():
             aux = np.array([[0., 0.], [0., 0.]])
             for n in range(N):
                 aux += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
-
-        # PROBLEMA: Cuando el determinante de lambda_W[k] da negativo. No debería
-        #           ocurrir ya que lambda_W[k] es una matriz definida positiva
-        """
-        for k in range(K):
-            print('Determinante lambda_W[{}]: {}'.format(k, np.linalg.det(lambda_W[k, :, :])))
-        """
+            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o,
+                                               m_o.T) + aux - np.outer(
+                lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
 
         for n in range(N):
             for k in range(K):
-                lambda_phi[n, k] = psi(lambda_pi[k]) - psi(np.sum(lambda_pi))
-                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
-                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
+                lambda_phi[n, k] = dirichlet_expectation(lambda_pi[k])
+                lambda_phi[n, k] += np.dot(
+                    np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]),
+                           lambda_m[k, :]).T, xn[n, :])
+                lambda_phi[n, k] -= np.dot(
+                    np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
+                           xn[n, :]).T, xn[n, :])
                 lambda_phi[n, k] -= (1 / 2.) * (1 / lambda_beta[k])
-                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
+                lambda_phi[n, k] -= np.dot(
+                    np.dot(lambda_nu[k] * lambda_m[k, :].T,
+                           inv(lambda_W[k, :, :])), lambda_m[k, :])
                 lambda_phi[n, k] += (D / 2.) * np.log(2.)
-                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)]))
+                lambda_phi[n, k] += (1 / 2.) * np.sum(psi(
+                    [((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in
+                     range(D)]))
                 lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_W[k, :, :]))
-            # print('Antes: {}'.format(lambda_phi[n, :]))
             lambda_phi[n, :] = softmax(lambda_phi[n, :])
-            # print('Despues: {}'.format(lambda_phi[n, :]))
 
         print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
         print('lambda_beta: {}'.format(lambda_beta))
@@ -170,12 +168,16 @@ def main():
     print('\n******* RESULTS *******')
     for k in range(K):
         print('Mu k{}: {}'.format(k, lambda_m[k, :]))
-        print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k], lambda_W[k, :, :]) * lambda_beta[k]))
+        print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k],
+                                                       lambda_W[k, :, :]) *
+                                     lambda_beta[k]))
 
     # print('lambda_phi: {}'.format(lambda_phi))
 
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
+        plt.scatter(xn[:, 0], xn[:, 1],
+                    c=[np.argmax(lambda_phi[n]) for n in range(N)],
+                    cmap=cm.gist_rainbow, s=5)
         plt.show()
 
     """
