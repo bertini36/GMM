@@ -53,6 +53,15 @@ def softmax(x):
     return (e_x + np.finfo(np.float32).eps) / (e_x.sum(axis=0) + np.finfo(np.float32).eps)
 
 
+def sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta):
+    return np.array([
+        np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]),
+        (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
+        (-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
+        (D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :]))
+    ])
+
+
 def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks):
     elbop = -(((D * (N + 1)) / 2.) * K * np.log(2. * np.pi))
     for k in range(K):
@@ -63,10 +72,11 @@ def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m,
             aux2 += lambda_phi[n, k] * xn_xnt[n]
         elbop -= gammaln(alpha_o[k]) + gammaln(np.sum(alpha_o))
         elbop += (alpha_o[k] - 1 + np.sum(lambda_phi[:, k])) * dirichlet_expectation(alpha_o, k)
-        elbop += np.dot((m_o.T * beta_o + aux1).T, np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]))
-        elbop += np.trace(np.dot((W_o + np.outer(beta_o * m_o, m_o.T) + aux2).T, (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :])))
-        elbop += (beta_o + Nks[k]) * ((-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]))
-        elbop += (nu_o + D + 2. + Nks[k]) * ((D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :])))
+        ss_niw = sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta)
+        elbop += np.dot((m_o.T * beta_o + aux1).T, ss_niw[0])
+        elbop += np.trace(np.dot((W_o + np.outer(beta_o * m_o, m_o.T) + aux2).T, ss_niw[1]))
+        elbop += (beta_o + Nks[k]) * ss_niw[2]
+        elbop += (nu_o + D + 2. + Nks[k]) * ss_niw[3]
     elbop -= (K * nu_o * D * np.log(2.)) / 2.
     elbop -= K * multigammaln(nu_o / 2., D)
     elbop += (D / 2.) * K * np.log(beta_o)
@@ -76,10 +86,11 @@ def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m,
     for k in range(K):
         elboq -= gammaln(lambda_pi[k]) + gammaln(np.sum(lambda_pi))
         elboq += (lambda_pi[k] - 1 + np.sum(lambda_phi[:, k])) * dirichlet_expectation(lambda_pi, k)
-        elboq += np.dot((lambda_m[k, :].T * lambda_beta[k]).T, np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]))
-        elboq += np.trace(np.dot((lambda_W[k, :, :] + np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)).T, (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :])))
-        elboq += lambda_beta[k] * ((-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]))
-        elboq += (lambda_nu[k] + D + 2) * ((D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :])))
+        ss_niw = sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta)
+        elboq += np.dot((lambda_m[k, :].T * lambda_beta[k]).T, ss_niw[0])
+        elboq += np.trace(np.dot((lambda_W[k, :, :] + np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)).T, ss_niw[1]))
+        elboq += lambda_beta[k] * ss_niw[2]
+        elboq += (lambda_nu[k] + D + 2) * ss_niw[3]
         elboq -= ((lambda_nu[k] * D) / 2.) * np.log(2.)
         elboq -= multigammaln(lambda_nu[k]/2., D)
         elboq += (D / 2.) * np.log(lambda_beta[k])
