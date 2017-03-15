@@ -44,16 +44,25 @@ K = args.k
 THRESHOLD = 1e-6
 
 
+def dirichlet_expectation(alpha, k):
+    return psi(alpha[k] + np.finfo(np.float32).eps) - psi(np.sum(alpha))
+
+
 def softmax(x):
     e_x = np.exp(x - np.max(x))
     return (e_x + np.finfo(np.float32).eps) / (e_x.sum(axis=0) + np.finfo(np.float32).eps)
 
 
-def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, Nks, aux1, aux2):
+def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks):
     elbop = -(((D * (N + 1)) / 2.) * K * np.log(2. * np.pi))
     for k in range(K):
+        aux1 = np.array([0., 0.])
+        aux2 = np.array([[0., 0.], [0., 0.]])
+        for n in range(N):
+            aux1 += lambda_phi[n, k] * xn[n, :]
+            aux2 += lambda_phi[n, k] * xn_xnt[n]
         elbop -= gammaln(alpha_o[k]) + gammaln(np.sum(alpha_o))
-        elbop += (alpha_o[k] - 1 + np.sum(lambda_phi[:, k])) * (psi(alpha_o[k]) - psi(np.sum(alpha_o)))
+        elbop += (alpha_o[k] - 1 + np.sum(lambda_phi[:, k])) * dirichlet_expectation(alpha_o, k)
         elbop += np.dot((m_o.T * beta_o + aux1).T, np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]))
         elbop += np.trace(np.dot((W_o + np.outer(beta_o * m_o, m_o.T) + aux2).T, (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :])))
         elbop += (beta_o + Nks[k]) * ((-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]))
@@ -66,7 +75,7 @@ def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m,
     elboq = -((D / 2.) * K * np.log(2. * np.pi))
     for k in range(K):
         elboq -= gammaln(lambda_pi[k]) + gammaln(np.sum(lambda_pi))
-        elboq += (lambda_pi[k] - 1 + np.sum(lambda_phi[:, k])) * (psi(lambda_pi[k]) - psi(np.sum(lambda_pi)))
+        elboq += (lambda_pi[k] - 1 + np.sum(lambda_phi[:, k])) * dirichlet_expectation(lambda_pi, k)
         elboq += np.dot((lambda_m[k, :].T * lambda_beta[k]).T, np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]))
         elboq += np.trace(np.dot((lambda_W[k, :, :] + np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)).T, (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :])))
         elboq += lambda_beta[k] * ((-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]))
@@ -130,26 +139,26 @@ def main():
             lambda_nu[k] = nu_o + Nks[k]
 
         for k in range(K):
-            aux1 = np.array([0., 0.])
+            aux = np.array([0., 0.])
             for n in range(N):
-                aux1 += lambda_phi[n, k] * xn[n, :]
-            lambda_m[k, :] = ((m_o.T * beta_o + aux1) / lambda_beta[k]).T
+                aux += lambda_phi[n, k] * xn[n, :]
+            lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
 
         for k in range(K):
-            aux2 = np.array([[0., 0.], [0., 0.]])
+            aux = np.array([[0., 0.], [0., 0.]])
             for n in range(N):
-                aux2 += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o, m_o.T) + aux2 - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
+                aux += lambda_phi[n, k] * xn_xnt[n]
+            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
 
         for n in range(N):
             for k in range(K):
-                lambda_phi[n, k] = psi(lambda_pi[k]) - psi(np.sum(lambda_pi))
+                lambda_phi[n, k] = dirichlet_expectation(lambda_pi, k)
                 lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
                 lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
                 lambda_phi[n, k] -= (1 / 2.) * (1 / lambda_beta[k])
                 lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
                 lambda_phi[n, k] += (D / 2.) * np.log(2.)
-                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((lambda_nu[k] - i) / 2.)) for i in range(D)]))
+                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)]))
                 lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_W[k, :, :]))
             lambda_phi[n, :] = softmax(lambda_phi[n, :])
 
@@ -161,7 +170,7 @@ def main():
         print('lambda_pi: {}'.format(lambda_pi))
 
         # ELBO computation
-        lb = elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, Nks, aux1, aux2)
+        lb = elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks)
 
         # Break condition
         if i > 1:
@@ -185,10 +194,10 @@ def main():
         print('Iterations: {}'.format(n_iters))
     if args.getELBOs:
         print('ELBOs: {}'.format(lbs))
+        plt.scatter(range(MAX_ITERS), lbs, cmap=cm.gist_rainbow, s=5)
+        plt.show()
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1],
-                    c=[np.argmax(lambda_phi[n]) for n in range(N)],
-                    cmap=cm.gist_rainbow, s=5)
+        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
         plt.show()
 
 
