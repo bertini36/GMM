@@ -8,13 +8,14 @@ process to approximate a mixture of gaussians
 
 import argparse
 import pickle as pkl
-from time import time
+from time import time, sleep
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import det, inv
 from scipy.special import gammaln, multigammaln, psi
+from viz import create_cov_ellipse
 from scipy.stats import invwishart
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
@@ -57,9 +58,60 @@ def sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta):
     return np.array([
         np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]),
         (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
-        (-1 / 2.) * (1 / lambda_beta[k]) - lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
+        (-D / 2.) * (1 / lambda_beta[k]) - (1 / 2.) * lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
         (D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :]))
     ])
+
+
+def update_lambda_pi(lambda_pi, lambda_phi, alpha_o):
+    for k in range(K):
+        lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
+    return lambda_pi
+
+
+def update_lambda_beta(lambda_beta, beta_o, Nks):
+    for k in range(K):
+        lambda_beta[k] = beta_o + Nks[k]
+    return lambda_beta
+
+
+def update_lambda_nu(lambda_nu, nu_o, Nks):
+    for k in range(K):
+        lambda_nu[k] = nu_o + Nks[k]
+    return lambda_nu
+
+
+def update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N):
+    for k in range(K):
+        aux = np.array([0., 0.])
+        for n in range(N):
+            aux += lambda_phi[n, k] * xn[n, :]
+        lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
+    return lambda_m
+
+
+def update_lambda_W(lambda_W, lambda_phi, lambda_beta, lambda_m, W_o, beta_o, m_o, xn_xnt, K, N):
+    for k in range(K):
+        aux = np.array([[0., 0.], [0., 0.]])
+        for n in range(N):
+            aux += lambda_phi[n, k] * xn_xnt[n]
+        lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
+    return lambda_W
+
+
+def update_lambda_phi(lambda_phi, lambda_pi, lambda_m, lambda_nu, lambda_W, lambda_beta, xn, N, K, D):
+    for n in range(N):
+        for k in range(K):
+            lambda_phi[n, k] = dirichlet_expectation(lambda_pi, k)
+            lambda_phi[n, k] += np.dot(lambda_m[k, :], np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]))
+            lambda_phi[n, k] -= np.trace(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), np.outer(xn[n, :], xn[n, :])))
+            lambda_phi[n, k] -= (D / 2.) * (1 / lambda_beta[k])
+            lambda_phi[n, k] -= (1. / 2.) * np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
+            lambda_phi[n, k] += (D / 2.) * np.log(2.)
+            lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)]))
+            lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_W[k, :, :]))
+        lambda_phi[n, :] = softmax(lambda_phi[n, :])
+    return lambda_phi
 
 
 def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks):
@@ -100,6 +152,25 @@ def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m,
     return elbop - elboq
 
 
+def plot_iter(ax_spatial, lambda_phi, lambda_m, lambda_W, lambda_nu, xn, N, D, i):
+    plt.scatter(xn[:, 0], xn[:, 1],
+                c=[np.argmax(lambda_phi[n]) for n in range(N)],
+                cmap=cm.gist_rainbow, s=5)
+    sctZ = plt.scatter(lambda_m[:, 0], lambda_m[:, 1], color='black', s=5)
+    circs = []
+    """
+    for k in range(K):
+        cov = np.power(lambda_W[k, :, :] / (lambda_nu[k] - D - 1), 2)
+        print('COV: {}'.format(cov))
+        circ = create_cov_ellipse(cov, lambda_m[k, :], color='r', alpha=0.3)
+        circs.append(circ)
+        ax_spatial.add_artist(circ)
+    """
+    sctZ.set_offsets(lambda_m)
+    plt.draw()
+    plt.savefig('img/{}.png'.format(i))
+
+
 def main():
 
     # Get data
@@ -113,7 +184,7 @@ def main():
         init_time = time()
 
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1], c=data['zn'], cmap=plt.get_cmap("Set1"), s=15)
+        plt.scatter(xn[:, 0], xn[:, 1], c=zn, cmap=cm.gist_rainbow, s=5)
         plt.show()
 
     # Priors
@@ -133,80 +204,49 @@ def main():
 
     xn_xnt = [np.outer(xn[n, :], xn[n, :].T) for n in range(N)]
 
+    # Plot configs
+    plt.ion()
+    fig = plt.figure(figsize=(10, 10))
+    ax_spatial = fig.add_subplot(1, 1, 1)
+    circs = []
+
     # Inference
     lbs = []
     for i in range(MAX_ITERS):
         print('\n******* ITERATION {} *******'.format(i))
 
         # Variational parameter updates
-        for k in range(K):
-            lambda_pi[k] = alpha_o[k] + np.sum(lambda_phi[:, k])
-
+        lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
         Nks = np.sum(lambda_phi, axis=0)
-        for k in range(K):
-            lambda_beta[k] = beta_o + Nks[k]
+        lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
+        lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
+        lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N)
+        lambda_W = update_lambda_W(lambda_W, lambda_phi, lambda_beta, lambda_m, W_o, beta_o, m_o, xn_xnt, K, N)
+        lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m, lambda_nu, lambda_W, lambda_beta, xn, N, K, D)
 
-        for k in range(K):
-            lambda_nu[k] = nu_o + Nks[k]
-
-        for k in range(K):
-            aux = np.array([0., 0.])
-            for n in range(N):
-                aux += lambda_phi[n, k] * xn[n, :]
-            lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
-
-        for k in range(K):
-            aux = np.array([[0., 0.], [0., 0.]])
-            for n in range(N):
-                aux += lambda_phi[n, k] * xn_xnt[n]
-            lambda_W[k, :, :] = W_o + np.outer(beta_o * m_o, m_o.T) + aux - np.outer(lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
-
-        for n in range(N):
-            for k in range(K):
-                lambda_phi[n, k] = dirichlet_expectation(lambda_pi, k)
-                lambda_phi[n, k] += np.dot(lambda_m[k,:], np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]),xn[n, :]))
-                #print np.dot(lambda_m[k,:], np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]),xn[n, :]))
-                #print np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
-                #lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
-                #lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
-                lambda_phi[n, k] -= np.trace(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), np.outer(xn[n, :], xn[n, :])))
-                #print np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
-                #print np.trace(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), np.outer(xn[n, :], xn[n, :])))
-
-                lambda_phi[n, k] -= (D / 2.) * (1 / lambda_beta[k])
-
-                lambda_phi[n, k] -= (1./2.)*np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
-                lambda_phi[n, k] += (D / 2.) * np.log(2.)
-                lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)]))
-                lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_W[k, :, :]))
-
-            lambda_phi[n, :] = softmax(lambda_phi[n, :])
-
-        print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
+        print('lambda_pi: {}'.format(lambda_pi))
         print('lambda_beta: {}'.format(lambda_beta))
         print('lambda_nu: {}'.format(lambda_nu))
         print('lambda_m: {}'.format(lambda_m))
         print('lambda_W: {}'.format(lambda_W))
-        print('lambda_pi: {}'.format(lambda_pi))
-        if args.plot:
-            plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=plt.get_cmap("Set1"), s=15)
-            plt.show()
+        print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
 
         # ELBO computation
         lb = elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks)
 
         # Break condition
-        if i > 1:
+        if i > 0:
             if abs(lb - lbs[i - 1]) < THRESHOLD:
                 if args.getNIter:
                     n_iters = i + 1
                 break
         lbs.append(lb)
 
+        plot_iter(ax_spatial, lambda_phi, lambda_m, lambda_W, lambda_nu, xn, N, D, i)
+
     print('\n******* RESULTS *******')
     for k in range(K):
         print('Mu k{}: {}'.format(k, lambda_m[k, :]))
-        # print('Sigma k{}: {}'.format(k, invwishart.rvs(lambda_nu[k], lambda_W[k, :, :]) * lambda_beta[k]))
         print('SD k{}: {}'.format(k, np.sqrt(lambda_W[k, :, :] / (lambda_nu[k] - D - 1))))
 
     if args.timing:
@@ -220,7 +260,7 @@ def main():
         plt.scatter(range(MAX_ITERS), lbs, cmap=cm.gist_rainbow, s=5)
         plt.show()
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=plt.get_cmap("Set1"), s=15)
+        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
         plt.show()
 
 
