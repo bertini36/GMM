@@ -113,7 +113,7 @@ def main():
         init_time = time()
 
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1], c=data['zn'], cmap=cm.gist_rainbow, s=5)
+        plt.scatter(xn[:, 0], xn[:, 1], c=data['zn'], cmap=plt.get_cmap("Set1"), s=15)
         plt.show()
 
     # Priors
@@ -164,13 +164,22 @@ def main():
         for n in range(N):
             for k in range(K):
                 lambda_phi[n, k] = dirichlet_expectation(lambda_pi, k)
-                lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
-                lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
-                lambda_phi[n, k] -= (1 / 2.) * (1 / lambda_beta[k])
-                lambda_phi[n, k] -= np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
+                lambda_phi[n, k] += np.dot(lambda_m[k,:], np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]),xn[n, :]))
+                #print np.dot(lambda_m[k,:], np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]),xn[n, :]))
+                #print np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
+                #lambda_phi[n, k] += np.dot(np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]).T, xn[n, :])
+                #lambda_phi[n, k] -= np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
+                lambda_phi[n, k] -= np.trace(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), np.outer(xn[n, :], xn[n, :])))
+                #print np.dot(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), xn[n, :]).T, xn[n, :])
+                #print np.trace(np.dot((1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]), np.outer(xn[n, :], xn[n, :])))
+
+                lambda_phi[n, k] -= (D / 2.) * (1 / lambda_beta[k])
+
+                lambda_phi[n, k] -= (1./2.)*np.dot(np.dot(lambda_nu[k] * lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :])
                 lambda_phi[n, k] += (D / 2.) * np.log(2.)
                 lambda_phi[n, k] += (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)]))
                 lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_W[k, :, :]))
+
             lambda_phi[n, :] = softmax(lambda_phi[n, :])
 
         print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
@@ -179,6 +188,9 @@ def main():
         print('lambda_m: {}'.format(lambda_m))
         print('lambda_W: {}'.format(lambda_W))
         print('lambda_pi: {}'.format(lambda_pi))
+        if args.plot:
+            plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=plt.get_cmap("Set1"), s=15)
+            plt.show()
 
         # ELBO computation
         lb = elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks)
@@ -208,7 +220,7 @@ def main():
         plt.scatter(range(MAX_ITERS), lbs, cmap=cm.gist_rainbow, s=5)
         plt.show()
     if args.plot:
-        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
+        plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=plt.get_cmap("Set1"), s=15)
         plt.show()
 
 
