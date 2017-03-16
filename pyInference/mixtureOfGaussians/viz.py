@@ -1,8 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 from matplotlib.patches import Ellipse
-from matplotlib.pyplot import *
-from numpy import *
+import numpy as np
 
 
 def create_cov_ellipse(cov, pos, nstd=2, **kwargs):
@@ -26,12 +25,12 @@ def create_cov_ellipse(cov, pos, nstd=2, **kwargs):
     """
 
     def eigsorted(cov):
-        vals, vecs = linalg.eigh(cov)
+        vals, vecs = np.linalg.eigh(cov)
         order = vals.argsort()[::-1]
         return vals[order], vecs[:, order]
 
     vals, vecs = eigsorted(cov)
-    theta = degrees(arctan2(*vecs[:, 0][::-1]))
+    theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
 
     # Width and height are "full" widths, not radius
     width, height = 2 * nstd * np.sqrt(vals)

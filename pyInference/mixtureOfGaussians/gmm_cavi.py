@@ -19,16 +19,16 @@ from viz import create_cov_ellipse
 from scipy.stats import invwishart
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset',
-                    type=str, default='../../data/data_k2_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    type=str, default='../../data/data_k8_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=8)
 parser.add_argument('--timing', dest='timing', action='store_true')
 parser.add_argument('--no-timing', dest='timing', action='store_false')
 parser.set_defaults(timing=False)
 parser.add_argument('--getNIter', dest='getNIter', action='store_true')
 parser.add_argument('--no-getNIter', dest='getNIter', action='store_false')
-parser.set_defaults(getNIter=False)
+parser.set_defaults(getNIter=True)
 parser.add_argument('--getELBOs', dest='getELBOs', action='store_true')
 parser.add_argument('--no-getELBOs', dest='getELBOs', action='store_false')
 parser.set_defaults(getELBOs=True)
@@ -42,7 +42,7 @@ args = parser.parse_args()
 
 MAX_ITERS = args.maxIter
 K = args.k
-THRESHOLD = 1e-6
+THRESHOLD = 1e-10
 
 
 def dirichlet_expectation(alpha, k):
@@ -52,15 +52,6 @@ def dirichlet_expectation(alpha, k):
 def softmax(x):
     e_x = np.exp(x - np.max(x))
     return (e_x + np.finfo(np.float32).eps) / (e_x.sum(axis=0) + np.finfo(np.float32).eps)
-
-
-def sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta):
-    return np.array([
-        np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]),
-        (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
-        (-D / 2.) * (1 / lambda_beta[k]) - (1 / 2.) * lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
-        (D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :]))
-    ])
 
 
 def update_lambda_pi(lambda_pi, lambda_phi, alpha_o):
@@ -114,6 +105,15 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m, lambda_nu, lambda_W, lamb
     return lambda_phi
 
 
+def sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta):
+    return np.array([
+        np.dot(lambda_nu[k] * inv(lambda_W[k, :, :]), lambda_m[k, :]),
+        (-1 / 2.) * lambda_nu[k] * inv(lambda_W[k, :, :]),
+        (-D / 2.) * (1 / lambda_beta[k]) - (1 / 2.) * lambda_nu[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_W[k, :, :])), lambda_m[k, :]),
+        (D / 2.) * np.log(2.) + (1 / 2.) * np.sum(psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)])) - (1 / 2.) * np.log(det(lambda_W[k, :, :]))
+    ])
+
+
 def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks):
     elbop = -(((D * (N + 1)) / 2.) * K * np.log(2. * np.pi))
     for k in range(K):
@@ -122,7 +122,7 @@ def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m,
         for n in range(N):
             aux1 += lambda_phi[n, k] * xn[n, :]
             aux2 += lambda_phi[n, k] * xn_xnt[n]
-        elbop -= gammaln(alpha_o[k]) + gammaln(np.sum(alpha_o))
+        elbop = elbop - gammaln(alpha_o[k]) + gammaln(np.sum(alpha_o))
         elbop += (alpha_o[k] - 1 + np.sum(lambda_phi[:, k])) * dirichlet_expectation(alpha_o, k)
         ss_niw = sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta)
         elbop += np.dot((m_o.T * beta_o + aux1).T, ss_niw[0])
@@ -136,7 +136,7 @@ def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m,
 
     elboq = -((D / 2.) * K * np.log(2. * np.pi))
     for k in range(K):
-        elboq -= gammaln(lambda_pi[k]) + gammaln(np.sum(lambda_pi))
+        elboq = elboq - gammaln(lambda_pi[k]) + gammaln(np.sum(lambda_pi))
         elboq += (lambda_pi[k] - 1 + np.sum(lambda_phi[:, k])) * dirichlet_expectation(lambda_pi, k)
         ss_niw = sufficient_statistics_NIW(k, D, lambda_nu, lambda_W, lambda_m, lambda_beta)
         elboq += np.dot((lambda_m[k, :].T * lambda_beta[k]).T, ss_niw[0])
@@ -149,6 +149,7 @@ def elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m,
         elboq += (lambda_nu[k] / 2.) * np.log(det(lambda_W[k, :, :]))
         elboq += np.dot(np.log(lambda_phi[:, k]).T, lambda_phi[:, k])
 
+    print('ELBO: {}'.format(elbop - elboq))
     return elbop - elboq
 
 
@@ -205,13 +206,14 @@ def main():
     xn_xnt = [np.outer(xn[n, :], xn[n, :].T) for n in range(N)]
 
     # Plot configs
-    plt.ion()
+    # plt.ion()
     fig = plt.figure(figsize=(10, 10))
     ax_spatial = fig.add_subplot(1, 1, 1)
     circs = []
 
     # Inference
     lbs = []
+    n_iters = 0
     for i in range(MAX_ITERS):
         print('\n******* ITERATION {} *******'.format(i))
 
@@ -235,14 +237,12 @@ def main():
         lb = elbo(N, D, alpha_o, nu_o, beta_o, m_o, W_o, lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta, lambda_nu, xn, xn_xnt, Nks)
 
         # Break condition
-        if i > 0:
-            if abs(lb - lbs[i - 1]) < THRESHOLD:
-                if args.getNIter:
-                    n_iters = i + 1
-                break
+        if i > 0 and  abs(lb - lbs[i - 1]) < THRESHOLD:
+            break
         lbs.append(lb)
+        n_iters += 1
 
-        plot_iter(ax_spatial, lambda_phi, lambda_m, lambda_W, lambda_nu, xn, N, D, i)
+        # plot_iter(ax_spatial, lambda_phi, lambda_m, lambda_W, lambda_nu, xn, N, D, i)
 
     print('\n******* RESULTS *******')
     for k in range(K):
@@ -257,7 +257,7 @@ def main():
         print('Iterations: {}'.format(n_iters))
     if args.getELBOs:
         print('ELBOs: {}'.format(lbs))
-        plt.scatter(range(MAX_ITERS), lbs, cmap=cm.gist_rainbow, s=5)
+        plt.scatter(range(n_iters), lbs, cmap=cm.gist_rainbow, s=5)
         plt.show()
     if args.plot:
         plt.scatter(xn[:, 0], xn[:, 1], c=[np.argmax(lambda_phi[n]) for n in range(N)], cmap=cm.gist_rainbow, s=5)
