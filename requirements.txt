@@ -3,7 +3,7 @@ autograd==1.1.7
 backports.shutil-get-terminal-size==1.0.0
 cycler==0.10.0
 decorator==4.0.11
-edward==1.2.1
+edward==1.2.3
 enum34==1.1.6
 funcsigs==1.0.2
 functools32==3.2.3.post2
@@ -27,10 +27,12 @@ pyparsing==2.1.10
 python-dateutil==2.6.0
 pytz==2016.10
 scandir==1.4
+scikit-learn==0.18.1
 scipy==0.18.1
 simplegeneric==0.8.1
 six==1.10.0
+sklearn==0.0
 subprocess32==3.2.7
-tensorflow==1.0.0rc0
+tensorflow==1.0.1
 traitlets==4.3.1
 wcwidth==0.1.7

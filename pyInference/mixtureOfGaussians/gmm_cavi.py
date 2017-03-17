@@ -2,7 +2,7 @@
 
 """
 Coordinate Ascent Variational Inference
-process to approximate a mixture of gaussians
+process to approximate a Mixture of Gaussians (GMM)
 """
 
 import argparse
@@ -17,6 +17,15 @@ from scipy.special import gammaln, multigammaln, psi
 
 from sklearn.cluster import KMeans
 from viz import create_cov_ellipse
+
+"""
+Parameters:
+    * maxIter: Max number of iterations
+    * dataset: Dataset path
+    * k: Number of clusters
+    * verbose: Printing time, intermediate variational parameters, plots, ...
+    * randomInit: Init assignations randomly or with Kmeans
+"""
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
@@ -36,7 +45,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-10
-PATH_IMAGE = 'img/'
+PATH_IMAGE = 'img/gmm'
 
 
 def dirichlet_expectation(alpha, k):
@@ -227,8 +236,8 @@ def plot_iteration(ax_spatial, circs, sctZ, lambda_m,
         circs = []
         for k in range(K):
             cov = lambda_W[k, :, :] / (lambda_nu[k] - D - 1)
-            circ = create_cov_ellipse(cov, lambda_m[k, :], color='r',
-                                      alpha=0.3)
+            circ = create_cov_ellipse(cov, lambda_m[k, :],
+                                      color='r', alpha=0.3)
             circs.append(circ)
             ax_spatial.add_artist(circ)
         sctZ.set_offsets(lambda_m)
@@ -249,6 +258,7 @@ def init_kmeans(xn, N, K):
 
 
 def main():
+
     # Get data
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
@@ -265,9 +275,9 @@ def main():
     m_o = np.array([0.0, 0.0])
     beta_o = np.array([0.7])
 
-    # Variational parameters
-    lambda_phi = np.random.dirichlet(alpha_o, N) if RANDOM_INIT \
-        else init_kmeans(xn, N, K)
+    # Variational parameters intialization
+    lambda_phi = np.random.dirichlet(alpha_o, N) \
+        if RANDOM_INIT else init_kmeans(xn, N, K)
     lambda_pi = np.zeros(shape=K)
     lambda_beta = np.zeros(shape=K)
     lambda_nu = np.zeros(shape=K)
@@ -296,11 +306,11 @@ def main():
         lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
         lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
                                    beta_o, xn, N)
-        lambda_W = update_lambda_W(lambda_W, lambda_phi, lambda_beta, lambda_m,
-                                   W_o, beta_o, m_o, xn_xnt, K, N)
+        lambda_W = update_lambda_W(lambda_W, lambda_phi, lambda_beta,
+                                   lambda_m, W_o, beta_o, m_o, xn_xnt, K, N)
         lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
-                                       lambda_nu, lambda_W, lambda_beta, xn, N,
-                                       K, D)
+                                       lambda_nu, lambda_W, lambda_beta,
+                                       xn, N, K, D)
 
         # ELBO computation
         lb = elbo(lambda_phi, lambda_pi, lambda_m, lambda_W, lambda_beta,
@@ -318,13 +328,13 @@ def main():
             print('lambda_W: {}'.format(lambda_W))
             print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
             print('ELBO: {}'.format(lb))
-            ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs, sctZ,
-                                                     lambda_m, lambda_W,
+            ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
+                                                     sctZ, lambda_m, lambda_W,
                                                      lambda_nu, xn, D, i)
 
         # Break condition
         if i > 0 and abs(lb - lbs[i - 1]) < THRESHOLD:
-            plt.savefig('{}/results.png'.format(PATH_IMAGE))
+            plt.savefig('{}.png'.format(PATH_IMAGE))
             break
 
     if VERBOSE:
