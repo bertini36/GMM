@@ -15,21 +15,26 @@ import numpy as np
 from numpy.linalg import det, inv
 from scipy.special import gammaln, multigammaln, psi
 
+from sklearn.cluster import KMeans
 from viz import create_cov_ellipse
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/k4/data_k4_500.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=4)
+                    default='../../data/k8/data_k8_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=8)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
 parser.set_defaults(verbose=True)
+parser.add_argument('--randomInit', dest='randomInit', action='store_true')
+parser.add_argument('--no-randomInit', dest='randomInit', action='store_false')
+parser.set_defaults(randomInit=False)
 args = parser.parse_args()
 
 MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
+RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-10
 PATH_IMAGE = 'img/'
 
@@ -232,6 +237,17 @@ def plot_iteration(ax_spatial, circs, sctZ, lambda_m,
     return ax_spatial, circs, sctZ
 
 
+def init_kmeans(xn, N, K):
+    """
+    Init points assignations (lambda_phi) with Kmeans clustering
+    """
+    lambda_phi = 0.1 / (K - 1) * np.ones((N, K))
+    labels = KMeans(K).fit(xn).predict(xn)
+    for i, lab in enumerate(labels):
+        lambda_phi[i, lab] = 0.9
+    return lambda_phi
+
+
 def main():
     # Get data
     with open('{}'.format(args.dataset), 'r') as inputfile:
@@ -250,7 +266,8 @@ def main():
     beta_o = np.array([0.7])
 
     # Variational parameters
-    lambda_phi = np.random.dirichlet(alpha_o, N)
+    lambda_phi = np.random.dirichlet(alpha_o, N) if RANDOM_INIT \
+        else init_kmeans(xn, N, K)
     lambda_pi = np.zeros(shape=K)
     lambda_beta = np.zeros(shape=K)
     lambda_nu = np.zeros(shape=K)
