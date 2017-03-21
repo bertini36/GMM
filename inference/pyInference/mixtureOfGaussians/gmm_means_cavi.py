@@ -30,7 +30,7 @@ Parameters:
 parser = argparse.ArgumentParser(description='CAVI in mixture og gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-dataset', metavar='dataset',
-                    type=str, default='../../data/k8/data_k8_1000.pkl')
+                    type=str, default='../../../data/k8/data_k8_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=8)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
@@ -45,7 +45,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'img/gmm_means'
+PATH_IMAGE = 'img/gmm_means_cavi'
 
 
 def dirichlet_expectation(alpha):
@@ -56,6 +56,15 @@ def dirichlet_expectation(alpha):
     return psi(alpha + np.finfo(np.float32).eps) - psi(np.sum(alpha))
 
 
+def log_beta_function(x):
+    """
+    Log beta function
+    ln(\gamma(x)) - ln(\gamma(\sum_{i=1}^{N}(x_{i}))
+    """
+    return np.sum(gammaln(x + np.finfo(np.float32).eps)) - gammaln(
+        np.sum(x + np.finfo(np.float32).eps))
+
+
 def softmax(x):
     """
     Softmax computation
@@ -64,15 +73,6 @@ def softmax(x):
     e_x = np.exp(x - np.max(x))
     return (e_x + np.finfo(np.float32).eps) / (
         e_x.sum(axis=0) + np.finfo(np.float32).eps)
-
-
-def log_beta_function(x):
-    """
-    Log beta function
-    ln(\gamma(x)) - ln(\gamma(\sum_{i=1}^{N}(x_{i}))
-    """
-    return np.sum(gammaln(x + np.finfo(np.float32).eps)) - gammaln(
-        np.sum(x + np.finfo(np.float32).eps))
 
 
 def update_lambda_pi(lambda_phi, alpha_o):
@@ -88,9 +88,9 @@ def update_lambda_phi(lambda_pi, lambda_m, lambda_beta,
     Update lambda_phi
     """
     c1 = dirichlet_expectation(lambda_pi)
-    for n in xrange(N):
+    for n in range(N):
         aux = np.copy(c1)
-        for k in xrange(K):
+        for k in range(K):
             c2 = xn[n, :] - lambda_m[k, :]
             c3 = np.dot(delta_o, (xn[n, :] - lambda_m[k, :]).T)
             c4 = -1. / 2 * np.dot(c2, c3)
@@ -126,7 +126,7 @@ def elbo(xn, D, K, alpha, m_o, beta_o, delta_o,
     lb += np.dot(alpha - lambda_pi, dirichlet_expectation(lambda_pi))
     lb += K / 2. * np.log(np.linalg.det(beta_o * delta_o))
     lb += K * D / 2.
-    for k in xrange(K):
+    for k in range(K):
         a1 = lambda_m[k, :] - m_o
         a2 = np.dot(delta_o, (lambda_m[k, :] - m_o).T)
         a3 = beta_o / 2. * np.dot(a1, a2)
@@ -146,11 +146,11 @@ def elbo(xn, D, K, alpha, m_o, beta_o, delta_o,
     return lb
 
 
-def plot_iteration(ax_spatial, circs, sctZ, lambda_m, delta_o, xn, i):
+def plot_iteration(ax_spatial, circs, sctZ, lambda_m, delta_o, xn, n_iters):
     """
     Plot the Gaussians in every iteration
     """
-    if i == 0:
+    if n_iters == 0:
         plt.scatter(xn[:, 0], xn[:, 1], cmap=cm.gist_rainbow, s=5)
         sctZ = plt.scatter(lambda_m[:, 0], lambda_m[:, 1],
                            color='black', s=5)
@@ -215,7 +215,7 @@ def main():
     # Inference
     n_iters = 0
     lbs = []
-    for i in xrange(MAX_ITERS):
+    for _ in range(MAX_ITERS):
 
         # Variational parameter updates
         lambda_pi = update_lambda_pi(lambda_phi, alpha_o)
@@ -228,10 +228,9 @@ def main():
         lb = elbo(xn, D, K, alpha_o, m_o, beta_o, delta_o,
                   lambda_pi, lambda_m, lambda_beta, lambda_phi)
         lbs.append(lb)
-        n_iters += 1
 
         if VERBOSE:
-            print('\n******* ITERATION {} *******'.format(i))
+            print('\n******* ITERATION {} *******'.format(n_iters))
             print('lambda_pi: {}'.format(lambda_pi))
             print('lambda_beta: {}'.format(lambda_beta))
             print('lambda_m: {}'.format(lambda_m))
@@ -239,12 +238,14 @@ def main():
             print('ELBO: {}'.format(lb))
             ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs, sctZ,
                                                      lambda_m, delta_o, xn,
-                                                     i)
+                                                     n_iters)
 
         # Break condition
-        if i > 0 and abs(lb - lbs[i - 1]) < THRESHOLD:
+        if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
             plt.savefig('{}.png'.format(PATH_IMAGE))
             break
+
+        n_iters += 1
 
     if VERBOSE:
         print('\n******* RESULTS *******')

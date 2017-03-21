@@ -15,7 +15,7 @@ def ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m,
     ELBO += np.dot(alpha - lambda_pi, dirichlet_expectation(lambda_pi))
     ELBO += K / 2. * np.log(np.linalg.det(beta_o * Delta_o))
     ELBO += K * D / 2.
-    for k in xrange(K):
+    for k in range(K):
         a1 = lambda_mu_m[k, :] - m_o
         a2 = np.dot(Delta_o, (lambda_mu_m[k, :] - m_o).T)
         a3 = beta_o / 2. * np.dot(a1, a2)
@@ -23,7 +23,7 @@ def ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m,
         a5 = 1 / 2. * np.log(np.linalg.det(lambda_mu_beta[k] * Delta_o))
         a6 = a3 + a4 + a5
         ELBO -= a6
-        for n in xrange(N):
+        for n in range(N):
             b1 = phi[n, k]
             b2 = dirichlet_expectation(lambda_pi)[k]
             b3 = np.log(phi[n, k])

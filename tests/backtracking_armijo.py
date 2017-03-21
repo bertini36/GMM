@@ -61,7 +61,7 @@ def compute_learning_rate(var, alphao):
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
-    for it in xrange(100):
+    for it in range(100):
         alpha, tmp_var, tmp_grad =  compute_learning_rate(x, 100)
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
         grads_and_vars = optimizer.compute_gradients(f, var_list=[x])

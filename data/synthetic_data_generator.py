@@ -41,12 +41,12 @@ if __name__ == '__main__':
     Deltak = np.zeros((K, d, d))
     zn = np.zeros(N).astype(int)
 
-    for k in xrange(K):
+    for k in range(K):
         Deltak[k, :, :] = wishart.rvs(nu_Delta, W_Delta)
         muk[k, :] = np.random.multivariate_normal(
             m_mu, np.linalg.inv(beta_mu*Deltak[k, :, :]))
 
-    for n in xrange(N):
+    for n in range(N):
         zn[n] = np.random.choice(K, 1, p=pi)[0].astype(int)
         xn[n, :] = np.random.multivariate_normal(
             muk[zn[n], :], np.linalg.inv(Deltak[zn[n], :, :]))

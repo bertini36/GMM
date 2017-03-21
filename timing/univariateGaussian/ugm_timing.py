@@ -27,7 +27,7 @@ def main():
                 total_time = 0
                 total_iters = 0
                 total_elbos = 0
-                for i in xrange(iterations):
+                for i in range(iterations):
                     output = subprocess.check_output(
                         ['python', script, '-nElements',
                          str(nelem), '--timing', '--getNIter',

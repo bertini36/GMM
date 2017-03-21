@@ -15,10 +15,10 @@ def ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m, lambda_m
 			+ np.dot(alpha-lambda_pi, dirichlet_expectation(lambda_pi)) \
 			+ K/2.*np.log(np.linalg.det(beta_o*Delta_o))+K*D/2.
 
-	for k in xrange(K):
+	for k in range(K):
 		ELBO -= beta_o/2.*np.dot((lambda_mu_m[k,:]-m_o),np.dot(Delta_o,(lambda_mu_m[k,:]-m_o).T)) \
 				+D*beta_o/(2.*lambda_mu_beta[k])+1/2.*np.log(np.linalg.det(lambda_mu_beta[k]*Delta_o))	
-		for n in xrange(N):
+		for n in range(N):
 			ELBO += phi[n,k]*(dirichlet_expectation(lambda_pi)[k]-np.log(phi[n,k])+1/2.*np.log(np.linalg.det(Delta_o)/(2.*math.pi))\
 					-1/2.*np.dot((xn[n,:]-lambda_mu_m[k,:]),np.dot(Delta_o,(xn[n,:]-lambda_mu_m[k,:]).T))\
 					-D/(2.*lambda_mu_beta[k]))
@@ -30,7 +30,7 @@ def ELBO(xn, N, K, alpha, m_o, beta_o, Delta_o, lambda_pi, lambda_mu_m, lambda_m
 		+ np.dot(alpha-lambda_pi, dirichlet_expectation(lambda_pi)) \
 		+ K/2.*np.log(np.linalg.det(beta_o*Delta_o))+K*D/2.
 
-	for k in xrange(K):
+	for k in range(K):
 		ELBO -= beta_o/2.*np.dot((lambda_mu_m[k,:]-m_o),np.dot(Delta_o,(lambda_mu_m[k,:]-m_o).T)) \
 				+D*beta_o/(2.*lambda_mu_beta[k])+1/2.*np.log(np.linalg.det(lambda_mu_beta[k]*Delta_o))	
 

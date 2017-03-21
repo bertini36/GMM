@@ -39,7 +39,7 @@ k_pos = k_prior + N
 v_pos = v_prior + N
 m_pos = (((m_prior.T * k_prior) + np.sum(x, axis=0)) / k_pos).T
 W_pos = W_prior + np.outer(k_prior * m_prior, m_prior) + \
-        np.sum(np.array([np.outer(x[n, :], x[n, :]) for n in xrange(N)]),
+        np.sum(np.array([np.outer(x[n, :], x[n, :]) for n in range(N)]),
                axis=0) - np.outer(k_pos * m_pos, m_pos)
 
 # Posterior sampling

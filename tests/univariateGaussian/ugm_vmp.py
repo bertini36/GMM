@@ -30,7 +30,7 @@ def lowerbound(m_gx, m_xm, m_mx, m_xg, phi_m, phi_g):
     a_gamma = phi_g[1] + 1
     b_gamma = -phi_g[0]
 
-    for n in xrange(N):
+    for n in range(N):
         LB += np.dot(np.array([m_gx[0] * m_mx[0], -m_gx[0] / 2.]).T,
                      np.array([xn[n], xn[n] ** 2]))
     LB += N / 2. * (m_gx[1] - m_gx[0] * m_mx[1] - np.log(2 * math.pi))
@@ -51,13 +51,13 @@ inc = 0.
 
 while (it < It) & ((it < 2) | (inc > 1e-10)):
     m_gx = np.array([a_gamma / b_gamma, psi(a_gamma) - np.log(b_gamma)])
-    for n in xrange(N):
+    for n in range(N):
         m_xm[n, :] = np.array([xn[n] * m_gx[0], -m_gx[0] / 2.])
     phi_m = phi_mu + np.sum(m_xm, axis=0)
     m_mu = phi_m[0] / (-2 * phi_m[1])
     beta_mu = -2 * phi_m[1]
     m_mx = np.array([m_mu, 1. / beta_mu + m_mu ** 2])
-    for n in xrange(N):
+    for n in range(N):
         m_xg[n, :] = np.array(
             [-1. / 2 * (xn[n] ** 2 - 2 * xn[n] * m_mx[0] + m_mx[1]), 1. / 2])
     phi_g = phi_gamma + np.sum(m_xg, axis=0)

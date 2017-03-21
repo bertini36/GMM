@@ -11,7 +11,7 @@ def log_Normal((qmu, qsigma)):
 
 def fisher_pi():
 	Fisher = np.zeros((d+2*d,d+2*d))
-	for s in xrange(S):
+	for s in range(S):
 		q_delta = wishart.rvs(df=nu, scale=W, size=1)
 		q_mu = multivariate_normal(mu, np.linalg.inv(beta*q_delta), size=1)[0]
 		global x 
@@ -40,7 +40,7 @@ def fisher():
 	Fisher = np.zeros((d+d,d+d))
 	qmu =  np.array([0.0, 0.0]) #multivariate_normal(mu, np.diag(1./(beta*q_delta)), size=1)[0]
 	qsigma = np.array([0.1, 0.1]) #np.array([np.random.gamma(a, b), np.random.gamma(a, b)])
-	for s in xrange(S): 
+	for s in range(S):
 		global x
 		x = multivariate_normal(np.zeros(2), np.diag(np.array([0.1, 0.1])), size=1)[0]
 		score_gradient = elementwise_grad(log_Normal)
@@ -62,7 +62,7 @@ def log_Normal((qmu, qsigma)):
 
 def fisher():
 	Fisher = np.zeros((2,2))
-	for s in xrange(S):
+	for s in range(S):
 		q_delta = np.random.gamma(a, b)
 		q_mu = normal(mu, 1./(beta*q_delta))
 		global x

@@ -14,6 +14,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import gammaln, psi
 
+"""
+Parameters:
+    * maxIter: Max number of iterations
+    * nElements: Number of data points to generate
+    * verbose: Printing time, intermediate variational parameters, plots, ...
+"""
+
 parser = argparse.ArgumentParser(description='CAVI in univariate gaussian')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
 parser.add_argument('-nElements', metavar='nElements', type=int, default=100)
@@ -101,7 +108,7 @@ def main():
 
     lbs = []
     n_iters = 0
-    for i in xrange(MAX_ITERS):
+    for _ in range(MAX_ITERS):
 
         # Variational parameter updates
         lambda_m = update_lambda_m(lambda_a, lambda_b, m_o, beta_o, xn)
@@ -113,10 +120,9 @@ def main():
         lb = elbo(xn, m_o, beta_o, a_o, b_o,
                   lambda_m, lambda_beta, lambda_a, lambda_b)
         lbs.append(lb)
-        n_iters += 1
 
         if VERBOSE:
-            print('\n******* ITERATION {} *******'.format(i))
+            print('\n******* ITERATION {} *******'.format(n_iters))
             print('lambda_m: {}'.format(lambda_m))
             print('lambda_beta: {}'.format(lambda_beta))
             print('lambda_a: {}'.format(lambda_a))
@@ -124,7 +130,9 @@ def main():
             print('ELBO: {}'.format(lb))
 
         # Break condition
-        if i > 0 and abs(lb - lbs[i - 1]) < THRESHOLD: break
+        if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD: break
+
+        n_iters += 1
 
     if VERBOSE:
         plt.scatter(xn, mlab.normpdf(xn, lambda_m, lambda_a / lambda_b), s=5)
