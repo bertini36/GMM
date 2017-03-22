@@ -13,6 +13,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import det, inv
+from scipy import linalg, random
 from scipy.special import gammaln, multigammaln, psi
 from sklearn.cluster import KMeans
 
@@ -64,6 +65,14 @@ def softmax(x):
     e_x = np.exp(x - np.max(x))
     return (e_x + np.finfo(np.float32).eps) / (
         e_x.sum(axis=0) + np.finfo(np.float32).eps)
+
+
+def generate_random_positive_matrix(D):
+    """
+    Generate a random semidefinite positive matrix
+    """
+    aux = random.rand(D, D)
+    return np.dot(aux, aux.transpose())
 
 
 def update_lambda_pi(lambda_pi, lambda_phi, alpha_o):
@@ -272,8 +281,8 @@ def main():
     # Priors
     alpha_o = np.array([1.0] * K)
     nu_o = np.array([3.0])
-    w_o = np.array([[20., 30.], [25., 40.]])
-    m_o = np.array([0.0, 0.0])
+    w_o = generate_random_positive_matrix(D)
+    m_o = np.array([0.0] * D)
     beta_o = np.array([0.7])
 
     # Variational parameters intialization
@@ -288,7 +297,7 @@ def main():
     xn_xnt = np.array([np.outer(xn[n, :], xn[n, :].T) for n in range(N)])
 
     # Plot configs
-    if VERBOSE:
+    if VERBOSE and D == 2:
         plt.ion()
         fig = plt.figure(figsize=(10, 10))
         ax_spatial = fig.add_subplot(1, 1, 1)
@@ -328,13 +337,15 @@ def main():
             print('lambda_w: {}'.format(lambda_w))
             print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
             print('ELBO: {}'.format(lb))
-            ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
-                                                     sctZ, lambda_m, lambda_w,
-                                                     lambda_nu, xn, D, n_iters)
+            if D == 2:
+                ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
+                                                         sctZ, lambda_m,
+                                                         lambda_w, lambda_nu,
+                                                         xn, D, n_iters)
 
         # Break condition
         if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
-            plt.savefig('{}.png'.format(PATH_IMAGE))
+            if D == 2: plt.savefig('{}.png'.format(PATH_IMAGE))
             break
 
         n_iters += 1
