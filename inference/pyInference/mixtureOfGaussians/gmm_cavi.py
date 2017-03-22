@@ -13,7 +13,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import det, inv
-from scipy import linalg, random
+from scipy import random
 from scipy.special import gammaln, multigammaln, psi
 from sklearn.cluster import KMeans
 
@@ -31,8 +31,8 @@ Parameters:
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/k8/data_k8_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=8)
+                    default='../../../data/k2/data_k2_100.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
 parser.set_defaults(verbose=True)
@@ -105,13 +105,13 @@ def update_lambda_nu(lambda_nu, nu_o, Nks):
     return lambda_nu
 
 
-def update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N):
+def update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N, D):
     """
     Update lambda_m
     (m_o.T * beta_o + sum_{n=1}^{N}(E_{q_{z}} I(z_{n}=i)x_{n})) / lambda_beta
     """
     for k in range(K):
-        aux = np.array([0., 0.])
+        aux = np.array([0.] * D)
         for n in range(N):
             aux += lambda_phi[n, k] * xn[n, :]
         lambda_m[k, :] = ((m_o.T * beta_o + aux) / lambda_beta[k]).T
@@ -119,14 +119,14 @@ def update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N):
 
 
 def update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                    lambda_m, w_o, beta_o, m_o, xn_xnt, K, N):
+                    lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D):
     """
     Update lambda_w
     w_o + m_o * m_o.T + sum_{n=1}^{N}(E_{q_{z}} I(z_{n}=i)x_{n}x_{n}.T)
     - lambda_beta * lambda_m * lambda_m.T
     """
     for k in range(K):
-        aux = np.array([[0., 0.], [0., 0.]])
+        aux = np.array([[0.] * D] * D)
         for n in range(N):
             aux += lambda_phi[n, k] * xn_xnt[n]
         lambda_w[k, :, :] = w_o + np.outer(beta_o * m_o,
@@ -202,8 +202,8 @@ def elbo(lambda_phi, lambda_pi, lambda_m, lambda_w, lambda_beta, lambda_nu,
     elbop += (nu_o / 2.) * K * np.log(det(w_o))
     elboq = -((D / 2.) * K * np.log(2. * np.pi))
     for k in range(K):
-        aux1 = np.array([0., 0.])
-        aux2 = np.array([[0., 0.], [0., 0.]])
+        aux1 = np.array([0.] * D)
+        aux2 = np.array([[0.] * D] * D)
         for n in range(N):
             aux1 += lambda_phi[n, k] * xn[n, :]
             aux2 += lambda_phi[n, k] * xn_xnt[n]
@@ -315,9 +315,9 @@ def main():
         lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
         lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
         lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
-                                   beta_o, xn, N)
+                                   beta_o, xn, N, D)
         lambda_w = update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                                   lambda_m, w_o, beta_o, m_o, xn_xnt, K, N)
+                                   lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D)
         lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
                                        lambda_nu, lambda_w, lambda_beta,
                                        xn, N, K, D)
