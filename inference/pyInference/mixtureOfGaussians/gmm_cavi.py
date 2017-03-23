@@ -12,6 +12,7 @@ from time import time
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 from numpy.linalg import det, inv
 from scipy import random
 from scipy.special import gammaln, multigammaln, psi
@@ -31,8 +32,8 @@ Parameters:
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/k2/data_k2_100.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    default='../../../data/k8/data_k8_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=8)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
 parser.set_defaults(verbose=True)
@@ -46,7 +47,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-10
-PATH_IMAGE = 'img/gmm_cavi'
+PATH_IMAGE = 'img/gmm_cavi_d2_k8_1000'
 
 
 def dirichlet_expectation(alpha, k):
@@ -345,7 +346,7 @@ def main():
 
         # Break condition
         if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
-            if D == 2: plt.savefig('{}.png'.format(PATH_IMAGE))
+            if VERBOSE and D == 2: plt.savefig('{}.png'.format(PATH_IMAGE))
             break
 
         n_iters += 1
@@ -361,6 +362,15 @@ def main():
         print('Time: {} seconds'.format(exec_time))
         print('Iterations: {}'.format(n_iters))
         print('ELBOs: {}'.format(lbs))
-
+        if D == 3:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(xn[:, 0], xn[:, 1], xn[:, 2], c=np.array(
+                [np.argmax(lambda_phi[n, :]) for n in xrange(N)]),
+                       cmap=cm.gist_rainbow, s=5)
+            ax.set_xlabel('X Label')
+            ax.set_ylabel('Y Label')
+            ax.set_zlabel('Z Label')
+            plt.show()
 
 if __name__ == '__main__': main()
