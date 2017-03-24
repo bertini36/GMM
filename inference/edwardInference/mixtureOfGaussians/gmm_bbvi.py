@@ -30,8 +30,8 @@ plt.style.use('ggplot')
 
 parser = argparse.ArgumentParser(description='BBVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
-parser.add_argument('-dataset', metavar='dataset',
-                    type=str, default='../../../data/data_k2_100.pkl')
+parser.add_argument('-dataset', metavar='dataset', type=str,
+                    default='../../../data/synthetic/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-s', metavar='s', type=int, default=30)
 parser.add_argument('--verbose', dest='verbose', action='store_true')

@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser(
     description='CAVI with Linesearch in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/k2/data_k2_100.pkl')
+                    default='../../../data/synthetic/k2/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
