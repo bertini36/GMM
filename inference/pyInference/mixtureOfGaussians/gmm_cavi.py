@@ -30,7 +30,7 @@ Parameters:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=50)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=5)
 parser.add_argument('-dataset', metavar='dataset', type=str,
                     default='../../../data/synthetic/k2/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -130,6 +130,10 @@ def update_lambda_w(lambda_w, lambda_phi, lambda_beta,
         aux = np.array([[0.] * D] * D)
         for n in range(N):
             aux += lambda_phi[n, k] * xn_xnt[n]
+        print('FIRST: {}'.format(w_o + np.outer(beta_o * m_o,
+                                           m_o.T) + aux))
+        print('OUTER: {}'.format(np.outer(
+            lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)))
         lambda_w[k, :, :] = w_o + np.outer(beta_o * m_o,
                                            m_o.T) + aux - np.outer(
             lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
@@ -182,8 +186,8 @@ def NIW_sufficient_statistics(k, D, lambda_nu, lambda_w, lambda_m, lambda_beta):
     inv_lambda_w = inv(lambda_w[k, :, :])
     print('SUM: {}'.format(np.sum(
             psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)]))))
-    print('det(lambda_w[k, :, :]): {}'.format(det(lambda_w[k, :, :])))
-    print('DET: {}'.format(np.log(det(lambda_w[k, :, :]))))
+    print('DET: {}'.format(det(lambda_w[k, :, :])))
+    print('LOG DET: {}'.format(np.log(det(lambda_w[k, :, :]))))
     return np.array([
         np.dot(lambda_nu[k] * inv_lambda_w, lambda_m[k, :]),
         (-1 / 2.) * lambda_nu[k] * inv_lambda_w,
@@ -296,15 +300,16 @@ def main():
     alpha_o = np.array([1.0] * K)
     nu_o = np.array([3.0])
     w_o = generate_random_positive_matrix(D)
+    print('w_o: {}'.format(w_o))
     m_o = np.array([0.0] * D)
     beta_o = np.array([0.7])
 
     # Variational parameters intialization
     # lambda_phi = np.random.dirichlet(alpha_o, N) \
     #     if RANDOM_INIT else init_kmeans(xn, N, K)
-    lambda_phi = np.array([[1., 0.] if zn[n] == 0 else [0., 1.] for n in range(N)])
-    lambda_pi = np.array([19.19507931, 82.80493259])
-    # lambda_pi = np.zeros(shape=K)
+    lambda_phi = np.array([[0.999, 0.001] if zn[n] == 0 else [0.001, 0.999] for n in range(N)])
+    # lambda_pi = np.array([19.19507931, 82.80493259])
+    lambda_pi = np.zeros(shape=K)
     lambda_beta = np.zeros(shape=K)
     lambda_nu = np.zeros(shape=K)
     # lambda_m = np.zeros(shape=(K, D))
@@ -338,7 +343,7 @@ def main():
     for _ in range(MAX_ITERS):
 
         # Variational parameter updates
-        # lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
+        lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
         Nks = np.sum(lambda_phi, axis=0)
         lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
         lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
