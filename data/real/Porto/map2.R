@@ -1,7 +1,7 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = '/home/alberto/Dropbox/BSC/GMM/data/real/Porto/data/subset_new.csv'
+TRACKS_PATH = '/home/alberto/Escritorio/porto.csv'
 DELIMITER = ','
 HEADER = TRUE
 
