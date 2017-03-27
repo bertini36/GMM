@@ -120,19 +120,25 @@ def update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N, D):
 
 
 def update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                    lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D):
+                    lambda_m, w_o, beta_o, m_o, xn, Nk, K, N, D):
     """
     Update lambda_w
     w_o + m_o * m_o.T + sum_{n=1}^{N}(E_{q_{z}} I(z_{n}=i)x_{n}x_{n}.T)
     - lambda_beta * lambda_m * lambda_m.T
     """
-    for k in range(K):
-        aux = np.array([[0.] * D] * D)
-        for n in range(N):
-            aux += lambda_phi[n, k] * xn_xnt[n]
-        lambda_w[k, :, :] = w_o + np.outer(beta_o * m_o,
-                                           m_o.T) + aux - np.outer(
-            lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
+    #for k in range(K):
+    #    aux = np.array([[0.] * D] * D)
+    #    for n in range(N):
+    #        aux += lambda_phi[n, k] * xn_xnt[n]
+    #    lambda_w[k, :, :] = w_o + beta_o *np.outer(m_o, m_o.T) + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
+    #    print('1st Term: {}'.format(w_o + beta_o *np.outer(m_o, m_o.T) + aux))
+    #    print('2nd Term: {}'.format(-lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)))
+    xk = np.tile(1./Nk,(2, 1)).T * np.dot(lambda_phi.T, xn) 
+    Snk = np.zeros((K, 2, 2))
+    for k in xrange(K):
+        Snk[k, :, :] = 1./Nk[k]*np.dot((xn-xk[k,:]).T,np.dot(np.diag(lambda_phi[:,k]),(xn-xk[k,:])))
+        lambda_w[k, :, :] = w_o + Nk[k]*Snk[k,:,:] + beta_o*Nk[k]/(beta_o + Nk[k])*np.dot(np.tile((xk[k,:]-m_o),(1,1)).T,np.tile(xk[k,:]-m_o,(1,1)))
+    
     return lambda_w
 
 
@@ -302,7 +308,7 @@ def main():
     # Variational parameters intialization
     # lambda_phi = np.random.dirichlet(alpha_o, N) \
     #     if RANDOM_INIT else init_kmeans(xn, N, K)
-    lambda_phi = np.array([[1., 0.] if zn[n] == 0 else [0., 1.] for n in range(N)])
+    lambda_phi = np.array([[0.99, 0.01] if zn[n] == 0 else [0.01, 0.99] for n in range(N)])
     lambda_pi = np.array([19.19507931, 82.80493259])
     # lambda_pi = np.zeros(shape=K)
     lambda_beta = np.zeros(shape=K)
@@ -320,6 +326,8 @@ def main():
             count_1 += 1
     lambda_m[0] = lambda_m[0] / count_0
     lambda_m[1] = lambda_m[1] / count_1
+    
+    print('\nlambda_m{}'.format(lambda_m))
     lambda_w = np.zeros(shape=(K, D, D))
 
     xn_xnt = np.array([np.outer(xn[n, :], xn[n, :].T) for n in range(N)])
@@ -336,19 +344,18 @@ def main():
     lbs = []
     n_iters = 0
     for _ in range(MAX_ITERS):
-
         # Variational parameter updates
-        # lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
+        lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
         Nks = np.sum(lambda_phi, axis=0)
         lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
         lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
-        # lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
-        #                            beta_o, xn, N, D)
+        lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
+                                    beta_o, xn, N, D)
         lambda_w = update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                                   lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D)
-        # lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
-        #                                lambda_nu, lambda_w, lambda_beta,
-        #                                xn, N, K, D)
+                                   lambda_m, w_o, beta_o, m_o, xn, Nks, K, N, D)
+        lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
+                                        lambda_nu, lambda_w, lambda_beta,
+                                        xn, N, K, D)
 
         # ELBO computation
         lb = elbo(lambda_phi, lambda_pi, lambda_m, lambda_w, lambda_beta,
