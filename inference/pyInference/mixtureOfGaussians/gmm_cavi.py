@@ -30,16 +30,16 @@ Parameters:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=5)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/synthetic/k2/data_k2_100.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    default='/home/alberto/Documentos/data/Synthetic/k8/data_k8_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=8)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
 parser.set_defaults(verbose=True)
 parser.add_argument('--randomInit', dest='randomInit', action='store_true')
 parser.add_argument('--no-randomInit', dest='randomInit', action='store_false')
-parser.set_defaults(randomInit=False)
+parser.set_defaults(randomInit=True)
 args = parser.parse_args()
 
 MAX_ITERS = args.maxIter
@@ -119,24 +119,28 @@ def update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N, D):
     return lambda_m
 
 
-def update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                    lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D):
+def update_lambda_w(lambda_w, lambda_phi, w_o, beta_o, m_o, xn, Nks, K):
     """
     Update lambda_w
     w_o + m_o * m_o.T + sum_{n=1}^{N}(E_{q_{z}} I(z_{n}=i)x_{n}x_{n}.T)
     - lambda_beta * lambda_m * lambda_m.T
     """
-    for k in range(K):
-        aux = np.array([[0.] * D] * D)
-        for n in range(N):
-            aux += lambda_phi[n, k] * xn_xnt[n]
-        print('FIRST: {}'.format(w_o + np.outer(beta_o * m_o,
-                                           m_o.T) + aux))
-        print('OUTER: {}'.format(np.outer(
-            lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)))
-        lambda_w[k, :, :] = w_o + np.outer(beta_o * m_o,
-                                           m_o.T) + aux - np.outer(
-            lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)
+    # for k in range(K):
+    #    aux = np.array([[0.] * D] * D)
+    #    for n in range(N):
+    #        aux += lambda_phi[n, k] * xn_xnt[n]
+    #    lambda_w[k, :, :] = w_o + beta_o *np.outer(m_o, m_o.T) + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
+    #    print('1st Term: {}'.format(w_o + beta_o *np.outer(m_o, m_o.T) + aux))
+    #    print('2nd Term: {}'.format(-lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)))
+    xk = np.tile(1. / Nks, (2, 1)).T * np.dot(lambda_phi.T, xn)
+    Snk = np.zeros((K, 2, 2))
+    for k in xrange(K):
+        Snk[k, :, :] = 1. / Nks[k] * np.dot((xn - xk[k, :]).T,
+                                           np.dot(np.diag(lambda_phi[:, k]),
+                                                  (xn - xk[k, :])))
+        lambda_w[k, :, :] = w_o + Nks[k] * Snk[k, :, :] + beta_o * Nks[k] / (
+        beta_o + Nks[k]) * np.dot(np.tile((xk[k, :] - m_o), (1, 1)).T,
+                                 np.tile(xk[k, :] - m_o, (1, 1)))
     return lambda_w
 
 
@@ -184,10 +188,6 @@ def NIW_sufficient_statistics(k, D, lambda_nu, lambda_w, lambda_m, lambda_beta):
             sum_{i=1}^{D}(Psi(\nu/2 + (1-i)/2)) - 1/2 * log(|W|)
     """
     inv_lambda_w = inv(lambda_w[k, :, :])
-    print('SUM: {}'.format(np.sum(
-            psi([((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)]))))
-    print('DET: {}'.format(det(lambda_w[k, :, :])))
-    print('LOG DET: {}'.format(np.log(det(lambda_w[k, :, :]))))
     return np.array([
         np.dot(lambda_nu[k] * inv_lambda_w, lambda_m[k, :]),
         (-1 / 2.) * lambda_nu[k] * inv_lambda_w,
@@ -217,22 +217,15 @@ def elbo(lambda_phi, lambda_pi, lambda_m, lambda_w, lambda_beta, lambda_nu,
             aux1 += lambda_phi[n, k] * xn[n, :]
             aux2 += lambda_phi[n, k] * xn_xnt[n]
         elbop = elbop - gammaln(alpha_o[k]) + gammaln(np.sum(alpha_o))
-        print('elbop1: {}'.format(elbop))
         elbop += (alpha_o[k] - 1 + np.sum(
             lambda_phi[:, k])) * dirichlet_expectation(alpha_o, k)
-        print('elbop2: {}'.format(elbop))
         ss_niw = NIW_sufficient_statistics(k, D, lambda_nu,
                                            lambda_w, lambda_m, lambda_beta)
         elbop += np.dot((m_o.T * beta_o + aux1).T, ss_niw[0])
-        print('elbop3: {}'.format(elbop))
         elbop += np.trace(
             np.dot((w_o + np.outer(beta_o * m_o, m_o.T) + aux2).T, ss_niw[1]))
-        print('elbop4: {}'.format(elbop))
         elbop += (beta_o + Nks[k]) * ss_niw[2]
-        print('elbop5: {}'.format(elbop))
         elbop += (nu_o + D + 2. + Nks[k]) * ss_niw[3]
-        print('ss_niw[3]: {}'.format(ss_niw[3]))
-        print('elbop6: {}'.format(elbop))
         elboq = elboq - gammaln(lambda_pi[k]) + gammaln(np.sum(lambda_pi))
         elboq += (lambda_pi[k] - 1 + np.sum(
             lambda_phi[:, k])) * dirichlet_expectation(lambda_pi, k)
@@ -246,7 +239,6 @@ def elbo(lambda_phi, lambda_pi, lambda_m, lambda_w, lambda_beta, lambda_nu,
         elboq += (D / 2.) * np.log(np.absolute(lambda_beta[k]))
         elboq += (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
         elboq += np.dot(np.log(lambda_phi[:, k]).T, lambda_phi[:, k])
-    print('elbop: {}'.format(elbop))
     return elbop - elboq
 
 
@@ -286,7 +278,6 @@ def init_kmeans(xn, N, K):
 
 
 def main():
-
     # Get data
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
@@ -300,31 +291,16 @@ def main():
     alpha_o = np.array([1.0] * K)
     nu_o = np.array([3.0])
     w_o = generate_random_positive_matrix(D)
-    print('w_o: {}'.format(w_o))
     m_o = np.array([0.0] * D)
     beta_o = np.array([0.7])
 
     # Variational parameters intialization
-    # lambda_phi = np.random.dirichlet(alpha_o, N) \
-    #     if RANDOM_INIT else init_kmeans(xn, N, K)
-    lambda_phi = np.array([[0.999, 0.001] if zn[n] == 0 else [0.001, 0.999] for n in range(N)])
-    # lambda_pi = np.array([19.19507931, 82.80493259])
+    lambda_phi = np.random.dirichlet(alpha_o, N) \
+        if RANDOM_INIT else init_kmeans(xn, N, K)
     lambda_pi = np.zeros(shape=K)
     lambda_beta = np.zeros(shape=K)
     lambda_nu = np.zeros(shape=K)
-    # lambda_m = np.zeros(shape=(K, D))
-    lambda_m = np.array([[0., 0.], [0., 0.]])
-    count_0 = 0
-    count_1 = 0
-    for i in range(len(xn)):
-        if zn[i] == 0:
-            lambda_m[0] += xn[i]
-            count_0 += 1
-        else:
-            lambda_m[1] += xn[i]
-            count_1 += 1
-    lambda_m[0] = lambda_m[0] / count_0
-    lambda_m[1] = lambda_m[1] / count_1
+    lambda_m = np.zeros(shape=(K, D))
     lambda_w = np.zeros(shape=(K, D, D))
 
     xn_xnt = np.array([np.outer(xn[n, :], xn[n, :].T) for n in range(N)])
@@ -341,19 +317,18 @@ def main():
     lbs = []
     n_iters = 0
     for _ in range(MAX_ITERS):
-
         # Variational parameter updates
         lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
         Nks = np.sum(lambda_phi, axis=0)
         lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
         lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
-        # lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
-        #                            beta_o, xn, N, D)
-        lambda_w = update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                                   lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D)
-        # lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
-        #                                lambda_nu, lambda_w, lambda_beta,
-        #                                xn, N, K, D)
+        lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
+                                   beta_o, xn, N, D)
+        lambda_w = update_lambda_w(lambda_w, lambda_phi, w_o,
+                                   beta_o, m_o, xn, Nks, K)
+        lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
+                                       lambda_nu, lambda_w, lambda_beta,
+                                       xn, N, K, D)
 
         # ELBO computation
         lb = elbo(lambda_phi, lambda_pi, lambda_m, lambda_w, lambda_beta,
@@ -379,7 +354,7 @@ def main():
         # Break condition
         improve = lb - lbs[n_iters - 1]
         if VERBOSE: print('Improve: {}'.format(improve))
-        if n_iters > 0 and improve < THRESHOLD:
+        if n_iters > 0 and abs(improve) < THRESHOLD:
             if VERBOSE and D == 2: plt.savefig('{}.png'.format(PATH_IMAGE))
             break
 
@@ -406,7 +381,8 @@ def main():
             ax.set_ylabel('Y Label')
             ax.set_zlabel('Z Label')
             plt.show()
+        plt.clf()
         plt.plot(np.arange(len(lbs)), lbs)
-        plt.savefig('elbos.png')
+        plt.savefig('img/elbos.png')
 
 if __name__ == '__main__': main()
