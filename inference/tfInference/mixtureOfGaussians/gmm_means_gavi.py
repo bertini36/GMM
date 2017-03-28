@@ -40,7 +40,7 @@ K = args.k
 VERBOSE = args.verbose
 LR = 0.01
 THRESHOLD = 1e-6
-PATH_IMAGE = 'img/gmm_means_gavi'
+PATH_IMAGE = 'generated/gmm_means_gavi'
 
 sess = tf.Session()
 

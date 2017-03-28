@@ -40,7 +40,7 @@ MAX_ITERS = args.maxIter
 K = args.k
 THRESHOLD = 1e-6
 VERBOSE = args.verbose
-PATH_IMAGE = 'img/gmm_means_cavi_linesearch'
+PATH_IMAGE = 'generated/gmm_means_cavi_linesearch'
 
 sess = tf.Session()
 

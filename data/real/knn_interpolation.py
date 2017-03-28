@@ -9,7 +9,7 @@ import sys
 import numpy as np
 from scipy.spatial import distance
 
-DATA_DIRECTORY = '/home/alberto/Escritorio/porto.csv'
+DATA_DIRECTORY = 'mallorca/mallorca.csv'
 N = 50
 
 csv.field_size_limit(sys.maxsize)
@@ -21,10 +21,10 @@ def format_track(track):
     :param track: Track as a string
     :return: Track as a Python list of points
     """
-    points = []
+    new_track = []
     for point in track.split('[[')[1].split(']]')[0].split('], ['):
-        points.append([float(n) for n in point.split(', ')])
-    return points
+        new_track.append([float(n) for n in point.split(', ')])
+    return new_track
 
 
 def track_distance(track):
@@ -46,28 +46,23 @@ def knn_interpolation(track, N):
     :param N: Number of points of the interpolate track
     :return: Interpolate track
     """
-    try:
-        track_len = len(track)
-        if track_len < N: raise ValueError
-        dists = [(track_len / float(N)) * i for i in range(N)]
-        indices = []
-        for dist in dists:
-            aux = []
-            for i in range(track_len):
-                aux.append(abs(dist - i))
-            indices.append(np.argmin(aux))
-        return [track[i] for i in indices]
-    except ValueError:
-        print('La ruta tiene menos puntos que la interpolación')
-        return None
+    track_len = len(track)
+    dists = [(track_len / float(N)) * i for i in range(N)]
+    indices = []
+    for dist in dists:
+        aux = []
+        for i in range(track_len):
+            aux.append(abs(dist - i))
+        indices.append(np.argmin(aux))
+    return [track[i] for i in indices]
 
 
 def main():
-    with open(DATA_DIRECTORY, 'rb') as input, open('porto_int.csv',
-                                                   'wb') as output:
+    with open(DATA_DIRECTORY, 'rb') as input, \
+            open('mallorca/mallorca_int.csv', 'wb') as output:
         reader = csv.reader(input, delimiter=';')
-        writer = csv.writer(output, delimiter=';', escapechar='',
-                            quoting=csv.QUOTE_NONE)
+        writer = csv.writer(output, delimiter=';',
+                            escapechar='', quoting=csv.QUOTE_NONE)
         writer.writerow(reader.next())
         n = 0
         for track in reader:

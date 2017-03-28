@@ -45,7 +45,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'img/gmm_means_cavi'
+PATH_IMAGE = 'generated/gmm_means_cavi'
 
 
 def dirichlet_expectation(alpha):

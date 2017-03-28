@@ -40,7 +40,7 @@ MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
 THRESHOLD = 1e-3
-PATH_IMAGE = 'img/gmm_means_cavi'
+PATH_IMAGE = 'generated/gmm_means_cavi'
 MACHINE_PRECISION = 2.2204460492503131e-16
 
 # Gradient ascent step sizes of variational parameters

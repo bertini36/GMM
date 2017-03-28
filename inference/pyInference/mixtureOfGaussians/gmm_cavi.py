@@ -47,7 +47,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-16
-PATH_IMAGE = 'img/gmm_cavi_k2_100'
+PATH_IMAGE = 'generated/gmm_cavi_k2_100'
 
 
 def dirichlet_expectation(alpha, k):
@@ -384,6 +384,6 @@ def main():
             plt.show()
         plt.clf()
         plt.plot(np.arange(len(lbs)), lbs)
-        plt.savefig('img/elbos.png')
+        plt.savefig('generated/elbos.png')
 
 if __name__ == '__main__': main()

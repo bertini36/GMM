@@ -33,11 +33,11 @@ print('mu={}'.format(mu))
 print('sigma={}'.format(sigma))
 
 # Prior definition
-v_prior = tf.Variable(3., dtype=tf.float64, trainable=False)
+v_prior = tf.Variable(3., dtype=tf.float32, trainable=False)
 W_prior = tf.Variable(np.array([[1., 0.], [0., 1.]]),
-                      dtype=tf.float64, trainable=False)
-m_prior = tf.Variable(np.array([0.5, 0.5]), dtype=tf.float64, trainable=False)
-k_prior = tf.Variable(0.6, dtype=tf.float64, trainable=False)
+                      dtype=tf.float32, trainable=False)
+m_prior = tf.Variable(np.array([0.5, 0.5]), dtype=tf.float32, trainable=False)
+k_prior = tf.Variable(0.6, dtype=tf.float32, trainable=False)
 
 # Posterior inference
 # Probabilistic model
@@ -47,14 +47,14 @@ xn = MultivariateNormalFull(tf.reshape(tf.tile(mu, [N]), [N, D]),
                             tf.reshape(tf.tile(sigma, [N, 1]), [N, 2, 2]))
 # Variational model
 qmu = MultivariateNormalFull(
-    tf.Variable(tf.random_normal([D], dtype=tf.float64), name='v1'),
+    tf.Variable(tf.random_normal([D], dtype=tf.float32), name='v1'),
     tf.nn.softplus(
-        tf.Variable(tf.random_normal([D, D], dtype=tf.float64), name='v2')))
+        tf.Variable(tf.random_normal([D, D], dtype=tf.float32), name='v2')))
 qsigma = WishartCholesky(
     df=tf.nn.softplus(
-        tf.Variable(tf.random_normal([], dtype=tf.float64), name='v3')),
+        tf.Variable(tf.random_normal([], dtype=tf.float32), name='v3')),
     scale=tf.nn.softplus(
-        tf.Variable(tf.random_normal([D, D], dtype=tf.float64), name='v4')))
+        tf.Variable(tf.random_normal([D, D], dtype=tf.float32), name='v4')))
 
 # Inference
 inference = ed.KLqp({mu: qmu, sigma: qsigma}, data={xn: xn_data})

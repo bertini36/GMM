@@ -45,7 +45,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'img/gmm_cavi'
+PATH_IMAGE = 'generated/gmm_cavi'
 MACHINE_PRECISION = 2.2204460492503131e-16
 
 # Gradient ascent step sizes of variational parameters
