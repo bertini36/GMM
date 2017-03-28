@@ -129,9 +129,11 @@ def update_lambda_w(lambda_w, lambda_phi, w_o, beta_o, m_o, xn, Nks, K):
     #    aux = np.array([[0.] * D] * D)
     #    for n in range(N):
     #        aux += lambda_phi[n, k] * xn_xnt[n]
-    #    lambda_w[k, :, :] = w_o + beta_o *np.outer(m_o, m_o.T) + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
+    #    lambda_w[k, :, :] = w_o + beta_o *np.outer(m_o, m_o.T)
+    # + aux - lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)
     #    print('1st Term: {}'.format(w_o + beta_o *np.outer(m_o, m_o.T) + aux))
-    #    print('2nd Term: {}'.format(-lambda_beta[k] * np.outer(lambda_m[k, :], lambda_m[k, :].T)))
+    #    print('2nd Term: {}'.format(-lambda_beta[k]
+    # * np.outer(lambda_m[k, :], lambda_m[k, :].T)))
     xk = np.tile(1. / Nks, (2, 1)).T * np.dot(lambda_phi.T, xn)
     Snk = np.zeros((K, 2, 2))
     for k in xrange(K):
@@ -282,7 +284,6 @@ def main():
     with open('{}'.format(args.dataset), 'r') as inputfile:
         data = pkl.load(inputfile)
         xn = data['xn']
-        zn = data['zn']
     N, D = xn.shape
 
     if VERBOSE: init_time = time()
