@@ -5,8 +5,8 @@ Coordinate Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
 """
 
-import csv
 import argparse
+import csv
 import pickle as pkl
 from time import time
 
@@ -28,13 +28,18 @@ Parameters:
     * k: Number of clusters
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
+    * exportAssignments: If true generate a csv with the cluster assignments
+
+Execution:
+    python gmm_cavi_new_elbo.py
+        -dataset ../../../data/real/porto/porto_subset_pca30.pkl
+        -k 2 --verbose --no-randomInit --exportAssignments
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=200)
-parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/real/mallorca/mallorca_pca.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=4)
+parser.add_argument('-dataset', metavar='dataset', type=str, default='')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
 parser.set_defaults(verbose=True)
@@ -297,7 +302,7 @@ def main():
 
         # Priors
         alpha_o = np.array([1.0] * K)
-        nu_o = np.array([15.0])
+        nu_o = np.array([20.0])
         if nu_o[0] < D: raise ValueError
         w_o = generate_random_positive_matrix(D)
         m_o = np.array([0.0] * D)
