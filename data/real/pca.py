@@ -72,9 +72,9 @@ def main():
                 pkl.dump({'xn': np.array(xn_new)}, output)
 
     except IndexError:
-        print('CSV input file doesn\'t have the correct structure')
+        print('CSV input file doesn\'t have the correct structure!')
     except TypeError:
-        print('Input must be a csv and output a pkl')
+        print('Input must be a csv and output a pkl!')
     except IOError:
         print('File not found!')
 

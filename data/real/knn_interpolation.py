@@ -98,9 +98,9 @@ def main():
                 n += 1
 
     except IndexError:
-        print('CSV input file doesn\'t have the correct structure')
+        print('CSV input file doesn\'t have the correct structure!')
     except TypeError:
-        print('Input and output must be a csv file')
+        print('Input and output must be a csv file!')
     except IOError:
         print('File not found!')
 

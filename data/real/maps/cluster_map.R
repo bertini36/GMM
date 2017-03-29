@@ -3,11 +3,11 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_int20.csv"
+TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_int15.csv"
 ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/mixtureOfGaussians/generated/assignments.csv"
 DELIMITER = ";"
 HEADER = TRUE
-COLORS = c("#0066CC30", "#CC000030", "#00993330", "#99663330", "#9900CC30", "#00ffff30", "#ff990030", "#33660030")
+COLORS = c("#0066CC", "#CC0000", "#009933", "#996633", "#9900CC", "#00ffff", "#ff9900", "#336600")
 RESOLUTION = c(1920, 1080)
 
 # Read tracks and assignments
@@ -38,14 +38,14 @@ png(filename="clusters.png", width=RESOLUTION[1], height=RESOLUTION[2])
 plot(tracks$lon, tracks$lat, type="n", axes=FALSE, xlab="", ylab="", main="", asp=1)
 for (i in 1:length(ids)) {
   track <- subset(tracks, index==ids[i])
-  lines(track$lon, track$lat, col=COLORS[assignments[ids[i],] + 1])
+  lines(track$lon, track$lat, col=paste(COLORS[assignments[ids[i],] + 1], "30", sep=""))
 }
 dev.off()
 
 # Cluster individuals maps
 K <- dim(unique(assignments))[1]
 for (i in 0:K-1) {
-  png(filename=paste("cluster", toString(i), ".png", sep=""), width=RESOLUTION[1], height=RESOLUTION[2])
+  png(filename=paste("K", toString(i), ".png", sep=""), width=RESOLUTION[1], height=RESOLUTION[2])
   plot(tracks$lon, tracks$lat, type="n", axes=FALSE, xlab="", ylab="", main="", asp=1)
   for (j in 1:length(ids)) {
     track <- subset(tracks, index==ids[j])

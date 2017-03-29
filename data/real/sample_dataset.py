@@ -78,9 +78,9 @@ def main():
                     writer.writerow([format_track(track[0])])
 
     except IndexError:
-        print('CSV input file doesn\'t have the correct structure')
+        print('CSV input file doesn\'t have the correct structure!')
     except TypeError:
-        print('Input and output must be csv files')
+        print('Input and output must be csv files!')
     except IOError:
         print('File not found!')
 

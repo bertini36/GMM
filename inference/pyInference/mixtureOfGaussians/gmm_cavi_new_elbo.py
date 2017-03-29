@@ -58,7 +58,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'generated/gmm_cavi_k8_1000'
+PATH_IMAGE = 'generated/plot.png'
 EXPORT_ASSIGNMENTS = args.exportAssignments
 
 
@@ -292,6 +292,9 @@ def init_kmeans(xn, N, K):
 
 def main():
     try:
+        if not ('.pkl' in args.dataset or '.PKL' in args.dataset):
+            raise TypeError
+
         # Get data
         with open('{}'.format(args.dataset), 'r') as inputfile:
             data = pkl.load(inputfile)
@@ -302,7 +305,7 @@ def main():
 
         # Priors
         alpha_o = np.array([1.0] * K)
-        nu_o = np.array([20.0])
+        nu_o = np.array([float(D)])
         if nu_o[0] < D: raise ValueError
         w_o = generate_random_positive_matrix(D)
         m_o = np.array([0.0] * D)
@@ -369,7 +372,7 @@ def main():
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if n_iters > 0 and improve < THRESHOLD:
-                if VERBOSE and D == 2: plt.savefig('{}.png'.format(PATH_IMAGE))
+                if VERBOSE and D == 2: plt.savefig(PATH_IMAGE)
                 break
 
             n_iters += 1
@@ -410,6 +413,8 @@ def main():
 
     except ValueError:
         print('Degrees of freedom can not be smaller than D!')
+    except TypeError:
+        print('Input must be a pkl file!')
     except IOError:
         print('File not found!')
 
