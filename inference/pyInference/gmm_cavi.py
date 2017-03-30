@@ -31,7 +31,7 @@ Parameters:
 
 Execution:
     python gmm_cavi.py
-        -dataset ../../../data/real/porto/porto_subset_pca30.pkl
+        -dataset ../../data/real/mallorca/mallorca_pca30.pkl
         -k 2 --verbose --no-randomInit --exportAssignments
 """
 
@@ -280,12 +280,14 @@ def main():
                 ax = fig.add_subplot(111, projection='3d')
                 ax.scatter(xn[:, 0], xn[:, 1], xn[:, 2],
                            c=zn, cmap=cm.gist_rainbow, s=5)
-                ax.set_xlabel('X Label')
-                ax.set_ylabel('Y Label')
-                ax.set_zlabel('Z Label')
+                ax.set_xlabel('X')
+                ax.set_ylabel('Y')
+                ax.set_zlabel('Z')
                 plt.show()
             plt.gcf().clear()
             plt.plot(np.arange(len(lbs)), lbs)
+            plt.ylabel('ELBO')
+            plt.xlabel('Iterations')
             plt.savefig('generated/elbos.png')
 
         if EXPORT_ASSIGNMENTS:

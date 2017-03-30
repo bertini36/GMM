@@ -36,25 +36,6 @@ DATA_MEAN = 7
 THRESHOLD = 1e-6
 
 
-def elbo(xn, m_o, beta_o, a_o, b_o, lambda_m, lambda_beta, lambda_a, lambda_b):
-    """
-    ELBO computation
-    """
-    lb = 0
-    lb += 1. / 2 * np.log(beta_o / lambda_beta) + 1. / 2 * (
-        lambda_m ** 2 + 1. / lambda_beta) * (lambda_beta - beta_o) \
-          - lambda_m * (lambda_beta * lambda_m - beta_o * m_o) + 1. / 2 * (
-        lambda_beta * lambda_m ** 2 - beta_o * m_o ** 2)
-    lb += a_o * np.log(b_o) - lambda_a * np.log(lambda_b) + gammaln(
-        lambda_a) - gammaln(a_o) + (psi(lambda_a) - np.log(lambda_b)) * (
-        a_o - lambda_a) + lambda_a / lambda_b * (lambda_b - b_o)
-    lb += N / 2. * (psi(lambda_a) - np.log(lambda_b)) - N / 2. * np.log(
-        2 * math.pi) - 1. / 2 * lambda_a / lambda_b * sum(
-        xn ** 2) + lambda_a / lambda_b * sum(xn) * lambda_m \
-          - N / 2. * lambda_a / lambda_b * (lambda_m ** 2 + 1. / lambda_beta)
-    return lb
-
-
 def update_lambda_m(lambda_a, lambda_b, m_o, beta_o, xn):
     """
     Update lambda_m
@@ -83,6 +64,25 @@ def update_lambda_b(lambda_m, lambda_beta, b_o, xn):
     """
     return b_o + 1. / 2 * sum(xn ** 2) - lambda_m * sum(xn) + \
            N / 2. * (lambda_m ** 2 + 1. / lambda_beta)
+
+
+def elbo(xn, m_o, beta_o, a_o, b_o, lambda_m, lambda_beta, lambda_a, lambda_b):
+    """
+    ELBO computation
+    """
+    lb = 0
+    lb += 1. / 2 * np.log(beta_o / lambda_beta) + 1. / 2 * (
+        lambda_m ** 2 + 1. / lambda_beta) * (lambda_beta - beta_o) \
+          - lambda_m * (lambda_beta * lambda_m - beta_o * m_o) + 1. / 2 * (
+        lambda_beta * lambda_m ** 2 - beta_o * m_o ** 2)
+    lb += a_o * np.log(b_o) - lambda_a * np.log(lambda_b) + gammaln(
+        lambda_a) - gammaln(a_o) + (psi(lambda_a) - np.log(lambda_b)) * (
+        a_o - lambda_a) + lambda_a / lambda_b * (lambda_b - b_o)
+    lb += N / 2. * (psi(lambda_a) - np.log(lambda_b)) - N / 2. * np.log(
+        2 * math.pi) - 1. / 2 * lambda_a / lambda_b * sum(
+        xn ** 2) + lambda_a / lambda_b * sum(xn) * lambda_m \
+          - N / 2. * lambda_a / lambda_b * (lambda_m ** 2 + 1. / lambda_beta)
+    return lb
 
 
 def main():

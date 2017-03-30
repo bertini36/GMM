@@ -6,7 +6,7 @@ Python inference common functions
 
 import numpy as np
 from scipy import random
-from scipy.special import psi
+from scipy.special import psi, gammaln
 from sklearn.cluster import KMeans
 
 
@@ -47,3 +47,12 @@ def init_kmeans(xn, N, K):
     for i, lab in enumerate(labels):
         lambda_phi[i, lab] = 0.9
     return lambda_phi
+
+
+def log_beta_function(x):
+    """
+    Log beta function
+    ln(\gamma(x)) - ln(\gamma(\sum_{i=1}^{N}(x_{i}))
+    """
+    return np.sum(gammaln(x + np.finfo(np.float32).eps)) - gammaln(
+        np.sum(x + np.finfo(np.float32).eps))
