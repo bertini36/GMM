@@ -3,7 +3,7 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_int15.csv"
+TRACKS_PATH = "/home/alberto/Documentos/data/Porto/porto_subset_100k_int50.csv"
 ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/mixtureOfGaussians/generated/assignments.csv"
 DELIMITER = ";"
 HEADER = TRUE

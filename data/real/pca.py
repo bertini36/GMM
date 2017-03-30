@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Principal Componen Analysis
+Principal Component Analysis
 """
 
 import argparse
@@ -68,6 +68,7 @@ def main():
             print('Doing PCA...')
             pca = PCA(n_components=N_COMPONENTS)
             xn_new = pca.fit_transform(xn)
+
             with open(OUTPUT, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
 
