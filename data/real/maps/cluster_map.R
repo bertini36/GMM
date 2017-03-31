@@ -5,6 +5,7 @@ library(plotKML)
 # Configuration
 TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_int50.csv"
 ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/generated/assignments.csv"
+# ASSIGNMENTS_PATH = "/home/alberto/Documentos/data/real/porto/results100k/assignments.csv"
 DELIMITER = ";"
 HEADER = TRUE
 COLORS = c("#0066CC", "#CC0000", "#009933", "#996633", "#9900CC", "#00ffff", "#ff9900", "#336600")
@@ -19,7 +20,7 @@ index <- c()
 lat <- c()
 lon <- c()
 for (i in 1:dim(tracks)[1]) {
-  track <- as.character(tracks$Points[i])
+  track <- as.character(tracks$Points[i]) 
   points <- strsplit(track, "], \\[")[[1]]
   points[1] <- strsplit(points[1], "\\[\\[")[[1]][2]
   points[length(points)] <- strsplit(points[length(points)], "]]")[[1]][1]

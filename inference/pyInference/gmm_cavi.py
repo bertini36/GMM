@@ -8,6 +8,7 @@ process to approximate a Mixture of Gaussians (GMM)
 import argparse
 import csv
 import pickle as pkl
+import sys
 from time import time
 
 import matplotlib.cm as cm
@@ -16,8 +17,8 @@ import numpy as np
 from numpy.linalg import det, inv
 from scipy.special import gammaln, multigammaln, psi
 
-from libs.common import (dirichlet_expectation, init_kmeans,
-                         generate_random_positive_matrix, softmax)
+from libs.common import (dirichlet_expectation,
+                         generate_random_positive_matrix, init_kmeans, softmax)
 from libs.viz import plot_iteration
 
 """
@@ -156,27 +157,29 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
     return lambda_phi
 
 
-def elbo(lambda_phi, lambda_pi, lambda_w, lambda_beta,
-         lambda_nu, alpha_o, nu_o, beta_o, w_o,  N, D):
+def elbo(lambda_phi, lambda_pi, lambda_m, lambda_beta,
+         lambda_nu, lambda_w, alpha_o, m_o, beta_o, nu_o, w_o,  Nks, N, D):
     """
     ELBO computation
     """
-    elbo = gammaln(np.sum(alpha_o)) - np.sum(gammaln(alpha_o)) \
+    lb = gammaln(np.sum(alpha_o)) - np.sum(gammaln(alpha_o)) \
            - gammaln(np.sum(lambda_pi)) + np.sum(gammaln(lambda_pi))
-    elbo -= N * D / 2. * np.log(2. * np.pi)
+    # lb -= N * D / 2. * np.log(2. * np.pi)
     for k in xrange(K):
-        elbo += -(nu_o[0] * D * np.log(2.)) / 2. + (lambda_nu[k] * D * np.log(2.)) / 2.
-        elbo += -multigammaln(nu_o[0] / 2., D) + multigammaln(lambda_nu[k] / 2., D)
-        elbo += (D / 2.) * np.log(beta_o[0]) - (D / 2.) * np.log(lambda_beta[k])
-        elbo += (nu_o[0] / 2.) * np.log(det(w_o)) - (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
-        elbo -= np.dot(np.log(lambda_phi[:, k]).T, lambda_phi[:, k])
-    return elbo
+        lb += -(nu_o[0] * D * np.log(2.)) / 2. + (lambda_nu[k] * D * np.log(2.)) / 2.
+        lb += -multigammaln(nu_o[0] / 2., D) + multigammaln(lambda_nu[k] / 2., D)
+        lb += (D / 2.) * np.log(np.absolute(beta_o[0])) - (D / 2.) * np.log(np.absolute(lambda_beta[k]))
+        lb += (nu_o[0] / 2.) * np.log(det(w_o)) - (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
+        # lb -= ((N * np.dot(np.dot(m_o.T, inv(w_o)), m_o)) - (Nks[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_w[k, :, :])), lambda_m[k, :]))) / 2.
+        # lb -= ((N * np.log(det(w_o))) - (Nks[k] * np.log(det(lambda_w[k, :, :])))) / 2.
+        lb -= np.dot(np.log(lambda_phi[:, k]).T, lambda_phi[:, k])
+    return lb
 
 
 def main():
     try:
         if not ('.pkl' in args.dataset or '.PKL' in args.dataset):
-            raise TypeError
+            raise Exception('input_format')
 
         # Get data
         with open('{}'.format(args.dataset), 'r') as inputfile:
@@ -232,8 +235,8 @@ def main():
                                            xn, N, K, D)
 
             # ELBO computation
-            lb = elbo(lambda_phi, lambda_pi, lambda_w, lambda_beta,
-                      lambda_nu, alpha_o, nu_o, beta_o, w_o,  N, D)
+            lb = elbo(lambda_phi, lambda_pi, lambda_m, lambda_beta, lambda_nu,
+                      lambda_w, alpha_o, m_o, beta_o, nu_o, w_o,  Nks, N, D)
             lbs.append(lb)
 
             if VERBOSE:
@@ -300,9 +303,13 @@ def main():
 
     except ValueError:
         print('Degrees of freedom can not be smaller than D!')
-    except TypeError:
-        print('Input must be a pkl file!')
     except IOError:
         print('File not found!')
+    except Exception as e:
+        if e.args[0] == 'input_format': print('Input must be a pkl file')
+        else:
+            print('Unexpected error: {}'.format(sys.exc_info()[0]))
+            raise
+
 
 if __name__ == '__main__': main()

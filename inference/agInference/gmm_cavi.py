@@ -30,7 +30,7 @@ Parameters:
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100000)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/synthetic/k2/data_k2_100.pkl')
+                    default='../../data/synthetic/k2/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
 parser.add_argument('--no-verbose', dest='verbose', action='store_false')
@@ -45,7 +45,7 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'generated/gmm_cavi'
+PATH_IMAGE = 'generated/plot.png'
 MACHINE_PRECISION = 2.2204460492503131e-16
 
 # Gradient ascent step sizes of variational parameters
@@ -113,65 +113,20 @@ def NIW_sufficient_statistics(k, D, lambda_nu, lambda_w, lambda_m, lambda_beta):
         ]
 
 
-def elbo((lambda_phi, lambda_pi, lambda_m, lambda_w, lambda_beta, lambda_nu)):
+def elbo((lambda_phi, lambda_pi, lambda_w, lambda_beta, lambda_nu)):
     """
     ELBO computation
     """
-    elbop = -(((D * (N + 1)) / 2.) * K * agnp.log(2. * agnp.pi))
-    print('elbop1: {}'.format(elbop))
-    elbop = agnp.subtract(elbop, (K * nu_o * D * agnp.log(2.)) / 2.)
-    print('elbop2: {}'.format(elbop))
-    elbop = agnp.subtract(elbop, K * agscipy.multigammaln(nu_o / 2., D))
-    print('elbop3: {}'.format(elbop))
-    elbop = agnp.add(elbop, (D / 2.) * K * agnp.log(agnp.absolute(beta_o)))
-    print('elbop4: {}'.format(elbop))
-    elbop = agnp.add(elbop, (nu_o / 2.) * K * agnp.log(agnp.linalg.det(w_o)))
-    print('elbop5: {}'.format(elbop))
-    elboq = -((D / 2.) * K * agnp.log(2. * agnp.pi))
-    for k in range(K):
-        aux1 = agnp.array([0., 0.])
-        aux2 = agnp.array([[0., 0.], [0., 0.]])
-        for n in range(N):
-            aux1 = agnp.add(aux1, lambda_phi[n, k] * xn[n, :])
-            aux2 = agnp.add(aux2, lambda_phi[n, k] * xn_xnt[n])
-        elbop = agnp.add(agnp.subtract(elbop, agscipy.gammaln(alpha_o[k])),
-                         agscipy.gammaln(agnp.sum(alpha_o)))
-        print('elbop6: {}'.format(elbop))
-        elbop = agnp.add(elbop, (alpha_o[k] - 1 + agnp.sum(lambda_phi[:, k])) * dirichlet_expectation(alpha_o, k))
-        print('elbop7: {}'.format(elbop))
-        ss_niw = NIW_sufficient_statistics(k, D, lambda_nu,
-                                           lambda_w, lambda_m, lambda_beta)
-        elbop = agnp.add(elbop, agnp.dot((m_o.T * beta_o + aux1).T, ss_niw[0]))
-        print('*elbop8: {}'.format(elbop))
-        elbop = agnp.add(elbop, agnp.trace(
-            agnp.dot((w_o + agnp.outer(beta_o * m_o, m_o.T) + aux2).T,
-                     ss_niw[1])))
-        print('elbop9: {}'.format(elbop))
-        elbop = agnp.add(elbop, (beta_o + Nks[k]) * ss_niw[2])
-        print('elbop10: {}'.format(elbop))
-        elbop = agnp.add(elbop, (nu_o + D + 2. + Nks[k]) * ss_niw[3])
-        print('*elbop11: {}'.format(elbop))
-        elboq = agnp.add(agnp.subtract(elboq, agscipy.gammaln(lambda_pi[k])),
-                         agscipy.gammaln(agnp.sum(lambda_pi)))
-        elboq = agnp.add(elboq, (lambda_pi[k] - 1 + agnp.sum(
-            lambda_phi[:, k])) * dirichlet_expectation(lambda_pi, k))
-        elboq = agnp.add(elboq, agnp.dot((lambda_m[k, :].T
-                                          * lambda_beta[k]).T, ss_niw[0]))
-        elboq = agnp.add(elboq, agnp.trace(agnp.dot((lambda_w[k, :,
-                                                     :] + agnp.outer(
-            lambda_beta[k] * lambda_m[k, :], lambda_m[k, :].T)).T, ss_niw[1])))
-        elboq = agnp.add(elboq, lambda_beta[k] * ss_niw[2])
-        elboq = agnp.add(elboq, (lambda_nu[k] + D + 2) * ss_niw[3])
-        elboq = agnp.subtract(elboq, ((lambda_nu[k] * D) / 2.) * agnp.log(2.))
-        elboq = agnp.subtract(elboq, agscipy.multigammaln(lambda_nu[k] / 2., D))
-        elboq = agnp.add(elboq,
-                         (D / 2.) * agnp.log(agnp.absolute(lambda_beta[k])))
-        elboq = agnp.add(elboq, (lambda_nu[k] / 2.) * agnp.log(
-            agnp.linalg.det(lambda_w[k, :, :])))
-        elboq = agnp.add(elboq,
-                         agnp.dot(agnp.log(lambda_phi[:, k]).T,
-                                  lambda_phi[:, k]))
-    return elbop - elboq
+    lb = agscipy.gammaln(agnp.sum(alpha_o)) - agnp.sum(agscipy.gammaln(alpha_o)) \
+         - agscipy.gammaln(agnp.sum(lambda_pi)) + agnp.sum(agscipy.gammaln(lambda_pi))
+    lb -= N * D / 2. * agnp.log(2. * agnp.pi)
+    for k in xrange(K):
+        lb += -(nu_o[0] * D * agnp.log(2.)) / 2. + (lambda_nu[k] * D * agnp.log(2.)) / 2.
+        lb += -agscipy.multigammaln(nu_o[0] / 2., D) + agscipy.multigammaln(lambda_nu[k] / 2., D)
+        lb += (D / 2.) * agnp.log(beta_o[0]) - (D / 2.) * agnp.log(lambda_beta[k])
+        lb += (nu_o[0] / 2.) * agnp.log(agnp.linalg.det(w_o)) - (lambda_nu[k] / 2.) * agnp.log(agnp.linalg.det(lambda_w[k, :, :]))
+        lb -= agnp.dot(agnp.log(lambda_phi[:, k]).T, lambda_phi[:, k])
+    return lb
 
 
 def plot_iteration(ax_spatial, circs, sctZ, lambda_m,
@@ -250,26 +205,19 @@ for _ in range(2):
 
     # Maximize ELBO
     Nks = agnp.sum(lambda_phi, axis=0)
-    grads = elementwise_grad(elbo)((lambda_phi, lambda_pi, lambda_m,
+    grads = elementwise_grad(elbo)((lambda_phi, lambda_pi,
                                     lambda_w, lambda_beta, lambda_nu))
-    print('Grads: {}'.format(grads))
 
     # Variational parameter updates (gradient ascent)
     lambda_phi -= ps['lambda_phi'] * grads[0]
-    # for n in range(N): lambda_phi[n, :] = softmax(lambda_phi[n, :])
     lambda_pi -= ps['lambda_pi'] * grads[1]
-    # lambda_pi = softplus(lambda_pi)
     lambda_m -= ps['lambda_m'] * grads[2]
     lambda_w -= ps['lambda_w'] * grads[3]
-    # lambda_w = softplus(lambda_w)
     lambda_beta -= ps['lambda_beta'] * grads[4]
-    # for k in range(K): lambda_beta[k] = softplus(lambda_beta[k])
     lambda_nu -= ps['lambda_nu'] * grads[5]
-    # lambda_nu = softplus(lambda_nu)
 
     # ELBO computation
-    lb = elbo((lambda_phi, lambda_pi, lambda_m,
-               lambda_w, lambda_beta, lambda_nu))
+    lb = elbo((lambda_phi, lambda_pi, lambda_w, lambda_beta, lambda_nu))
     lbs.append(lb)
 
     if VERBOSE:
@@ -286,8 +234,8 @@ for _ in range(2):
                                                  lambda_nu, xn, D, n_iters)
 
     # Break condition
-    if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
-        plt.savefig('{}.png'.format(PATH_IMAGE))
+    if n_iters > 0 and lb - lbs[n_iters - 1] < THRESHOLD:
+        plt.savefig(PATH_IMAGE)
         break
 
     n_iters += 1
