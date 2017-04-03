@@ -19,9 +19,9 @@ Parameters:
 
 Execution:
     python ipca.py
-        -input /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_int30.csv
-        -output /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_pca30.pkl
-        -c 30
+        -input /home/alberto/Documentos/data/real/porto/porto_int50.csv
+        -output /home/alberto/Documentos/data/real/porto/porto_pca.pkl
+        -c 50
 """
 
 parser = argparse.ArgumentParser(description='PCA')

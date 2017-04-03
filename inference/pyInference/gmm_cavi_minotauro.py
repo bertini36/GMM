@@ -11,15 +11,11 @@ import pickle as pkl
 import sys
 from time import time
 
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import det, inv
+from scipy import random
 from scipy.special import gammaln, multigammaln, psi
-
-from libs.common import (dirichlet_expectation,
-                         generate_random_positive_matrix, init_kmeans, softmax)
-from libs.viz import plot_iteration
+from sklearn.cluster import KMeans
 
 """
 Parameters:
@@ -31,9 +27,8 @@ Parameters:
     * exportAssignments: If true generate a csv with the cluster assignments
 
 Execution:
-    python gmm_cavi.py
-        -dataset ../../data/real/mallorca/mallorca_pca30.pkl
-        -k 2 --verbose --no-randomInit --exportAssignments
+    python gmm_cavi.py -dataset porto_pca.pkl
+                       -k 30 --verbose --no-randomInit --exportAssignments
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
@@ -58,8 +53,47 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'generated/plot.png'
+PATH_IMAGE = 'plot.png'
 EXPORT_ASSIGNMENTS = args.exportAssignments
+
+
+def dirichlet_expectation(alpha, k):
+    """
+    Dirichlet expectation computation
+    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
+    """
+    return psi(alpha[k] + np.finfo(np.float32).eps) - psi(np.sum(alpha))
+
+
+def softmax(x):
+    """
+    Softmax computation
+    e^{x} / sum_{i=1}^{K}(e^x_{i})
+    """
+    e_x = np.exp(x - np.max(x))
+    return (e_x + np.finfo(np.float32).eps) / \
+           (e_x.sum(axis=0) + np.finfo(np.float32).eps)
+
+
+def generate_random_positive_matrix(D):
+    """
+    Generate a random semidefinite positive matrix
+    :param D: Dimension
+    :return: DxD matrix
+    """
+    aux = random.rand(D, D)
+    return np.dot(aux, aux.transpose())
+
+
+def init_kmeans(xn, N, K):
+    """
+    Init points assignations (lambda_phi) with Kmeans clustering
+    """
+    lambda_phi = 0.1 / (K - 1) * np.ones((N, K))
+    labels = KMeans(K).fit(xn).predict(xn)
+    for i, lab in enumerate(labels):
+        lambda_phi[i, lab] = 0.9
+    return lambda_phi
 
 
 def update_lambda_pi(lambda_pi, lambda_phi, alpha_o):
@@ -204,22 +238,7 @@ def main():
         lambda_m = np.zeros(shape=(K, D))
         lambda_w = np.zeros(shape=(K, D, D))
 
-        # t_1 = time()
-        # xn_xnt = np.array([np.outer(xn[n, :], xn[n, :].T) for n in range(N)])
-        # t_2 = time()
-
-        print('Size of xn: {}'.format(sys.getsizeof(xn)))
-        # print('Size of xn_xnt: {}'.format(sys.getsizeof(xn_xnt)))
-        # print('Time to calculate xn_xnt: {}'.format(t_2 - t_1))
-        print('Size of lambda_phi: {}'.format(sys.getsizeof(lambda_phi)))
-
-        # Plot configs
-        if VERBOSE and D == 2:
-            plt.ion()
-            fig = plt.figure(figsize=(10, 10))
-            ax_spatial = fig.add_subplot(1, 1, 1)
-            circs = []
-            sctZ = None
+        xn_xnt = np.array([np.outer(xn[n, :], xn[n, :].T) for n in range(N)])
 
         # Inference
         lbs = []
@@ -253,19 +272,11 @@ def main():
                 print('lambda_w: {}'.format(lambda_w))
                 print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
                 print('ELBO: {}'.format(lb))
-                if D == 2:
-                    covs = [lambda_w[k, :, :] / (lambda_nu[k] - D - 1)
-                            for k in range(K)]
-                    ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
-                                                             sctZ, lambda_m,
-                                                             covs, xn,
-                                                             n_iters, K)
 
             # Break condition
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if n_iters > 0 and improve < THRESHOLD:
-                if VERBOSE and D == 2: plt.savefig(PATH_IMAGE)
                 break
 
             n_iters += 1
@@ -283,23 +294,9 @@ def main():
             print('Time: {} seconds'.format(exec_time))
             print('Iterations: {}'.format(n_iters))
             print('ELBOs: {}'.format(lbs))
-            if D == 3:
-                fig = plt.figure()
-                ax = fig.add_subplot(111, projection='3d')
-                ax.scatter(xn[:, 0], xn[:, 1], xn[:, 2],
-                           c=zn, cmap=cm.gist_rainbow, s=5)
-                ax.set_xlabel('X')
-                ax.set_ylabel('Y')
-                ax.set_zlabel('Z')
-                plt.show()
-            plt.gcf().clear()
-            plt.plot(np.arange(len(lbs)), lbs)
-            plt.ylabel('ELBO')
-            plt.xlabel('Iterations')
-            plt.savefig('generated/elbos.png')
 
         if EXPORT_ASSIGNMENTS:
-            with open('generated/assignments.csv', 'wb') as output:
+            with open('assignments.csv', 'wb') as output:
                 writer = csv.writer(output, delimiter=';', quotechar='',
                                     escapechar='\\', quoting=csv.QUOTE_NONE)
                 writer.writerow(['zn'])

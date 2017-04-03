@@ -3,11 +3,13 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH ="/home/alberto/Documentos/data/real/porto/results100k/porto_subset_100k_int50_plot.csv"
-ASSIGNMENTS_PATH = "/home/alberto/Documentos/data/real/porto/results100k/assignments_plot.csv"
+TRACKS_PATH ="/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_int50.csv"
+ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/generated/assignments.csv"
+K = 30
 DELIMITER = ";"
 HEADER = TRUE
-COLORS = c("#0066CC", "#CC0000", "#009933", "#996633", "#9900CC", "#00ffff", "#ff9900", "#336600")
+# COLORS = c("#0066CC", "#CC0000", "#009933", "#996633", "#9900CC", "#00ffff", "#ff9900", "#336600")
+COLORS = colorRampPalette(c("blue", "red", "green"))(30) 
 RESOLUTION = c(1920, 1080)
 
 # Read tracks and assignments
@@ -43,7 +45,6 @@ for (i in 1:length(ids)) {
 dev.off()
 
 # Cluster individuals maps
-K <- dim(unique(assignments))[1]
 for (i in 0:K-1) {
   png(filename=paste("K", toString(i), ".png", sep=""), width=RESOLUTION[1], height=RESOLUTION[2])
   plot(tracks$lon, tracks$lat, type="n", axes=FALSE, xlab="", ylab="", main="", asp=1)

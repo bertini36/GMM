@@ -18,10 +18,7 @@ Parameters:
     * n: Interpolation number of points
 
 Execution:
-    python knn_interpolation.py
-        -input /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset.csv
-        -output /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_int50.csv
-        -n 50
+    python knn_interpolation.py -input porto.csv -output porto_int50.csv -n 50
 """
 
 parser = argparse.ArgumentParser(description='KNN interpolation')

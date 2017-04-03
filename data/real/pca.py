@@ -18,10 +18,7 @@ Parameters:
     * c: PCA number of principal components
 
 Execution:
-    python pca.py
-        -input /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_int30.csv
-        -output /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_pca30.pkl
-        -c 30
+    python pca.py -input porto_int50.csv -output porto_pca.pkl -c 50
 """
 
 parser = argparse.ArgumentParser(description='PCA')

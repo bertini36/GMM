@@ -16,8 +16,8 @@ Parameters:
 
 Execution:
     python sample_dataset.py
-        -input /home/alberto/Documentos/data/Porto/porto.csv
-        -output /home/alberto/Documentos/data/Porto/porto_subset.csv
+        -input /home/alberto/Documentos/data/porto/porto.csv
+        -output /home/alberto/Documentos/data/porto/porto_subset.csv
         -s 5000
 """
 

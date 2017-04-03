@@ -20,8 +20,8 @@ Parameters:
 
 Execution:
     python ae.py
-        -input /home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_int50.csv
-        -output /home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_ae50.pkl
+        -input /home/alberto/Documentos/data/real/porto/porto_int50.csv
+        -output /home/alberto/Documentos/data/real/mallorca/porto_ae50.pkl
         -c 50
 """
 
