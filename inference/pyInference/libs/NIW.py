@@ -6,7 +6,7 @@ Normal Inverse Wishart distribution
 
 import numpy as np
 from numpy.linalg import det, inv
-from scipy.special import psi, multigammaln
+from scipy.special import multigammaln, psi
 
 
 class NIW:

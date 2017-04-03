@@ -20,8 +20,8 @@ Parameters:
 Execution:
     python knn_interpolation.py
         -input /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset.csv
-        -output /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_int30.csv
-        -n 30
+        -output /home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_subset_int50.csv
+        -n 50
 """
 
 parser = argparse.ArgumentParser(description='KNN interpolation')

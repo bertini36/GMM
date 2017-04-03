@@ -3,9 +3,8 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_int50.csv"
-ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/generated/assignments.csv"
-# ASSIGNMENTS_PATH = "/home/alberto/Documentos/data/real/porto/results100k/assignments.csv"
+TRACKS_PATH ="/home/alberto/Documentos/data/real/porto/results100k/porto_subset_100k_int50_plot.csv"
+ASSIGNMENTS_PATH = "/home/alberto/Documentos/data/real/porto/results100k/assignments_plot.csv"
 DELIMITER = ";"
 HEADER = TRUE
 COLORS = c("#0066CC", "#CC0000", "#009933", "#996633", "#9900CC", "#00ffff", "#ff9900", "#336600")

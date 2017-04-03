@@ -32,6 +32,7 @@ args = parser.parse_args()
 
 INPUT = args.input
 OUTPUT = args.output
+USE_N_COMPONENTS = False
 N_COMPONENTS = args.c
 
 
@@ -65,9 +66,18 @@ def main():
                 xn.append(track)
                 n += 1
 
-            print('Doing PCA...')
-            pca = PCA(n_components=N_COMPONENTS)
+            if USE_N_COMPONENTS:
+                print('Doing PCA...')
+                pca = PCA(n_components=N_COMPONENTS)
+            else:
+                print('Doing PCA with MLE...')
+                pca = PCA(n_components='mle', svd_solver='full')
             xn_new = pca.fit_transform(xn)
+
+            print('Explained variance: {}'
+                  .format(pca.explained_variance_ratio_))
+            print('Number of components: {}'
+                  .format(len(pca.explained_variance_ratio_)))
 
             with open(OUTPUT, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)

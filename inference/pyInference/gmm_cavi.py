@@ -157,21 +157,19 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
     return lambda_phi
 
 
-def elbo(lambda_phi, lambda_pi, lambda_m, lambda_beta,
-         lambda_nu, lambda_w, alpha_o, m_o, beta_o, nu_o, w_o,  Nks, N, D):
+def elbo(lambda_phi, lambda_pi, lambda_beta,lambda_nu,
+         lambda_w, alpha_o, beta_o, nu_o, w_o,  N, D):
     """
     ELBO computation
     """
     lb = gammaln(np.sum(alpha_o)) - np.sum(gammaln(alpha_o)) \
            - gammaln(np.sum(lambda_pi)) + np.sum(gammaln(lambda_pi))
-    # lb -= N * D / 2. * np.log(2. * np.pi)
+    lb -= N * D / 2. * np.log(2. * np.pi)
     for k in xrange(K):
         lb += -(nu_o[0] * D * np.log(2.)) / 2. + (lambda_nu[k] * D * np.log(2.)) / 2.
         lb += -multigammaln(nu_o[0] / 2., D) + multigammaln(lambda_nu[k] / 2., D)
         lb += (D / 2.) * np.log(np.absolute(beta_o[0])) - (D / 2.) * np.log(np.absolute(lambda_beta[k]))
         lb += (nu_o[0] / 2.) * np.log(det(w_o)) - (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
-        # lb -= ((N * np.dot(np.dot(m_o.T, inv(w_o)), m_o)) - (Nks[k] * np.dot(np.dot(lambda_m[k, :].T, inv(lambda_w[k, :, :])), lambda_m[k, :]))) / 2.
-        # lb -= ((N * np.log(det(w_o))) - (Nks[k] * np.log(det(lambda_w[k, :, :])))) / 2.
         lb -= np.dot(np.log(lambda_phi[:, k]).T, lambda_phi[:, k])
     return lb
 
@@ -235,8 +233,8 @@ def main():
                                            xn, N, K, D)
 
             # ELBO computation
-            lb = elbo(lambda_phi, lambda_pi, lambda_m, lambda_beta, lambda_nu,
-                      lambda_w, alpha_o, m_o, beta_o, nu_o, w_o,  Nks, N, D)
+            lb = elbo(lambda_phi, lambda_pi, lambda_beta,lambda_nu,
+                      lambda_w, alpha_o, beta_o, nu_o, w_o,  N, D)
             lbs.append(lb)
 
             if VERBOSE:
