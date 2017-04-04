@@ -5,11 +5,12 @@ Average time of the Porto tracks dataset
 """
 
 import csv
+import sys
 
 import numpy as np
 
-
-DATASET = 'porto.csv'
+csv.field_size_limit(sys.maxsize)
+DATASET = '../../data/real/mallorca/mallorca.csv'
 
 
 def format_track(track):

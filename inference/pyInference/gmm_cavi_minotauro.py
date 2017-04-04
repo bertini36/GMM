@@ -140,7 +140,7 @@ def update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o, beta_o, xn, N, D):
 
 
 def update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                    lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D):
+                    lambda_m, w_o, beta_o, m_o, xn, K, N, D):
     """
     Update lambda_w
     w_o + m_o * m_o.T + sum_{n=1}^{N}(E_{q_{z}} I(z_{n}=i)x_{n}x_{n}.T)
@@ -150,7 +150,7 @@ def update_lambda_w(lambda_w, lambda_phi, lambda_beta,
     for k in range(K):
         aux = np.array([[0.] * D] * D)
         for n in range(N):
-            aux += lambda_phi[n, k] * xn_xnt[n]
+            aux += lambda_phi[n, k] * np.outer(xn[n, :], xn[n, :].T)
         lambda_w[k, :, :] = w_o + beta_o * np.outer(m_o, m_o.T) + aux - \
                             lambda_beta[k] * np.outer(lambda_m[k, :],
                                                       lambda_m[k, :].T)
@@ -238,8 +238,6 @@ def main():
         lambda_m = np.zeros(shape=(K, D))
         lambda_w = np.zeros(shape=(K, D, D))
 
-        xn_xnt = np.array([np.outer(xn[n, :], xn[n, :].T) for n in range(N)])
-
         # Inference
         lbs = []
         n_iters = 0
@@ -253,7 +251,7 @@ def main():
             lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
                                        beta_o, xn, N, D)
             lambda_w = update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                                       lambda_m, w_o, beta_o, m_o, xn_xnt, K, N, D)
+                                       lambda_m, w_o, beta_o, m_o, xn, K, N, D)
             lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
                                            lambda_nu, lambda_w, lambda_beta,
                                            xn, N, K, D)
