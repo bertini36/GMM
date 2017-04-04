@@ -14,6 +14,7 @@ from time import time
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 from numpy.linalg import det, inv
 from scipy.special import gammaln, multigammaln, psi
 
@@ -190,7 +191,7 @@ def main():
         # Priors
         alpha_o = np.array([1.0] * K)
         nu_o = np.array([float(D)])
-        if nu_o[0] < D: raise ValueError
+        if nu_o[0] < D: raise Exception('degrees_of_freedom')
         w_o = generate_random_positive_matrix(D)
         m_o = np.array([0.0] * D)
         beta_o = np.array([0.7])
@@ -297,12 +298,12 @@ def main():
                 for i in range(len(zn)):
                     writer.writerow([zn[i]])
 
-    except ValueError:
-        print('Degrees of freedom can not be smaller than D!')
     except IOError:
         print('File not found!')
     except Exception as e:
         if e.args[0] == 'input_format': print('Input must be a pkl file')
+        elif e.args[0] == 'degrees_of_freedom':
+            print('Degrees of freedom can not be smaller than D!')
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise

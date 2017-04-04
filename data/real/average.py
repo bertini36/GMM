@@ -34,6 +34,7 @@ def main():
         for track in reader:
             n_points.append(len(format_track(track[0])))
 
+        print('n_points: {}'.format(n_points))
         av_points = np.mean(n_points)
         print('Average points: {}'.format(av_points))
         print('Average time: {} min'.format((av_points * 15) / 60))

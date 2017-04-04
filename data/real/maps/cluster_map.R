@@ -9,7 +9,7 @@ K = 30
 DELIMITER = ";"
 HEADER = TRUE
 # COLORS = c("#0066CC", "#CC0000", "#009933", "#996633", "#9900CC", "#00ffff", "#ff9900", "#336600")
-COLORS = colorRampPalette(c("blue", "red", "green"))(30) 
+COLORS = colorRampPalette(c("blue", "red"))(30) 
 RESOLUTION = c(1920, 1080)
 
 # Read tracks and assignments
@@ -51,7 +51,7 @@ for (i in 0:K-1) {
   for (j in 1:length(ids)) {
     track <- subset(tracks, index==ids[j])
     if (assignments[ids[j],] == i) {
-      lines(track$lon, track$lat, col=COLORS[i + 1])
+      lines(track$lon, track$lat, col=paste(COLORS[i + 1], "30", sep=""))
     }
   }
   dev.off()

@@ -29,7 +29,7 @@ parser.add_argument('-N', metavar='N', type=int, default=1000)
 parser.add_argument('-K', metavar='K', type=int, default=2)
 parser.add_argument('-D', metavar='D', type=int, default=3)
 parser.add_argument('-filename', metavar='filename',
-                    type=str, default='data_k30_1000.pkl')
+                    type=str, default='data_d1_k8_1000.pkl')
 
 # Priors. m_mu and w_delta depend on the data dimension
 # (Default only for 2D data). nu_delta must be greater equal than dimension (D)
@@ -51,7 +51,9 @@ def main():
     alpha_o = [args.alpha_o] * K
     pi = np.random.dirichlet(alpha_o)
 
-    if D == 2:
+    if D == 1:
+        m_o = [0.]
+    elif D == 2:
         m_o = np.array(args.m_o)
     elif D == 3:
         m_o = [0., 0., 0.]
@@ -62,7 +64,9 @@ def main():
     beta_o = args.beta_o
 
     nu_o = args.nu_o
-    if D == 2:
+    if D == 1:
+        w_o = np.array([1.])
+    elif D == 2:
         w_o = np.array([args.w_o[0:D], args.w_o[D:2 * D]])
     elif D == 3:
         w_o = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])

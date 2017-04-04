@@ -29,7 +29,7 @@ args = parser.parse_args()
 
 INPUT = args.input
 OUTPUT = args.output
-USE_N_COMPONENTS = False
+USE_N_COMPONENTS = True
 N_COMPONENTS = args.c
 
 
@@ -62,6 +62,9 @@ def main():
                 track = format_track(track[0])
                 xn.append(track)
                 n += 1
+
+            print('Length xn: {}'.format(len(xn)))
+            print('Length xn[0]: {}'.format(len(xn[0])))
 
             if USE_N_COMPONENTS:
                 print('Doing PCA...')
