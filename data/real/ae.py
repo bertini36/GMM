@@ -7,8 +7,10 @@ Autoencoder for dimensionality reduction
 import argparse
 import csv
 import pickle as pkl
+import sys
 
 import numpy as np
+
 from keras.layers import Dense, Input
 from keras.models import Model
 
@@ -19,10 +21,7 @@ Parameters:
     * c: Number of components
 
 Execution:
-    python ae.py
-        -input /home/alberto/Documentos/data/real/porto/porto_int50.csv
-        -output /home/alberto/Documentos/data/real/mallorca/porto_ae50.pkl
-        -c 50
+    python ae.py -input porto_int50.csv -output porto_ae50.pkl -c 50
 """
 
 parser = argparse.ArgumentParser(description='AE')
@@ -52,8 +51,8 @@ def format_track(track):
 
 def main():
     try:
-        if not('.csv' in INPUT or '.CSV' in INPUT): raise TypeError
-        if not('.pkl' in OUTPUT or '.PKL' in OUTPUT): raise TypeError
+        if not('.csv' in INPUT): raise Exception('input_format')
+        if not('.csv' in OUTPUT): raise Exception('output_format')
 
         with open(INPUT, 'rb') as input:
             reader = csv.reader(input, delimiter=';')
@@ -92,12 +91,13 @@ def main():
             with open(OUTPUT, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
 
-    except IndexError:
-        print('CSV input file doesn\'t have the correct structure!')
-    except TypeError:
-        print('Input must be a csv and output a pkl!')
     except IOError:
         print('File not found!')
-
+    except Exception as e:
+        if e.args[0] == 'input_format': print('Input must be a CSV file')
+        elif e.args[0] == 'output_format': print('Output must be a PKL file')
+        else:
+            print('Unexpected error: {}'.format(sys.exc_info()[0]))
+            raise
 
 if __name__ == '__main__': main()

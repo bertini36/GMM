@@ -20,8 +20,7 @@ Parameters:
 
 Execution:
     python pkl2json.py -input mallorca_pca3.pkl
-                       -assignments assignments.csv
-                       -output data.json
+                       -assignments assignments.csv -output data.json
 """
 
 parser = argparse.ArgumentParser(description='pkl2Json')
@@ -37,12 +36,9 @@ OUTPUT = args.output
 
 def main():
     try:
-        if not ('.pkl' in INPUT or '.PKL' in INPUT):
-            raise Exception('input_format')
-        if not('.csv' in ASSIGNMENTS or '.CSV' in ASSIGNMENTS):
-            raise Exception('assignments_format')
-        if not ('.json' in OUTPUT or '.JSON' in OUTPUT):
-            raise Exception('output_format')
+        if not ('.pkl' in INPUT): raise Exception('input_format')
+        if not('.csv' in ASSIGNMENTS): raise Exception('assignments_format')
+        if not ('.json' in OUTPUT): raise Exception('output_format')
 
         with open(INPUT, 'r') as input:
             data = pkl.load(input)

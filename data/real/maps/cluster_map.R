@@ -8,7 +8,6 @@ ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/generate
 K = 30
 DELIMITER = ";"
 HEADER = TRUE
-# COLORS = c("#0066CC", "#CC0000", "#009933", "#996633", "#9900CC", "#00ffff", "#ff9900", "#336600")
 COLORS = colorRampPalette(c("blue", "red"))(30) 
 RESOLUTION = c(1920, 1080)
 

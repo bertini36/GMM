@@ -4,13 +4,25 @@
 Average time of the Porto tracks dataset
 """
 
+import argparse
 import csv
 import sys
 
 import numpy as np
 
+"""
+Parameters:
+    * input: Input path (CSV with ; delimiter)
+Execution:
+    python average.py -input porto.csv
+"""
+
+parser = argparse.ArgumentParser(description='Average')
+parser.add_argument('-input', metavar='input', type=str, default='')
+args = parser.parse_args()
+
 csv.field_size_limit(sys.maxsize)
-DATASET = '../../data/real/mallorca/mallorca.csv'
+INPUT = args.INPUT
 
 
 def format_track(track):
@@ -26,17 +38,28 @@ def format_track(track):
 
 
 def main():
-    with open(DATASET, 'rb') as input:
-        reader = csv.reader(input, delimiter=';')
-        reader.next()
+    try:
+        if not ('.csv' in INPUT): raise Exception('input_format')
 
-        n_points = []
-        for track in reader:
-            n_points.append(len(format_track(track[0])))
+        with open(INPUT, 'rb') as input:
+            reader = csv.reader(input, delimiter=';')
+            reader.next()
 
-        print('n_points: {}'.format(n_points))
-        av_points = np.mean(n_points)
-        print('Average points: {}'.format(av_points))
-        print('Average time: {} min'.format((av_points * 15) / 60))
+            n_points = []
+            for track in reader:
+                n_points.append(len(format_track(track[0])))
+
+            print('n_points: {}'.format(n_points))
+            av_points = np.mean(n_points)
+            print('Average points: {}'.format(av_points))
+            print('Average time: {} min'.format((av_points * 15) / 60))
+
+    except IOError:
+        print('File not found!')
+    except Exception as e:
+        if e.args[0] == 'input_format': print('Input must be a CSV file')
+        else:
+            print('Unexpected error: {}'.format(sys.exc_info()[0]))
+            raise
 
 if __name__ == '__main__': main()

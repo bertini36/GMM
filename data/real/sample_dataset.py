@@ -7,6 +7,7 @@ Data sampler
 import argparse
 import csv
 import random
+import sys
 
 """
 Parameters:
@@ -59,8 +60,8 @@ def count_lines(input):
 
 def main():
     try:
-        if not('.csv' in INPUT or '.CSV' in INPUT): raise TypeError
-        if not('.csv' in OUTPUT or '.CSV' in OUTPUT): raise TypeError
+        if not('.csv' in INPUT): raise Exception('input_format')
+        if not('.csv' in OUTPUT): raise Exception('output_format')
 
         with open(INPUT, 'rb') as input, open(OUTPUT, 'wb') as output:
             lines = count_lines(input)
@@ -79,10 +80,16 @@ def main():
 
     except IndexError:
         print('CSV input file doesn\'t have the correct structure!')
-    except TypeError:
-        print('Input and output must be csv files!')
     except IOError:
         print('File not found!')
+    except Exception as e:
+        if e.args[0] == 'input_format':
+            print('Input must be a CSV file')
+        elif e.args[0] == 'output_format':
+            print('Output must be a PKL file')
+        else:
+            print('Unexpected error: {}'.format(sys.exc_info()[0]))
+            raise
 
 
 if __name__ == '__main__': main()

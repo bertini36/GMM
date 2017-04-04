@@ -177,8 +177,7 @@ def elbo(lambda_phi, lambda_pi, lambda_beta,lambda_nu,
 
 def main():
     try:
-        if not ('.pkl' in args.dataset or '.PKL' in args.dataset):
-            raise Exception('input_format')
+        if not ('.pkl' in args.dataset): raise Exception('input_format')
 
         # Get data
         with open('{}'.format(args.dataset), 'r') as inputfile:

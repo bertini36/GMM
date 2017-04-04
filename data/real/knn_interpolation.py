@@ -78,8 +78,8 @@ def knn_interpolation(track, N):
 
 def main():
     try:
-        if not('.csv' in INPUT or '.CSV' in INPUT): raise TypeError
-        if not('.csv' in OUTPUT or '.CSV' in OUTPUT): raise TypeError
+        if not('.csv' in INPUT): raise Exception('input_format')
+        if not('.csv' in OUTPUT): raise Exception('output_format')
 
         with open(INPUT, 'rb') as input, open(OUTPUT, 'wb') as output:
             reader = csv.reader(input, delimiter=';')
@@ -94,12 +94,14 @@ def main():
                 if new_track is not None: writer.writerow([new_track])
                 n += 1
 
-    except IndexError:
-        print('CSV input file doesn\'t have the correct structure!')
-    except TypeError:
-        print('Input and output must be a csv file!')
     except IOError:
         print('File not found!')
+    except Exception as e:
+        if e.args[0] == 'input_format': print('Input must be a CSV file')
+        elif e.args[0] == 'output_format': print('Output must be a PKL file')
+        else:
+            print('Unexpected error: {}'.format(sys.exc_info()[0]))
+            raise
 
 
 if __name__ == '__main__': main()
