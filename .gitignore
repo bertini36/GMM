@@ -1,4 +1,4 @@
 .idea/
 *.pyc
 *.png
-*.html
+graphics/UnivariateGaussian/*.html

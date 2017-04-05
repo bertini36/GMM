@@ -25,12 +25,11 @@ Execution:
 parser = argparse.ArgumentParser(description='PCA')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
-parser.add_argument('-c', metavar='c', type=int, default=50)
+parser.add_argument('-c', metavar='c', type=int)
 args = parser.parse_args()
 
 INPUT = args.input
 OUTPUT = args.output
-USE_N_COMPONENTS = True
 N_COMPONENTS = args.c
 
 
@@ -67,7 +66,7 @@ def main():
             print('Length xn: {}'.format(len(xn)))
             print('Length xn[0]: {}'.format(len(xn[0])))
 
-            if USE_N_COMPONENTS:
+            if N_COMPONENTS is not None:
                 print('Doing PCA...')
                 pca = PCA(n_components=N_COMPONENTS)
             else:
