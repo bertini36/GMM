@@ -219,6 +219,8 @@ def main():
             xn = data['xn']
         N, D = xn.shape
 
+        if VERBOSE: print('Data loaded')
+
         if VERBOSE: init_time = time()
 
         # Priors
@@ -237,6 +239,8 @@ def main():
         lambda_nu = np.zeros(shape=K)
         lambda_m = np.zeros(shape=(K, D))
         lambda_w = np.zeros(shape=(K, D, D))
+
+        if VERBOSE: print('Inference starts')
 
         # Inference
         lbs = []
