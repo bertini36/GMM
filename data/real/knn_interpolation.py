@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-KNN interpolation
+2D KNN interpolation
 """
 
 import argparse
@@ -44,18 +44,6 @@ def format_track(track):
     for point in track.split('[[')[1].split(']]')[0].split('], ['):
         new_track.append([float(n) for n in point.split(', ')])
     return new_track
-
-
-def track_distance(track):
-    """
-    Function that calculate the track length
-    :param track: Track as a Python list of points
-    :return: Scalar distance
-    """
-    dist = 0
-    for i in range(len(track) - 1):
-        dist += distance.euclidean(track[i], track[i + 1])
-    return dist
 
 
 def knn_interpolation(track, N):

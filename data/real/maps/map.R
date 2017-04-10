@@ -3,7 +3,7 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca.csv"
+TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_mini_int30.csv"
 DELIMITER = ";"
 HEADER = TRUE
 COLOR = "#0066CC30"

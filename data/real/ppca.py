@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import csv
+import pickle as pkl
 import sys
 
 import edward as ed
@@ -23,7 +24,7 @@ Parameters:
     * output: Output path (PKL file)
 
 Execution:
-    python ppca.py -input porto_int50.csv -output porto_pca.pkl
+    python ppca.py -input mallorca_int50.csv -output mallorca_ppca16.pkl -k 100
 """
 
 parser = argparse.ArgumentParser(description='PCA')
@@ -37,6 +38,7 @@ OUTPUT = args.output
 K = args.k
 N_ITERS = 10000
 N_SAMPLES = 10
+ALPHA_LIMIT = 0.20
 
 
 def build_toy_dataset(N, D, K, sigma=1):
@@ -143,23 +145,27 @@ def main():
             print('Mean: {}'.format(qmu.mean().eval()))
             print('Variance: {}'.format(qmu.variance().eval()))
 
-            print('Length new points: {}'.format(len(qz.eval()[0])))
-            print('Dimensions new points: {}'.format(len(qz.eval())))
-            print('New points: ')
-            print(qz.eval())
-
             alphas = tf.exp(qalpha.distribution.mean()).eval()
-            print('Alphas: {}'.format(alphas))
             alphas.sort()
+            print('Alphas: {}'.format(alphas))
+
             plt.plot(range(alphas.size), alphas)
             plt.show()
-
             plt.hist(qalpha.sample(1000).eval(), bins=30)
             plt.show()
 
-            # TODO: Establecer umbral (0.1) alphas y coger solo las
-            #       rows/dimensiones de qz que superen ese umbral y
-            #       construir el PKL tras invertir la matriz
+            points = qz.eval()
+            xn_new = []
+            for i in range(len(alphas)):
+                if alphas[i] > ALPHA_LIMIT:
+                    xn_new.append(points[i])
+            xn_new = np.asarray(xn_new).T
+            print('New points: {}'.format(xn_new))
+            print('Number of points: {}'.format(len(xn_new)))
+            print('Point dimensions: {}'.format(len(xn_new[0])))
+
+            with open(OUTPUT, 'w') as output:
+                pkl.dump({'xn': np.array(xn_new)}, output)
 
     except IOError:
         print('File not found!')
