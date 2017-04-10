@@ -13,7 +13,7 @@ import pickle as pkl
 import sys
 
 import edward as ed
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from edward.models import Normal
@@ -38,7 +38,6 @@ OUTPUT = args.output
 K = args.k
 N_ITERS = 10000
 N_SAMPLES = 10
-ALPHA_LIMIT = 0.20
 
 
 def build_toy_dataset(N, D, K, sigma=1):
@@ -147,17 +146,21 @@ def main():
 
             alphas = tf.exp(qalpha.distribution.mean()).eval()
             alphas.sort()
+            mean_alphas = np.mean(alphas)
             print('Alphas: {}'.format(alphas))
+            print('Mean alphas: {}'.format(mean_alphas))
 
+            """
             plt.plot(range(alphas.size), alphas)
             plt.show()
             plt.hist(qalpha.sample(1000).eval(), bins=30)
             plt.show()
+            """
 
             points = qz.eval()
             xn_new = []
             for i in range(len(alphas)):
-                if alphas[i] > ALPHA_LIMIT:
+                if alphas[i] > (mean_alphas * 1.2):
                     xn_new.append(points[i])
             xn_new = np.asarray(xn_new).T
             print('New points: {}'.format(xn_new))

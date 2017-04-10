@@ -3,7 +3,7 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/porto/porto_mini_linear_int30.csv"
+TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_linear_int1000.csv"
 DELIMITER = ";"
 HEADER = TRUE
 COLOR = "#0066CC30"
@@ -35,6 +35,7 @@ png(filename="map.png", width=RESOLUTION[1], height=RESOLUTION[2])
 ids <- unique(index)
 plot(tracks$lon, tracks$lat, type="n", axes=FALSE, xlab="", ylab="", main="", asp=1)
 for (i in 1:length(ids)) {
+  print(i)
   track <- subset(tracks, index==ids[i])
   lines(track$lon, track$lat, col=COLOR)
 }
