@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-2D KNN interpolation
+2D NN interpolation
 """
 
 import argparse
@@ -9,7 +9,6 @@ import csv
 import sys
 
 import numpy as np
-from scipy.spatial import distance
 
 """
 Parameters:
@@ -18,7 +17,7 @@ Parameters:
     * n: Interpolation number of points
 
 Execution:
-    python knn_interpolation.py -input porto.csv -output porto_int50.csv -n 50
+    python nn_interpolation.py -input porto.csv -output porto_int50.csv -n 50
 """
 
 parser = argparse.ArgumentParser(description='KNN interpolation')
@@ -46,9 +45,9 @@ def format_track(track):
     return new_track
 
 
-def knn_interpolation(track, N):
+def nn_interpolation(track, N):
     """
-    KNN interpolation of a track
+    NN interpolation of a track
     :param track: Track as a Python list of points
     :param N: Number of points of the interpolate track
     :return: Interpolate track
@@ -78,7 +77,7 @@ def main():
             for track in reader:
                 print('Track {}'.format(n))
                 track = format_track(track[0])
-                new_track = knn_interpolation(track, N)
+                new_track = nn_interpolation(track, N)
                 if new_track is not None: writer.writerow([new_track])
                 n += 1
 
