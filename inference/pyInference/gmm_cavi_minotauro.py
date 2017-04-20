@@ -274,6 +274,7 @@ def main():
                 print('lambda_w: {}'.format(lambda_w))
                 print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
                 print('ELBO: {}'.format(lb))
+                print('\n******* ITERATION {} *******'.format(n_iters))
 
             # Break condition
             improve = lb - lbs[n_iters - 1]
