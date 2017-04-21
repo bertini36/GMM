@@ -24,7 +24,7 @@ Parameters:
     * output: Output path (PKL file)
 
 Execution:
-    python ppca.py -input mallorca_int50.csv -output mallorca_ppca16.pkl -k 100
+    python ppca.py -input mallorca_knnint50.csv -output mallorca_ppca16.pkl -k 100
 """
 
 parser = argparse.ArgumentParser(description='PCA')

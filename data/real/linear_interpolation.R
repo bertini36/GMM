@@ -2,7 +2,7 @@
 
 # Configuration
 TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca.csv"
-OUTPUT_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_linear_int1000.csv"
+OUTPUT_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_linearint1000.csv"
 N_POINTS_INTERPOLATION = 1000
 DELIMITER = ";"
 HEADER = TRUE

@@ -17,8 +17,8 @@ Parameters:
 
 Execution:
     python reduce_dimensions.py
-        -input mallorca/mallorca_linear_int1000_ppca98.pkl
-        -output mallorca/mallorca_linear_int1000_ppca4.pkl
+        -input mallorca/mallorca_linearint1000_ppca98.pkl
+        -output mallorca/mallorca_linearint1000_ppca4.pkl
         -d 4
 """
 

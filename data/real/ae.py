@@ -10,7 +10,6 @@ import pickle as pkl
 import sys
 
 import numpy as np
-
 from keras.layers import Dense, Input
 from keras.models import Model
 
@@ -33,6 +32,7 @@ args = parser.parse_args()
 INPUT = args.input
 OUTPUT = args.output
 N_COMPONENTS = args.c
+N_EPOCHS = 100
 
 
 def format_track(track):
@@ -51,8 +51,8 @@ def format_track(track):
 
 def main():
     try:
-        if not('.csv' in INPUT): raise Exception('input_format')
-        if not('.csv' in OUTPUT): raise Exception('output_format')
+        if not ('.csv' in INPUT): raise Exception('input_format')
+        if not ('.pkl' in OUTPUT): raise Exception('output_format')
 
         with open(INPUT, 'rb') as input:
             reader = csv.reader(input, delimiter=';')
@@ -64,29 +64,39 @@ def main():
                 track = format_track(track[0])
                 xn.append(track)
                 n += 1
-            xn = np.array(xn)
+            xn = np.array(xn).astype('float32') / np.max(xn)
 
             print('Doing AE...')
 
             # Autoencoder definition
             input_track = Input(shape=(len(xn[0]),))
-            encoded = Dense(N_COMPONENTS, activation='relu')(input_track)
-            decoded = Dense(len(xn[0]), activation='sigmoid')(encoded)
+
+            encoded = Dense(N_COMPONENTS * 2, activation='tanh')(input_track)
+            encoded = Dense(N_COMPONENTS, activation='tanh')(encoded)
+
+            decoded = Dense(N_COMPONENTS * 2, activation='tanh')(encoded)
+            decoded = Dense(len(xn[0]), activation='sigmoid')(decoded)
+
             ae = Model(input_track, decoded)
 
             # Encoder definition
             encoder = Model(input_track, encoded)
 
-            # Decoder definition
-            # encoded_input = Input(shape=(N_COMPONENTS,))
-            # decoder_layer = ae.layers[-1]
-            # decoder = Model(encoded_input, decoder_layer(encoded_input))
-
             # Train autoencoder
             ae.compile(optimizer='adadelta', loss='binary_crossentropy')
-            ae.fit(xn, xn, epochs=15, batch_size=256, shuffle=True)
+            ae.fit(xn, xn, epochs=N_EPOCHS, batch_size=256, shuffle=True)
 
+            # Get points compressed representations
             xn_new = encoder.predict(xn)
+
+            # Normalization
+            maxs = np.max(xn_new, axis=0)
+            mins = np.min(xn_new, axis=0)
+            rng = maxs - mins
+            high = 100.0
+            low = 0.0
+            xn_new = high - (((high - low) * (maxs - xn_new)) / rng)
+            print(xn_new)
 
             with open(OUTPUT, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
@@ -94,10 +104,13 @@ def main():
     except IOError:
         print('File not found!')
     except Exception as e:
-        if e.args[0] == 'input_format': print('Input must be a CSV file')
-        elif e.args[0] == 'output_format': print('Output must be a PKL file')
+        if e.args[0] == 'input_format':
+            print('Input must be a CSV file')
+        elif e.args[0] == 'output_format':
+            print('Output must be a PKL file')
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise
+
 
 if __name__ == '__main__': main()
