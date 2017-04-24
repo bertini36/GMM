@@ -38,7 +38,7 @@ Execution:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=200)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str, default='')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('--verbose', dest='verbose', action='store_true')
