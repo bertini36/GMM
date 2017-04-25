@@ -30,6 +30,8 @@ Parameters:
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
+    * exportVariationalParameters: If true generate a pkl of a dictionary with
+                                   the variational parameters inferred
 
 Execution:
     python gmm_cavi.py
@@ -52,6 +54,11 @@ parser.add_argument('--exportAssignments',
 parser.add_argument('--no-exportAssignments',
                     dest='exportAssignments', action='store_false')
 parser.set_defaults(exportAssignments=True)
+parser.add_argument('--exportVariationalParameters',
+                    dest='exportVariationalParameters', action='store_true')
+parser.add_argument('--no-exportVariationalParameters',
+                    dest='exportVariationalParameters', action='store_false')
+parser.set_defaults(exportVariationalParameters=True)
 args = parser.parse_args()
 
 MAX_ITERS = args.maxIter
@@ -59,8 +66,8 @@ K = args.k
 VERBOSE = args.verbose
 RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'generated/plot.png'
 EXPORT_ASSIGNMENTS = args.exportAssignments
+EXPORT_VARIATIONAL_PARAMETERS = args.exportVariationalParameters
 
 
 def update_lambda_pi(lambda_pi, lambda_phi, alpha_o):
@@ -257,7 +264,7 @@ def main():
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if n_iters > 0 and improve < THRESHOLD:
-                if VERBOSE and D == 2: plt.savefig(PATH_IMAGE)
+                if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 
             n_iters += 1
@@ -297,6 +304,12 @@ def main():
                 writer.writerow(['zn'])
                 for i in range(len(zn)):
                     writer.writerow([zn[i]])
+
+        if EXPORT_VARIATIONAL_PARAMETERS:
+            with open('generated/variational_parameters.pkl', 'w') as output:
+                pkl.dump({'lambda_pi': lambda_pi, 'lambda_m': lambda_m,
+                          'lambda_beta': lambda_beta, 'lambda_nu': lambda_nu,
+                          'lambda_w': lambda_w, 'K': K, 'D': D}, output)
 
     except IOError:
         print('File not found!')
