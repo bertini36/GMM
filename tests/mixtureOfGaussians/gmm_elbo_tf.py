@@ -42,9 +42,14 @@ def generate_random_positive_matrix(D):
 
 
 def multilgamma(a, D, D_t):
-    res = tf.multiply(tf.multiply(D_t, tf.multiply(tf.subtract(D_t, 1), tf.cast(0.25, dtype=tf.float64))), tf.log(tf.cast(np.pi, dtype=tf.float64)))
-    res += tf.reduce_sum(tf.lgamma([tf.subtract(a, tf.div(tf.subtract(tf.cast(j, dtype=tf.float64), tf.cast(1., dtype=tf.float64)),
-                                                          tf.cast(2., dtype=tf.float64))) for j in range(1, D+1)]), axis=0)
+    res = tf.multiply(tf.multiply(D_t, tf.multiply(tf.subtract(D_t, 1),
+                                                   tf.cast(0.25,
+                                                           dtype=tf.float64))),
+                      tf.log(tf.cast(np.pi, dtype=tf.float64)))
+    res += tf.reduce_sum(tf.lgamma([tf.subtract(a, tf.div(
+        tf.subtract(tf.cast(j, dtype=tf.float64),
+                    tf.cast(1., dtype=tf.float64)),
+        tf.cast(2., dtype=tf.float64))) for j in range(1, D + 1)]), axis=0)
     return res
 
 
@@ -144,7 +149,7 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
 
 
 def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
-         lambda_w, alpha_o, beta_o, nu_o, w_o,  N, D):
+         lambda_w, alpha_o, beta_o, nu_o, w_o, N, D):
     """
     ELBO computation
     """
@@ -186,7 +191,6 @@ def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
 
 
 def main():
-
     # Get data
     with open('../../data/synthetic/2D/k2/data_k2_100.pkl', 'r') as inputfile:
         data = pkl.load(inputfile)
