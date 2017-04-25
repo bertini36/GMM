@@ -158,7 +158,7 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
     return lambda_phi
 
 
-def elbo(lambda_phi, lambda_pi, lambda_beta,lambda_nu,
+def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
          lambda_w, alpha_o, beta_o, nu_o, w_o,  N, D):
     """
     ELBO computation

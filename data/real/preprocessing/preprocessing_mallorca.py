@@ -32,8 +32,7 @@ def main():
                         or point.longitude > LIMIT_LON[1]:
                     bad = True
                     break
-                points.append([point.latitude, point.longitude,
-                               point.elevation, point.time])
+                points.append([point.latitude, point.longitude])
             if not bad: writer.writerow([points])
 
 

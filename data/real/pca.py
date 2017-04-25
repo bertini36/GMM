@@ -44,6 +44,7 @@ def format_track(track):
         aux = [float(n) for n in point.split(', ')]
         new_track.append(aux[0])
         new_track.append(aux[1])
+        new_track.append(aux[2])
     return new_track
 
 

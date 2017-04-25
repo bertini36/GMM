@@ -24,7 +24,7 @@ Parameters:
     * output: Output path (PKL file)
 
 Execution:
-    python ppca.py -input mallorca_knnint50.csv -output mallorca_ppca16.pkl -k 100
+    python ppca.py -input mallorca_nnint50.csv -output mallorca_ppca16.pkl -k 100
 """
 
 parser = argparse.ArgumentParser(description='PCA')
@@ -67,6 +67,7 @@ def format_track(track):
         aux = [float(n) for n in point.split(', ')]
         new_track.append(aux[0])
         new_track.append(aux[1])
+        new_track.append(aux[2])
     return new_track
 
 

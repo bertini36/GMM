@@ -32,7 +32,7 @@ args = parser.parse_args()
 INPUT = args.input
 OUTPUT = args.output
 N_COMPONENTS = args.c
-N_EPOCHS = 100
+N_EPOCHS = 300
 
 
 def format_track(track):
@@ -46,6 +46,7 @@ def format_track(track):
         aux = [float(n) for n in point.split(', ')]
         new_track.append(aux[0])
         new_track.append(aux[1])
+        new_track.append(aux[2])
     return new_track
 
 

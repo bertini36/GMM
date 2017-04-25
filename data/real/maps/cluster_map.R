@@ -3,7 +3,7 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH ="/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_knnint50.csv"
+TRACKS_PATH ="/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca2_nnint100.csv"
 ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/generated/assignments.csv"
 K = 30
 DELIMITER = ";"
