@@ -6,6 +6,7 @@
 
 import argparse
 import csv
+import pickle as pkl
 import sys
 
 import numpy as np
@@ -24,11 +25,15 @@ parser = argparse.ArgumentParser(description='KNN interpolation')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
 parser.add_argument('-n', metavar='n', type=int, default=50)
+parser.add_argument('--generatePKL', dest='generatePKL', action='store_true')
+parser.add_argument('--no-generatePKL', dest='generatePKL', action='store_false')
+parser.set_defaults(generatePKL=False)
 args = parser.parse_args()
 
 INPUT = args.input
 OUTPUT = args.output
 N = args.n
+GENERATE_PKL = args.generatePKL
 
 csv.field_size_limit(sys.maxsize)
 
@@ -74,12 +79,23 @@ def main():
                                 escapechar='', quoting=csv.QUOTE_NONE)
             writer.writerow(reader.next())
             n = 0
+            xn = []
             for track in reader:
                 print('Track {}'.format(n))
                 track = format_track(track[0])
                 new_track = nn_interpolation(track, N)
                 if new_track is not None: writer.writerow([new_track])
+                if GENERATE_PKL:
+                    aux = []
+                    for p in new_track:
+                        aux.append(p[0])
+                        aux.append(p[1])
+                    xn.append(aux)
                 n += 1
+
+        if GENERATE_PKL:
+            with open('{}.pkl'.format(OUTPUT.split('.')[0]), 'w') as output:
+                pkl.dump({'xn': np.array(xn)}, output)
 
     except IOError:
         print('File not found!')

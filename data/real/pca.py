@@ -17,6 +17,7 @@ Parameters:
     * input: Input path (CSV with ; delimiter)
     * output: Output path (PKL file)
     * c: PCA number of principal components
+    * savePCA: Save PCA object
 
 Execution:
     python pca.py -input porto_int50.csv -output porto_pca.pkl -c 50
@@ -26,11 +27,14 @@ parser = argparse.ArgumentParser(description='PCA')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
 parser.add_argument('-c', metavar='c', type=int)
+parser.add_argument('--savePCA', dest='savePCA', action='store_true')
+parser.set_defaults(savePCA=False)
 args = parser.parse_args()
 
 INPUT = args.input
 OUTPUT = args.output
 N_COMPONENTS = args.c
+SAVE_PCA = args.savePCA
 
 
 def format_track(track):
@@ -44,7 +48,6 @@ def format_track(track):
         aux = [float(n) for n in point.split(', ')]
         new_track.append(aux[0])
         new_track.append(aux[1])
-        new_track.append(aux[2])
     return new_track
 
 
@@ -82,6 +85,10 @@ def main():
 
             with open(OUTPUT, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
+
+            if SAVE_PCA:
+                with open('pca.pkl', 'w') as output:
+                    pkl.dump({'pca': pca}, output)
 
     except IOError:
         print('File not found!')

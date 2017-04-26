@@ -25,7 +25,7 @@ from libs.viz import plot_iteration
 """
 Parameters:
     * maxIter: Max number of iterations
-    * dataset: Dataset path
+    * dataset: Dataset path (pkl)
     * k: Number of clusters
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
@@ -184,7 +184,7 @@ def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
 
 def main():
     try:
-        if not ('.pkl' in args.dataset): raise Exception('input_format')
+        if not('.pkl' in args.dataset): raise Exception('input_format')
 
         # Get data
         with open('{}'.format(args.dataset), 'r') as inputfile:
@@ -275,8 +275,6 @@ def main():
             print('\n******* RESULTS *******')
             for k in range(K):
                 print('Mu k{}: {}'.format(k, lambda_m[k, :]))
-                print('SD k{}: {}'.format(k, np.sqrt(
-                    np.diag(lambda_w[k, :, :] / (lambda_nu[k] - D - 1)))))
             final_time = time()
             exec_time = final_time - init_time
             print('Time: {} seconds'.format(exec_time))

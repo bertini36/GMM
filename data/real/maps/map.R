@@ -3,10 +3,10 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_linearint1000.csv"
+TRACKS_PATH = "/home/alberto/Escritorio/transformed_new_data.csv"
 DELIMITER = ";"
 HEADER = TRUE
-COLOR = "#0066CC30"
+COLOR = "#0066CC"
 RESOLUTION = c(1920, 1080)
 
 # Read tracks
