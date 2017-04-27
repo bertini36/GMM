@@ -19,8 +19,9 @@ Parameters:
     * output: Output path (JSON file for Cubert visualization)
 
 Execution:
-    python pkl2json.py -input mallorca_pca3.pkl
-                       -assignments assignments.csv -output data.json
+    python pkl2json.py -input mallorca_nnint50_pca50.pkl 
+                       -assignments assignments.csv 
+                       -output mallorca_nnint50_pca50.json
 """
 
 parser = argparse.ArgumentParser(description='pkl2Json')

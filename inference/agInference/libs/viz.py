@@ -1,7 +1,9 @@
 # -*- coding: UTF-8 -*-
 
-from matplotlib.patches import Ellipse
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Ellipse
 
 
 def create_cov_ellipse(cov, pos, nstd=2, **kwargs):
@@ -37,3 +39,29 @@ def create_cov_ellipse(cov, pos, nstd=2, **kwargs):
     ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
 
     return ellip
+
+
+def plot_iteration(ax_spatial, circs, sctZ, lambda_m, cov, xn, n_iters, K):
+    """
+    Plot the Gaussians in every iteration
+    """
+    if n_iters == 0:
+        plt.scatter(xn[:, 0], xn[:, 1], cmap=cm.gist_rainbow, s=5)
+        sctZ = plt.scatter(lambda_m[:, 0], lambda_m[:, 1],
+                           color='black', s=5)
+    else:
+        for circ in circs: circ.remove()
+        circs = []
+        for k in range(K):
+            if type(cov) is list:
+                circ = create_cov_ellipse(cov[k], lambda_m[k, :],
+                                          color='r', alpha=0.3)
+            else:
+                circ = create_cov_ellipse(cov, lambda_m[k, :],
+                                          color='r', alpha=0.3)
+            circs.append(circ)
+            ax_spatial.add_artist(circ)
+        sctZ.set_offsets(lambda_m)
+    plt.draw()
+    plt.pause(0.001)
+    return ax_spatial, circs, sctZ

@@ -11,12 +11,11 @@ import pickle as pkl
 from time import time
 
 import autograd.numpy as agnp
-import autograd.scipy.special as agscipy
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from autograd import elementwise_grad
 
-from viz import create_cov_ellipse
+from libs.common import dirichlet_expectation, log_beta_function
+from libs.viz import plot_iteration
 
 """
 Parameters:
@@ -24,19 +23,20 @@ Parameters:
     * dataset: Dataset path
     * k: Number of clusters
     * verbose: Printing time, intermediate variational parameters, plots, ...
+    
+Execution: 
+    python gmm_means_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100000)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=1000)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/synthetic/k2/data_k2_100.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
 args = parser.parse_args()
 
-MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
 THRESHOLD = 1e-3
@@ -47,7 +47,7 @@ MACHINE_PRECISION = 2.2204460492503131e-16
 ps = {
     'lambda_pi': 0.1,
     'lambda_phi': 0.1,
-    'lambda_m':  0.001,
+    'lambda_m': 0.001,
     'lambda_beta': 0.1
 }
 
@@ -64,24 +64,6 @@ def initialize():
     return lambda_pi, phi, lambda_mu_m, lambda_mu_beta
 
 
-def dirichlet_expectation(alpha):
-    """
-    Dirichlet expectation computation
-    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
-    """
-    return agscipy.psi(alpha + agnp.finfo(agnp.float32).eps) \
-           - agscipy.psi(agnp.sum(alpha))
-
-
-def log_beta_function(x):
-    """
-    Log beta function
-    ln(\gamma(x)) - ln(\gamma(\sum_{i=1}^{N}(x_{i}))
-    """
-    return agnp.sum(agscipy.gammaln(x + agnp.finfo(agnp.float32).eps)) \
-           - agscipy.gammaln(agnp.sum(x + agnp.finfo(agnp.float32).eps))
-
-
 def elbo((lambda_pi, lambda_phi, lambda_m, lambda_beta)):
     """
     ELBO computation
@@ -92,7 +74,7 @@ def elbo((lambda_pi, lambda_phi, lambda_m, lambda_beta)):
     lambda_mu_beta_aux = agnp.log(1 + agnp.exp(lambda_beta) + MACHINE_PRECISION)
     ELBO = log_beta_function(lambda_pi_aux) - log_beta_function(alpha_o) \
            + agnp.dot(alpha_o - lambda_pi_aux,
-                    dirichlet_expectation(lambda_pi_aux)) \
+                      dirichlet_expectation(lambda_pi_aux)) \
            + K / 2. * agnp.log(agnp.linalg.det(beta_o * delta_o)) + K * D / 2.
     for k in range(K):
         ELBO -= beta_o / 2. * agnp.dot((
@@ -102,33 +84,10 @@ def elbo((lambda_pi, lambda_phi, lambda_m, lambda_beta)):
                 dirichlet_expectation(lambda_pi_aux)[k] - agnp.log(
                     phi_aux[n, k]) + 1 / 2. * agnp.log(1. / (2. * math.pi))
                 - 1 / 2. * agnp.dot((xn[n, :] - lambda_m[k, :]),
-                                  agnp.dot(delta_o,
-                                         (xn[n, :] - lambda_m[k, :]).T))
+                                    agnp.dot(delta_o,
+                                             (xn[n, :] - lambda_m[k, :]).T))
                 - D / (2. * lambda_mu_beta_aux[k]))
     return -ELBO
-
-
-def plot_iteration(ax_spatial, circs, sctZ, lambda_m, delta_o, xn, n_iters):
-    """
-    Plot the Gaussians in every iteration
-    """
-    if n_iters == 0:
-        plt.scatter(xn[:, 0], xn[:, 1], cmap=cm.gist_rainbow, s=5)
-        sctZ = plt.scatter(lambda_m[:, 0], lambda_m[:, 1],
-                           color='black', s=5)
-    else:
-        for circ in circs: circ.remove()
-        circs = []
-        for k in range(K):
-            cov = delta_o
-            circ = create_cov_ellipse(cov, lambda_m[k, :],
-                                      color='r', alpha=0.3)
-            circs.append(circ)
-            ax_spatial.add_artist(circ)
-        sctZ.set_offsets(lambda_m)
-    plt.draw()
-    plt.pause(0.001)
-    return ax_spatial, circs, sctZ
 
 
 # Get data
@@ -140,10 +99,10 @@ N, D = xn.shape
 if VERBOSE: init_time = time()
 
 # Priors
-alpha_o = [1.] * 2
+alpha_o = [1.] * K
 m_o = agnp.array([0., 0.])
 beta_o = 0.01
-delta_o = agnp.array([[1., 0., 0., 1.][0:D], [1., 0., 0., 1.][D:2*D]])
+delta_o = agnp.array([[1., 0., 0., 1.][0:D], [1., 0., 0., 1.][D:2 * D]])
 
 # Variational parameters intialization
 lambda_pi, lambda_phi, lambda_m, lambda_beta = initialize()
@@ -159,10 +118,10 @@ if VERBOSE:
 # Inference
 n_iters = 0
 lbs = []
-for _ in range(MAX_ITERS):
+for _ in range(args.maxIter):
 
     # Maximize ELBO
-    grads = elementwise_grad(elbo)\
+    grads = elementwise_grad(elbo) \
         ((lambda_pi, lambda_phi, lambda_m, lambda_beta))
 
     # Variational parameter updates (gradient ascent)
@@ -184,7 +143,7 @@ for _ in range(MAX_ITERS):
         print('ELBO: {}'.format(lb))
         ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs, sctZ,
                                                  lambda_m, delta_o, xn,
-                                                 n_iters)
+                                                 n_iters, K)
 
     # Break condition
     if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:

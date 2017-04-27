@@ -16,8 +16,8 @@ Parameters:
     * d: Number of dimensions
 
 Execution:
-    python reduce_dimensions.py -input mallorca_nnint50_pca50.pkl
-                                -output mallorca_nnint50_pca10.pkl -d 10
+    python reduce_dimensions.py -input mallorca_nnint50_pca50.pkl -d 10
+                                -output generated/mallorca_nnint50_pca10.pkl
 """
 
 parser = argparse.ArgumentParser(description='Data sampler')

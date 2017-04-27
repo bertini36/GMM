@@ -12,6 +12,7 @@ gpxpy==1.1.2
 ipython==5.1.0
 ipython-genutils==0.1.0
 isort==4.2.5
+Keras==2.0.3
 Lasagne==0.1
 matplotlib==2.0.0
 mock==2.0.0
@@ -28,6 +29,8 @@ Pygments==2.2.0
 pyparsing==2.1.10
 python-dateutil==2.6.0
 pytz==2016.10
+PyYAML==3.12
+requests==2.13.0
 scandir==1.4
 scikit-learn==0.18.1
 scipy==0.18.1

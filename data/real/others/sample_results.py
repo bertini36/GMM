@@ -6,8 +6,8 @@ import sys
 
 TRACKS_PATH = 'mallorca_nnint50.csv'
 ASSIGNMENTS_PATH = 'assignments.csv'
-NEW_TRACKS_PATH = 'mallorca_nnint50_plot.csv'
-NEW_ASSIGNMENTS_PATH = 'assignments_plot.csv'
+NEW_TRACKS_PATH = 'genereated/mallorca_nnint50_plot.csv'
+NEW_ASSIGNMENTS_PATH = 'generated/assignments_plot.csv'
 N_1S = 1500
 
 

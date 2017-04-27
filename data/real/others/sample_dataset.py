@@ -17,7 +17,7 @@ Parameters:
 
 Execution:
     python sample_dataset.py -input mallorca.csv
-                             -output /mallorca_subset.csv -s 500
+                             -output generated/mallorca_subset.csv -s 500
 """
 
 parser = argparse.ArgumentParser(description='Data sampler')

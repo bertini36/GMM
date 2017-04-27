@@ -17,10 +17,9 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from autograd import elementwise_grad
-from scipy import random
-from sklearn.cluster import KMeans
 
-from viz import create_cov_ellipse
+from libs.common import generate_random_positive_matrix, init_kmeans
+from libs.viz import create_cov_ellipse
 
 """
 Parameters:
@@ -30,33 +29,30 @@ Parameters:
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
+    
+Execution:
+    python gmm_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=200)
-parser.add_argument('-dataset', metavar='dataset', type=str, default='')
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=1000)
+parser.add_argument('-dataset', metavar='dataset', type=str,
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
-parser.add_argument('--randomInit', dest='randomInit', action='store_true')
-parser.add_argument('--no-randomInit', dest='randomInit', action='store_false')
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
+parser.add_argument('-randomInit', dest='randomInit', action='store_true')
 parser.set_defaults(randomInit=False)
-parser.add_argument('--exportAssignments',
+parser.add_argument('-exportAssignments',
                     dest='exportAssignments', action='store_true')
-parser.add_argument('--no-exportAssignments',
-                    dest='exportAssignments', action='store_false')
-parser.set_defaults(exportAssignments=True)
+parser.set_defaults(exportAssignments=False)
 args = parser.parse_args()
 
-MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
-RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
 PATH_IMAGE = 'generated/plot.png'
 MACHINE_PRECISION = 2.2204460492503131e-16
-EXPORT_ASSIGNMENTS = args.exportAssignments
 
 # Gradient ascent step sizes of variational parameters
 ps = {
@@ -69,28 +65,23 @@ ps = {
 }
 
 
-def generate_random_positive_matrix(D):
-    """
-    Generate a random semidefinite positive matrix
-    :param D: Dimension
-    :return: DxD matrix
-    """
-    aux = random.rand(D, D)
-    return np.dot(aux, aux.transpose())
-
-
 def elbo((lambda_phi, lambda_pi, lambda_w, lambda_beta, lambda_nu)):
     """
     ELBO computation
     """
     lb = agscipy.gammaln(agnp.sum(alpha_o)) - np.sum(agscipy.gammaln(alpha_o)) \
-           - agscipy.gammaln(agnp.sum(lambda_pi)) + agnp.sum(agscipy.gammaln(lambda_pi))
+         - agscipy.gammaln(agnp.sum(lambda_pi)) + agnp.sum(
+        agscipy.gammaln(lambda_pi))
     lb -= N * D / 2. * np.log(2. * np.pi)
     for k in xrange(K):
-        lb += -(nu_o[0] * D * np.log(2.)) / 2. + (lambda_nu[k] * D * np.log(2.)) / 2.
-        lb += -agscipy.multigammaln(nu_o[0] / 2., D) + agscipy.multigammaln(lambda_nu[k] / 2., D)
-        lb += (D / 2.) * agnp.log(agnp.absolute(beta_o[0])) - (D / 2.) * agnp.log(agnp.absolute(lambda_beta[k]))
-        lb += (nu_o[0] / 2.) * agnp.log(agnp.linalg.det(w_o)) - (lambda_nu[k] / 2.) * agnp.log(agnp.linalg.det(lambda_w[k, :, :]))
+        lb += -(nu_o[0] * D * np.log(2.)) / 2. \
+              + (lambda_nu[k] * D * np.log(2.)) / 2.
+        lb += -agscipy.multigammaln(nu_o[0] / 2., D) \
+              + agscipy.multigammaln(lambda_nu[k] / 2., D)
+        lb += (D / 2.) * agnp.log(agnp.absolute(beta_o[0])) \
+              - (D / 2.) * agnp.log(agnp.absolute(lambda_beta[k]))
+        lb += (nu_o[0] / 2.) * agnp.log(agnp.linalg.det(w_o)) - \
+              (lambda_nu[k] / 2.) * agnp.log(agnp.linalg.det(lambda_w[k, :, :]))
         lb -= agnp.dot(agnp.log(lambda_phi[:, k]).T, lambda_phi[:, k])
     return lb
 
@@ -119,17 +110,6 @@ def plot_iteration(ax_spatial, circs, sctZ, lambda_m,
     return ax_spatial, circs, sctZ
 
 
-def init_kmeans(xn, N, K):
-    """
-    Init points assignations (lambda_phi) with Kmeans clustering
-    """
-    lambda_phi = 0.1 / (K - 1) * agnp.ones((N, K))
-    labels = KMeans(K).fit(xn).predict(xn)
-    for i, lab in enumerate(labels):
-        lambda_phi[i, lab] = 0.9
-    return lambda_phi
-
-
 # Get data
 with open('{}'.format(args.dataset), 'r') as inputfile:
     data = pkl.load(inputfile)
@@ -148,7 +128,7 @@ beta_o = np.array([0.7])
 
 # Variational parameters intialization
 lambda_phi = np.random.dirichlet(alpha_o, N) \
-    if RANDOM_INIT else init_kmeans(xn, N, K)
+    if args.randomInit else init_kmeans(xn, N, K)
 lambda_pi = np.zeros(shape=K)
 lambda_beta = np.zeros(shape=K)
 lambda_nu = np.zeros(shape=K)
@@ -166,7 +146,7 @@ if VERBOSE:
 # Inference
 n_iters = 0
 lbs = []
-for _ in range(2):
+for _ in range(args.maxIter):
 
     # Maximize ELBO
     Nks = agnp.sum(lambda_phi, axis=0)
@@ -240,7 +220,7 @@ if VERBOSE:
     plt.xlabel('Iterations')
     plt.savefig('generated/elbos.png')
 
-if EXPORT_ASSIGNMENTS:
+if args.exportAssignments:
     with open('generated/assignments.csv', 'wb') as output:
         writer = csv.writer(output, delimiter=';', quotechar='',
                             escapechar='\\', quoting=csv.QUOTE_NONE)
