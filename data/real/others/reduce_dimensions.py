@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-create a new dataset getting the first D dimensions of a input dataset
+Create a new dataset getting the first D dimensions of a input dataset
 """
 
 import argparse
@@ -16,10 +16,8 @@ Parameters:
     * d: Number of dimensions
 
 Execution:
-    python reduce_dimensions.py
-        -input mallorca/mallorca_linearint1000_ppca98.pkl
-        -output mallorca/mallorca_linearint1000_ppca4.pkl
-        -d 4
+    python reduce_dimensions.py -input mallorca_nnint50_pca50.pkl
+                                -output mallorca_nnint50_pca10.pkl -d 10
 """
 
 parser = argparse.ArgumentParser(description='Data sampler')
@@ -35,7 +33,6 @@ def main():
     with open('{}'.format(args.input), 'r') as inputfile:
         data = pkl.load(inputfile)
         xn = data['xn']
-    N, D = xn.shape
 
     with open(args.output, 'w') as output:
         pkl.dump({'xn': np.array(xn[:, 0:args.d])}, output)

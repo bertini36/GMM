@@ -21,7 +21,7 @@ Parameters:
 
 Execution:
     python ae.py -input mallorca_nnint50.csv 
-                 -output mallorca_nnint50_ae50.pkl -c 50
+                 -output generated/mallorca_nnint50_ae50.pkl -c 50
 """
 
 parser = argparse.ArgumentParser(description='Autoencoder')

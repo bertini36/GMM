@@ -4,9 +4,9 @@ import csv
 import random
 import sys
 
-TRACKS_PATH = 'porto_subset_100k_int50.csv'
+TRACKS_PATH = 'mallorca_nnint50.csv'
 ASSIGNMENTS_PATH = 'assignments.csv'
-NEW_TRACKS_PATH = 'porto_subset_100k_int50_plot.csv'
+NEW_TRACKS_PATH = 'mallorca_nnint50_plot.csv'
 NEW_ASSIGNMENTS_PATH = 'assignments_plot.csv'
 N_1S = 1500
 
@@ -16,8 +16,7 @@ def main():
         if not ('.csv' in TRACKS_PATH): raise Exception('input_format')
         if not ('.csv' in ASSIGNMENTS_PATH): raise Exception('input_format')
         if not ('.csv' in NEW_TRACKS_PATH): raise Exception('output_format')
-        if not ('.csv' in NEW_ASSIGNMENTS_PATH):
-            raise Exception('output_format')
+        if not ('.csv' in NEW_ASSIGNMENTS_PATH): raise Exception('output_format')
 
         with open(TRACKS_PATH, 'rb') as tracks, \
                 open(ASSIGNMENTS_PATH, 'rb') as assignments, \
@@ -59,7 +58,7 @@ def main():
         print('File not found!')
     except Exception as e:
         if e.args[0] == 'input_format': print('Input must be a CSV file')
-        elif e.args[0] == 'output_format': print('Output must be a PKL file')
+        elif e.args[0] == 'output_format': print('Output must be a CSV file')
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise

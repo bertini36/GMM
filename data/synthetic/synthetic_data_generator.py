@@ -21,6 +21,9 @@ Parameters:
     * alpha_o: Dirichlet prior
     * m_o, beta_o: Normal priors
     * w_o, nu_o: Wishart priors
+    
+Execution:
+    python synthetic_data_generator.py -K 30 -D 2 -N 1000
 """
 
 parser = argparse.ArgumentParser(

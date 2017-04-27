@@ -13,8 +13,9 @@ import numpy as np
 """
 Parameters:
     * input: Input path (CSV with ; delimiter)
+    
 Execution:
-    python average.py -input porto.csv
+    python average.py -input mallorca.csv
 """
 
 parser = argparse.ArgumentParser(description='Average')
@@ -22,7 +23,6 @@ parser.add_argument('-input', metavar='input', type=str, default='')
 args = parser.parse_args()
 
 csv.field_size_limit(sys.maxsize)
-INPUT = args.INPUT
 
 
 def format_track(track):
@@ -39,9 +39,9 @@ def format_track(track):
 
 def main():
     try:
-        if not ('.csv' in INPUT): raise Exception('input_format')
+        if not ('.csv' in args.input): raise Exception('input_format')
 
-        with open(INPUT, 'rb') as input:
+        with open(args.input, 'rb') as input:
             reader = csv.reader(input, delimiter=';')
             reader.next()
 
@@ -49,8 +49,8 @@ def main():
             for track in reader:
                 n_points.append(len(format_track(track[0])))
 
-            print('n_points: {}'.format(n_points))
             av_points = np.mean(n_points)
+            print('n_points: {}'.format(n_points))
             print('Average points: {}'.format(av_points))
             print('Average time: {} min'.format((av_points * 15) / 60))
 

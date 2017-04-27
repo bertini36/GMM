@@ -21,7 +21,7 @@ Parameters:
 
 Execution:
     python pca.py -input mallorca_nnint50.csv 
-                  -output mallorca_nnint50_pca50.pkl -c 50
+                  -output generated/mallorca_nnint50_pca50.pkl -c 50
 """
 
 parser = argparse.ArgumentParser(description='Principal Component Analysis')

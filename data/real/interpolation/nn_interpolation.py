@@ -18,7 +18,8 @@ Parameters:
     * n: Interpolation number of points
 
 Execution:
-    python nn_interpolation.py -input porto.csv -output porto_int50.csv -n 50
+    python nn_interpolation.py -input mallorca.csv 
+                               -output generated/mallorca_nnint50.csv -n 50
 """
 
 parser = argparse.ArgumentParser(description='KNN interpolation')
@@ -26,12 +27,11 @@ parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
 parser.add_argument('-n', metavar='n', type=int, default=50)
 parser.add_argument('--generatePKL', dest='generatePKL', action='store_true')
-parser.add_argument('--no-generatePKL', dest='generatePKL', action='store_false')
+parser.add_argument('--no-generatePKL', dest='generatePKL',
+                    action='store_false')
 parser.set_defaults(generatePKL=False)
 args = parser.parse_args()
 
-INPUT = args.input
-OUTPUT = args.output
 N = args.n
 GENERATE_PKL = args.generatePKL
 
@@ -70,10 +70,10 @@ def nn_interpolation(track, N):
 
 def main():
     try:
-        if not('.csv' in INPUT): raise Exception('input_format')
-        if not('.csv' in OUTPUT): raise Exception('output_format')
+        if not ('.csv' in args.input): raise Exception('input_format')
+        if not ('.csv' in args.output): raise Exception('output_format')
 
-        with open(INPUT, 'rb') as input, open(OUTPUT, 'wb') as output:
+        with open(args.input, 'rb') as input, open(args.output, 'wb') as output:
             reader = csv.reader(input, delimiter=';')
             writer = csv.writer(output, delimiter=';',
                                 escapechar='', quoting=csv.QUOTE_NONE)
@@ -94,7 +94,8 @@ def main():
                 n += 1
 
         if GENERATE_PKL:
-            with open('{}.pkl'.format(OUTPUT.split('.')[0]), 'w') as output:
+            with open('{}.pkl'.format(args.output.split('.')[0]),
+                      'w') as output:
                 pkl.dump({'xn': np.array(xn)}, output)
 
     except IOError:

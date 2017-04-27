@@ -17,7 +17,7 @@ Parameters:
 
 Execution:
     python reverse_pca.py -pca pca.pkl -data new_data.pkl
-                          -output transformed_new_data.csv
+                          -output generated/transformed_new_data.csv
 """
 
 parser = argparse.ArgumentParser(description='Reverse PCA')

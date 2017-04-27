@@ -16,10 +16,8 @@ Parameters:
     * s: Number of samples
 
 Execution:
-    python sample_dataset.py
-        -input /home/alberto/Documentos/data/porto/porto.csv
-        -output /home/alberto/Documentos/data/porto/porto_subset.csv
-        -s 5000
+    python sample_dataset.py -input mallorca.csv
+                             -output /mallorca_subset.csv -s 500
 """
 
 parser = argparse.ArgumentParser(description='Data sampler')
@@ -27,10 +25,6 @@ parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
 parser.add_argument('-s', metavar='s', type=int, default=100)
 args = parser.parse_args()
-
-INPUT = args.input
-OUTPUT = args.output
-S = args.s
 
 
 def format_track(track):
@@ -60,10 +54,10 @@ def count_lines(input):
 
 def main():
     try:
-        if not('.csv' in INPUT): raise Exception('input_format')
-        if not('.csv' in OUTPUT): raise Exception('output_format')
+        if not('.csv' in args.input): raise Exception('input_format')
+        if not('.csv' in args.output): raise Exception('output_format')
 
-        with open(INPUT, 'rb') as input, open(OUTPUT, 'wb') as output:
+        with open(args.input, 'rb') as input, open(args.output, 'wb') as output:
             lines = count_lines(input)
             writer = csv.writer(output, delimiter=';',
                                 escapechar='', quoting=csv.QUOTE_NONE)
@@ -71,9 +65,10 @@ def main():
             reader = csv.reader(input, delimiter=';')
             reader.next()
             writer.writerow(['Points'])
+
             print('Lines: {}'.format(lines))
 
-            i_samples = random.sample(range(1, lines), S)
+            i_samples = random.sample(range(1, lines), args.s)
             for i, track in enumerate(reader):
                 if i in i_samples:
                     writer.writerow([format_track(track[0])])
@@ -83,10 +78,8 @@ def main():
     except IOError:
         print('File not found!')
     except Exception as e:
-        if e.args[0] == 'input_format':
-            print('Input must be a CSV file')
-        elif e.args[0] == 'output_format':
-            print('Output must be a PKL file')
+        if e.args[0] == 'input_format': print('Input must be a CSV file')
+        elif e.args[0] == 'output_format': print('Output must be a PKL file')
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise

@@ -2,6 +2,7 @@
 
 """
 CSV generator from GPX files for Mallorca tracks dataset and filter outliers
+Points CSV: [Latitude, Longitude, Elevation, Time]
 """
 
 import os
