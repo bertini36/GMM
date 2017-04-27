@@ -10,8 +10,8 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from edward.models import MultivariateNormalFull, \
-    MultivariateNormalCholesky, WishartCholesky
+from edward.models import (MultivariateNormalCholesky, MultivariateNormalFull,
+                           WishartCholesky)
 from scipy import random
 from scipy.stats import invwishart
 

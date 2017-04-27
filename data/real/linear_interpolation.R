@@ -2,7 +2,7 @@
 
 # Configuration
 TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca.csv"
-OUTPUT_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_linearint1000.csv"
+OUTPUT_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_test.csv"
 N_POINTS_INTERPOLATION = 1000
 DELIMITER = ";"
 HEADER = TRUE
@@ -14,7 +14,7 @@ tracks <- read.table(TRACKS_PATH, sep=DELIMITER, header=HEADER)
 write.table(data.frame(Points=character()), file=OUTPUT_PATH, sep=";", quote=FALSE, col.names=TRUE)
 
 tracks.format <- list()
-for (i in 1:dim(tracks)[1]) {
+for (i in 1:50) {
   print(i)
   track <- as.character(tracks$Points[i])
   points <- strsplit(track, "], \\[")[[1]]

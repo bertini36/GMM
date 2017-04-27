@@ -5,7 +5,6 @@ Generate and visualize new data with the inferred variational parameters
 """
 
 import argparse
-import csv
 import pickle as pkl
 import sys
 
@@ -60,7 +59,7 @@ def main():
         cn = []
         xn = []
 
-        if K == -1:
+        if args.selectK == -1:
             pi = np.random.dirichlet(lambda_pi)
             mus = []
             sigmas = []
@@ -84,7 +83,6 @@ def main():
             plt.scatter(xn[:, 0], xn[:, 1], c=cn, cmap=cm.gist_rainbow, s=5)
             plt.title('Generated data')
             plt.show()
-            plt.savefig('generated/gen_data.png')
         elif D == 3:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')

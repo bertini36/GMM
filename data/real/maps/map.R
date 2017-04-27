@@ -3,7 +3,7 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Escritorio/transformed_new_data.csv"
+TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_test.csv"
 DELIMITER = ";"
 HEADER = TRUE
 COLOR = "#0066CC"
@@ -17,6 +17,7 @@ index <- c()
 lat <- c()
 lon <- c()
 for (i in 1:dim(tracks)[1]) {
+  print(i)
   track <- as.character(tracks$Points[i])
   points <- strsplit(track, "], \\[")[[1]]
   points[1] <- strsplit(points[1], "\\[\\[")[[1]][2]

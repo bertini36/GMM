@@ -20,6 +20,7 @@ index <- c()
 lat <- c()
 lon <- c()
 for (i in 1:dim(tracks)[1]) {
+  print(i)
   track <- as.character(tracks$Points[i]) 
   points <- strsplit(track, "], \\[")[[1]]
   points[1] <- strsplit(points[1], "\\[\\[")[[1]][2]
