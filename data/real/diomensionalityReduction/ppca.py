@@ -13,7 +13,6 @@ import pickle as pkl
 import sys
 
 import edward as ed
-# import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from edward.models import Normal
@@ -24,7 +23,8 @@ Parameters:
     * output: Output path (PKL file)
 
 Execution:
-    python ppca.py -input mallorca_nnint50.csv -output mallorca_ppca16.pkl -k 100
+    python ppca.py -input mallorca_nnint50.csv 
+                   -output mallorca_nnint50_ppca.pkl -k 100
 """
 
 parser = argparse.ArgumentParser(description='PCA')
@@ -33,27 +33,9 @@ parser.add_argument('-output', metavar='output', type=str, default='')
 parser.add_argument('-k', metavar='k', type=int)
 args = parser.parse_args()
 
-INPUT = args.input
-OUTPUT = args.output
 K = args.k
 N_ITERS = 10000
 N_SAMPLES = 10
-
-
-def build_toy_dataset(N, D, K, sigma=1):
-    x_train = np.zeros([D, N])
-    w = np.zeros([D, K])
-    for k in range(K):
-        w[k, k] = 1.0 / (k+1)
-        w[k+1, k] = -1.0 / (k+1)
-    z = np.random.normal(0.0, 1.0, size=(K, N))
-    mean = np.dot(w, z)
-    shift = np.zeros([D])
-    shift[1] = 10
-    for d in range(D):
-        for n in range(N):
-            x_train[d, n] = np.random.normal(mean[d, n], sigma) + shift[d]
-    return x_train.astype(np.float32, copy=False)
 
 
 def format_track(track):
@@ -67,16 +49,15 @@ def format_track(track):
         aux = [float(n) for n in point.split(', ')]
         new_track.append(aux[0])
         new_track.append(aux[1])
-        new_track.append(aux[2])
     return new_track
 
 
 def main():
     try:
-        if not('.csv' in INPUT): raise Exception('input_format')
-        if not('.pkl' in OUTPUT): raise Exception('output_format')
+        if not('.csv' in args.input): raise Exception('input_format')
+        if not('.pkl' in args.output): raise Exception('output_format')
 
-        with open(INPUT, 'rb') as input:
+        with open(args.input, 'rb') as input:
 
             # DATA
             reader = csv.reader(input, delimiter=';')
@@ -137,26 +118,10 @@ def main():
                                  mu: qmu, sigma: qsigma}, data={x: xn})
             inference.run(n_iter=N_ITERS, n_samples=N_SAMPLES)
 
-            print('Inferred principal axes (columns):')
-            print('Mean: {}'.format(qw.mean().eval()))
-            print('Variance: {}'.format(qw.variance().eval()))
-
-            print('Inferred center:')
-            print('Mean: {}'.format(qmu.mean().eval()))
-            print('Variance: {}'.format(qmu.variance().eval()))
-
             alphas = tf.exp(qalpha.distribution.mean()).eval()
             alphas.sort()
             mean_alphas = np.mean(alphas)
             print('Alphas: {}'.format(alphas))
-            print('Mean alphas: {}'.format(mean_alphas))
-
-            """
-            plt.plot(range(alphas.size), alphas)
-            plt.show()
-            plt.hist(qalpha.sample(1000).eval(), bins=30)
-            plt.show()
-            """
 
             points = qz.eval()
             xn_new = []
@@ -164,20 +129,19 @@ def main():
                 if alphas[i] > (mean_alphas * 1.2):
                     xn_new.append(points[i])
             xn_new = np.asarray(xn_new).T
+
             print('New points: {}'.format(xn_new))
             print('Number of points: {}'.format(len(xn_new)))
             print('Point dimensions: {}'.format(len(xn_new[0])))
 
-            with open(OUTPUT, 'w') as output:
+            with open(args.output, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
 
     except IOError:
         print('File not found!')
     except Exception as e:
-        if e.args[0] == 'input_format':
-            print('Input must be a CSV file')
-        elif e.args[0] == 'output_format':
-            print('Output must be a PKL file')
+        if e.args[0] == 'input_format': print('Input must be a CSV file')
+        elif e.args[0] == 'output_format': print('Output must be a PKL file')
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise

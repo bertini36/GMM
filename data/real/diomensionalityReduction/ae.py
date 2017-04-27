@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Autoencoder for dimensionality reduction
+Dimensionality reduction with an autoencoder
 """
 
 import argparse
@@ -20,18 +20,16 @@ Parameters:
     * c: Number of components
 
 Execution:
-    python ae.py -input porto_int50.csv -output porto_ae50.pkl -c 50
+    python ae.py -input mallorca_nnint50.csv 
+                 -output mallorca_nnint50_ae50.pkl -c 50
 """
 
-parser = argparse.ArgumentParser(description='AE')
+parser = argparse.ArgumentParser(description='Autoencoder')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
 parser.add_argument('-c', metavar='c', type=int, default=50)
 args = parser.parse_args()
 
-INPUT = args.input
-OUTPUT = args.output
-N_COMPONENTS = args.c
 N_EPOCHS = 300
 
 
@@ -46,16 +44,15 @@ def format_track(track):
         aux = [float(n) for n in point.split(', ')]
         new_track.append(aux[0])
         new_track.append(aux[1])
-        new_track.append(aux[2])
     return new_track
 
 
 def main():
     try:
-        if not ('.csv' in INPUT): raise Exception('input_format')
-        if not ('.pkl' in OUTPUT): raise Exception('output_format')
+        if not ('.csv' in args.input): raise Exception('input_format')
+        if not ('.pkl' in args.output): raise Exception('output_format')
 
-        with open(INPUT, 'rb') as input:
+        with open(args.input, 'rb') as input:
             reader = csv.reader(input, delimiter=';')
             reader.next()
             n = 0
@@ -67,15 +64,15 @@ def main():
                 n += 1
             xn = np.array(xn).astype('float32') / np.max(xn)
 
-            print('Doing AE...')
+            print('Doing autoencoder...')
 
             # Autoencoder definition
             input_track = Input(shape=(len(xn[0]),))
 
-            encoded = Dense(N_COMPONENTS * 2, activation='tanh')(input_track)
-            encoded = Dense(N_COMPONENTS, activation='tanh')(encoded)
+            encoded = Dense(args.c * 2, activation='tanh')(input_track)
+            encoded = Dense(args.c, activation='tanh')(encoded)
 
-            decoded = Dense(N_COMPONENTS * 2, activation='tanh')(encoded)
+            decoded = Dense(args.c * 2, activation='tanh')(encoded)
             decoded = Dense(len(xn[0]), activation='sigmoid')(decoded)
 
             ae = Model(input_track, decoded)
@@ -97,9 +94,8 @@ def main():
             high = 100.0
             low = 0.0
             xn_new = high - (((high - low) * (maxs - xn_new)) / rng)
-            print(xn_new)
 
-            with open(OUTPUT, 'w') as output:
+            with open(args.output, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
 
     except IOError:

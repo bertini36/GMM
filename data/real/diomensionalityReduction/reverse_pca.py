@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Converts input data in real data using a previous PCA
+Converts input data in real data using a previous PCA object
 """
 
 import argparse
@@ -30,8 +30,8 @@ args = parser.parse_args()
 
 def main():
     try:
-        if not ('.pkl' in args.pca): raise Exception('input_pca_format')
-        if not ('.pkl' in args.data): raise Exception('input_data_format')
+        if not ('.pkl' in args.pca): raise Exception('input_format')
+        if not ('.pkl' in args.data): raise Exception('input_format')
         if not ('.csv' in args.output): raise Exception('output_format')
 
         # Get PCA
@@ -44,6 +44,7 @@ def main():
             data = pkl.load(input)
             xn = data['xn']
 
+        # Transform to real data
         xn = pca.inverse_transform(xn)
 
         with open(args.output, 'wb') as output:
@@ -66,7 +67,6 @@ def main():
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise
-
 
 
 if __name__ == '__main__': main()

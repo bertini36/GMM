@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Incremental Principal Component Analysis
+Dimensionality reduction with principal component analysis
 """
 
 import argparse
@@ -10,27 +10,29 @@ import pickle as pkl
 import sys
 
 import numpy as np
-from sklearn.decomposition import IncrementalPCA
+from sklearn.decomposition import PCA
 
 """
 Parameters:
     * input: Input path (CSV with ; delimiter)
     * output: Output path (PKL file)
     * c: PCA number of principal components
+    * savePCA: Save PCA object
 
 Execution:
-    python ipca.py -input porto_int50.csv -output porto_pca.pkl -c 50
+    python pca.py -input mallorca_nnint50.csv 
+                  -output mallorca_nnint50_pca50.pkl -c 50
 """
 
-parser = argparse.ArgumentParser(description='PCA')
+parser = argparse.ArgumentParser(description='Principal Component Analysis')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
-parser.add_argument('-c', metavar='c', type=int, default=50)
+parser.add_argument('-c', metavar='c', type=int)
+parser.add_argument('--savePCA', dest='savePCA', action='store_true')
+parser.set_defaults(savePCA=False)
 args = parser.parse_args()
 
-INPUT = args.input
-OUTPUT = args.output
-N_COMPONENTS = args.c
+SAVE_PCA = args.savePCA
 
 
 def format_track(track):
@@ -49,10 +51,10 @@ def format_track(track):
 
 def main():
     try:
-        if not('.csv' in INPUT): raise Exception('input_format')
-        if not('.pkl' in OUTPUT): raise Exception('output_format')
+        if not('.csv' in args.input): raise Exception('input_format')
+        if not('.pkl' in args.output): raise Exception('output_format')
 
-        with open(INPUT, 'rb') as input:
+        with open(args.input, 'rb') as input:
             reader = csv.reader(input, delimiter=';')
             reader.next()
             n = 0
@@ -63,12 +65,28 @@ def main():
                 xn.append(track)
                 n += 1
 
-            print('Doing IPCA...')
-            pca = IncrementalPCA(n_components=N_COMPONENTS, batch_size=500)
+            print('Length xn: {}'.format(len(xn)))
+            print('Length xn[0]: {}'.format(len(xn[0])))
+
+            if args.c is not None:
+                print('Doing PCA...')
+                pca = PCA(n_components=args.c)
+            else:
+                print('Doing PCA with MLE...')
+                pca = PCA(n_components='mle', svd_solver='full')
             xn_new = pca.fit_transform(xn)
 
-            with open(OUTPUT, 'w') as output:
+            print('Explained variance: {}'
+                  .format(pca.explained_variance_ratio_))
+            print('Number of components: {}'
+                  .format(len(pca.explained_variance_ratio_)))
+
+            with open(args.output, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
+
+            if SAVE_PCA:
+                with open('pca.pkl', 'w') as output:
+                    pkl.dump({'pca': pca}, output)
 
     except IOError:
         print('File not found!')
