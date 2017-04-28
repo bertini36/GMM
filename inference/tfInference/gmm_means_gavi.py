@@ -10,12 +10,12 @@ import math
 import pickle as pkl
 from time import time
 
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from viz import create_cov_ellipse
+from libs.common import dirichlet_expectation, log_beta_function
+from libs.viz import plot_iteration
 
 """
 Parameters:
@@ -23,69 +23,26 @@ Parameters:
     * dataset: Dataset path
     * k: Number of clusters
     * verbose: Printing time, intermediate variational parameters, plots, ...
+    
+Execution:
+    python gmm_means_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
 """
 
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100000)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../../data/synthetic/k2/data_k2_100.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
 args = parser.parse_args()
 
-MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
 LR = 0.01
 THRESHOLD = 1e-6
-PATH_IMAGE = 'generated/gmm_means_gavi'
 
 sess = tf.Session()
-
-
-def dirichlet_expectation(alpha):
-    """
-    Dirichlet expectation computation
-    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
-    """
-    return tf.subtract(tf.digamma(tf.add(alpha, np.finfo(np.float32).eps)),
-                       tf.digamma(tf.reduce_sum(alpha)))
-
-
-def log_beta_function(x):
-    """
-    Log beta function
-    ln(\gamma(x)) - ln(\gamma(\sum_{i=1}^{N}(x_{i}))
-    """
-    return tf.subtract(
-        tf.reduce_sum(tf.lgamma(tf.add(x, np.finfo(np.float32).eps))),
-        tf.lgamma(tf.reduce_sum(tf.add(x, np.finfo(np.float32).eps))))
-
-
-def plot_iteration(ax_spatial, circs, sctZ, lambda_m, delta_o, xn, n_iters):
-    """
-    Plot the Gaussians in every iteration
-    """
-    if n_iters == 0:
-        plt.scatter(xn[:, 0], xn[:, 1], cmap=cm.gist_rainbow, s=5)
-        sctZ = plt.scatter(lambda_m[:, 0], lambda_m[:, 1],
-                           color='black', s=5)
-    else:
-        for circ in circs: circ.remove()
-        circs = []
-        for k in range(K):
-            cov = delta_o
-            print('Cov: {}'.format(cov))
-            circ = create_cov_ellipse(cov, lambda_m[k, :],
-                                      color='r', alpha=0.3)
-            circs.append(circ)
-            ax_spatial.add_artist(circ)
-        sctZ.set_offsets(lambda_m)
-    plt.draw()
-    plt.pause(0.001)
-    return ax_spatial, circs, sctZ
 
 
 # Get data
@@ -201,7 +158,7 @@ def main():
     sess.run(init)
     lbs = []
     n_iters = 0
-    for _ in range(MAX_ITERS):
+    for _ in range(args.maxIter):
 
         # ELBO computation
         _, mer, lb, m_out, beta_out, pi_out, phi_out = sess.run(
@@ -218,11 +175,11 @@ def main():
             ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs, sctZ,
                                                      sess.run(lambda_m),
                                                      sess.run(delta_o),
-                                                     xn, n_iters)
+                                                     xn, n_iters, K)
 
         # Break condition
         if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
-            plt.savefig('{}.png'.format(PATH_IMAGE))
+            plt.savefig('generated/plot.png')
             break
 
         n_iters += 1

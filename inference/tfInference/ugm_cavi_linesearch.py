@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
 
 """
-Gradient Ascent Variational Inference process to approximate an
-univariate gaussian
+Coordinate Ascent Variational Inference with Linesearch process
+to approximate an univariate gaussian
 """
 
 import argparse
@@ -19,21 +19,22 @@ Parameters:
     * maxIter: Max number of iterations
     * nElements: Number of data points to generate
     * verbose: Printing time, intermediate variational parameters, plots, ...
+    
+Execution:
+    python ugm_cavi_linesearch.py -nElements 1000 -verbose
 """
 
-parser = argparse.ArgumentParser(description='GAVI in univariate gaussian')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
-parser.add_argument('-nElements', metavar='nElements', type=int, default=100)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
+parser = argparse.ArgumentParser(
+    description='CAVI Linesearch in univariate gaussian')
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
+parser.add_argument('-nElements', metavar='nElements', type=int, default=1000)
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
 args = parser.parse_args()
 
 N = args.nElements
-MAX_ITERS = args.maxIter
 VERBOSE = args.verbose
 DATA_MEAN = 7
-LR = 100.
 THRESHOLD = 1e-6
 
 sess = tf.Session()
@@ -110,11 +111,48 @@ LB = tf.subtract(LB, tf.multiply(
                                                                tf.float64),
                                                        lambda_beta)))))
 
-# Optimizer definition
-optimizer = tf.train.AdamOptimizer(learning_rate=LR)
-grads_and_vars = optimizer.compute_gradients(-LB, var_list=[a_var, b_var,
-                                                            lambda_m, beta_var])
-train = optimizer.apply_gradients(grads_and_vars)
+
+def compute_learning_rate(var, alpha):
+    """
+    :param var: Var to optimize
+    :param alpha: Initial learning rate
+    """
+    # Obtaining the gradients
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
+    grads_and_vars = optimizer.compute_gradients(-LB, var_list=[var])
+    grads = sess.run(grads_and_vars)
+    tmp_var = grads[0][1]
+    tmp_grad = grads[0][0]
+
+    # Gradient descent update
+    fx = sess.run(-LB)
+    tmp_mod = tmp_var - alpha * tmp_grad
+    assign_op = var.assign(tmp_mod)
+    sess.run(assign_op)
+    fxgrad = sess.run(-LB)
+
+    # Loop for problematic vars that produces Infs and Nans
+    while np.isinf(fxgrad) or np.isnan(fxgrad):
+        alpha /= 10.
+        tmp_mod = tmp_var - alpha * tmp_grad
+        assign_op = var.assign(tmp_mod)
+        sess.run(assign_op)
+        fxgrad = sess.run(-LB)
+
+    m = tmp_grad ** 2
+    c = 0.5
+    tau = 0.2
+
+    while fxgrad >= fx - alpha * c * m:
+        alpha *= tau
+        tmp_mod = tmp_var - alpha * tmp_grad
+        assign_op = var.assign(tmp_mod)
+        sess.run(assign_op)
+        fxgrad = sess.run(-LB)
+        if alpha < 1e-10:
+            alpha = 0
+            break
+
 
 # Summaries definition
 tf.summary.histogram('lambda_m', lambda_m)
@@ -132,16 +170,22 @@ def main():
         plt.title('Simulated dataset')
         plt.show()
 
-    # Inference
     init = tf.global_variables_initializer()
     sess.run(init)
+    alpha = 1e10
     lbs = []
     n_iters = 0
-    for _ in range(MAX_ITERS):
+    for _ in range(args.maxIter):
+
+        # Parameter updates with individual learning rates
+        compute_learning_rate(a_var, alpha)
+        compute_learning_rate(b_var, alpha)
+        compute_learning_rate(lambda_m, alpha)
+        compute_learning_rate(beta_var, alpha)
 
         # ELBO computation
-        _, mer, lb, m_out, beta_out, a_out, b_out = sess.run(
-            [train, merged, LB, lambda_m, lambda_beta, lambda_a, lambda_b])
+        mer, lb, m_out, beta_out, a_out, b_out = sess.run(
+            [merged, LB, lambda_m, lambda_beta, lambda_a, lambda_b])
         lbs.append(lb)
 
         if VERBOSE:

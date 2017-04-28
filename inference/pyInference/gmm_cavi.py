@@ -241,7 +241,6 @@ def main():
                 print('lambda_w: {}'.format(lambda_w))
                 print('lambda_phi: {}'.format(lambda_phi[0:9, :]))
                 print('ELBO: {}'.format(lb))
-                print('\n******* ITERATION {} *******'.format(n_iters))
                 if D == 2:
                     covs = [lambda_w[k, :, :] / (lambda_nu[k] - D - 1)
                             for k in range(K)]
