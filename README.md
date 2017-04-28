@@ -3,53 +3,53 @@
 This repo contains different variational methods to learn a Gaussian Mixture 
 Model (GMM) and an Univariate Gaussian (UGM) from data. It also contains 
 documentation regarding the algorithm derivations, 2D interpolation scripts,
-dimensionality reduction scripts, map visualization scripts, ...
+dimensionality reduction scripts, map visualization scripts, other models, ...
 
 
 ## List of available algorithms
 
-### Python inference
+### Python
 #### Univariate Gaussian (UGM)
-- `pyInference/ugm_cavi.py` Coordinate Ascent Variational Inference (CAVI)
+- `inference/python/ugm_cavi.py` Coordinate Ascent Variational Inference (CAVI)
 algorithm to learn an UGM.
 #### Mixture of Gaussians (GMM)
-- `pyInference/gmm_means_cavi.py` Coordinate Ascent Variational Inference (CAVI)
+- `inference/python/gmm_means_cavi.py` Coordinate Ascent Variational Inference (CAVI)
  algorithm to learn a GMM with unknown means but known precisions.
-- `pyInference/gmm_cavi.py` Coordinate Ascent Variational Inference (CAVI)
+- `inference/python/gmm_cavi.py` Coordinate Ascent Variational Inference (CAVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
-- `pyInference/gmm_gavi.py` [DOING] Gradient Ascent Variational Inference (GAVI)
+- `inference/python/gmm_gavi.py` [DOING] Gradient Ascent Variational Inference (GAVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
 
-### Tensorflow inference
+### Tensorflow 
 #### Univariate Gaussian (UGM)
-- `tfinference/ugm_cavi.py` Coordinate Ascent Variational Inference (CAVI) 
+- `inference/tensorflow/ugm_cavi.py` Coordinate Ascent Variational Inference (CAVI) 
  algorithm to learn an UGM.
-- `tfInference/ugm_cavi_linesearch.py` Coordinate Ascent Variational Inference
+- `inference/tensorflow/ugm_cavi_linesearch.py` Coordinate Ascent Variational Inference
  (CAVI) with linesearch algorithm to learn an UGM.
-- `tfInference/ugm_gavi.py` contains a Gradient Ascent Variational Inference 
+- `inference/tensorflow/ugm_gavi.py` contains a Gradient Ascent Variational Inference 
  (GAVI) algorithm to learn an UGM.
 #### Mixture of Gaussians (GMM)
-- `tfInference/gmm_means_cavi.py` Coordinate Ascent Variational Inference 
+- `inference/tensorflow/gmm_means_cavi.py` Coordinate Ascent Variational Inference 
 (CAVI) algorithm to learn a GMM with unknown means but known precisions.
-- `tfInference/gmm_means_cavi_linesearch.py` Coordinate Ascent Variational
+- `tinference/tensorflow/gmm_means_cavi_linesearch.py` Coordinate Ascent Variational
  Inference (CAVI) with linesearch algorithm to learn a GMM with unknown 
  means but known precisions.
-- `tfInference/gmm_means_gavi.py` Gradient Ascent Variational Inference 
+- `inference/tensorflow/gmm_means_gavi.py` Gradient Ascent Variational Inference 
 (GAVI) algorithm to learn a GMM with unknown means but known precisions.
 
-### Autograd inference
+### Autograd
 #### Mixture of Gaussians (GMM)
-- `agInference/gmm_means_cavi.py` Coordinate Ascent Variational Inferecne (CAVI)
+- `inference/autograd/gmm_means_cavi.py` Coordinate Ascent Variational Inferecne (CAVI)
  algorithm to learn a GMM with unknown means but known precisions.
-- `agInference/gmm_means.py` [DOING] Coordinate Ascent Variational Inference (CAVI)
+- `inference/autograd/gmm_means.py` [DOING] Coordinate Ascent Variational Inference (CAVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
  
-### Edward inference
+### Edward
 #### Univariate Gaussian (UGM)
-- `edwardInference/ugm_bbvi.py` [DOING] Black Box Variational Inference (BBVI)
+- `inference/edward/ugm_bbvi.py` [DOING] Black Box Variational Inference (BBVI)
  algorithm to learn an UGM.
 #### Mixture of Gaussians (GMM)
-- `edwardInference/gmm_bbvi.py` [DOING] Black Box Variational Inference (BBVI)
+- `inference/edward/gmm_bbvi.py` [DOING] Black Box Variational Inference (BBVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
 
 
@@ -77,6 +77,34 @@ algorithm to learn an UGM.
 - `data/real/dimensionalityReduction/ae.py` Keras autoencoder.
 - `data/real/dimensionalityReduction/ppca.py` Edward Probabilistic Principal
  Component Analysis.
+ 
+ 
+## Other models
+### Python
+- `basicModels/dirichlet_categorical.py` Exact inference in a Dirichlet Categorical
+ model.
+- `basicModels/invgamma_normal.py` Exact inference in a Inverse-Gamma Normal
+ model.
+- `basicModels/NIW_normal.py` Exact inference in a Normal-Inverse-Wishart Normal
+ model.
+ 
+### Tensorflow
+- `basicModels/linear_regression_tf.py` Linear regression model optimization 
+ with Gradient Descent algorithm.
+
+### Autograd
+- `basicModels/linear_regression_ag.py` Linear regression model optimization
+ with Gradient Descent algorithm.
+ 
+### Edward
+- `basicModels/dirichlet_categorical_edward.py` Black Box Variational Inference
+ in a Dirichlet Categorical model.
+- `basicModels/invgamma_normal_edward.py` Black Box Variational Inference in a 
+ Inverse-Gamma Normal model.
+- `basicModels/NW_normal_edward.py` [DOING] Black Box Variational Inference in a
+ Normal-Wishart Normal model.
+ 
+ 
 
 
 ## Documentation

@@ -7,7 +7,7 @@ Script to time different mixture of gaussians inferences
 import timing.mixtureOfGaussians.csv
 import subprocess
 
-PATH = '../../tfInference/elbos/knownPrecisions/'
+PATH = '../../tensorflow/elbos/knownPrecisions/'
 
 
 def main():

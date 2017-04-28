@@ -10,6 +10,6 @@ data/real/interpolation/generated/
 data/real/maps/generated/
 data/real/others/generated/
 
-inference/agInference/generated
-inference/pyInference/generated
-inference/tfInference/generated
+inference/autograd/generated
+inference/python/generated
+inference/tensorflow/generated

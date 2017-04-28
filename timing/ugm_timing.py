@@ -7,7 +7,7 @@ Script to time different univariate gaussian inferences
 import csv
 import subprocess
 
-PATH = '../../tfInference/univariateGaussian/'
+PATH = '../../tensorflow/univariateGaussian/'
 
 
 def main():
