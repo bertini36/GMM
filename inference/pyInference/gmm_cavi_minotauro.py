@@ -20,41 +20,39 @@ from sklearn.cluster import KMeans
 """
 Parameters:
     * maxIter: Max number of iterations
-    * dataset: Dataset path
+    * dataset: Dataset path (pkl)
     * k: Number of clusters
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
+    * exportVariationalParameters: If true generate a pkl of a dictionary with
+                                   the variational parameters inferred
 
 Execution:
-    python gmm_cavi.py -dataset porto_pca.pkl
-                       -k 30 --verbose --no-randomInit --exportAssignments
+    python gmm_means_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
+                             -exportAssignments -exportVariationalParameters
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=200)
-parser.add_argument('-dataset', metavar='dataset', type=str, default='')
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=20)
+parser.add_argument('-dataset', metavar='dataset', type=str,
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
-parser.add_argument('--randomInit', dest='randomInit', action='store_true')
-parser.add_argument('--no-randomInit', dest='randomInit', action='store_false')
+parser.set_defaults(exportVariationalParameters=False)
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
+parser.add_argument('-randomInit', dest='randomInit', action='store_true')
 parser.set_defaults(randomInit=False)
-parser.add_argument('--exportAssignments',
+parser.add_argument('-exportAssignments',
                     dest='exportAssignments', action='store_true')
-parser.add_argument('--no-exportAssignments',
-                    dest='exportAssignments', action='store_false')
-parser.set_defaults(exportAssignments=True)
+parser.set_defaults(exportAssignments=False)
+parser.add_argument('-exportVariationalParameters',
+                    dest='exportVariationalParameters', action='store_true')
 args = parser.parse_args()
 
-MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
-RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'plot.png'
-EXPORT_ASSIGNMENTS = args.exportAssignments
 
 
 def dirichlet_expectation(alpha, k):
@@ -191,7 +189,7 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
     return lambda_phi
 
 
-def elbo(lambda_phi, lambda_pi, lambda_beta,lambda_nu,
+def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
          lambda_w, alpha_o, beta_o, nu_o, w_o,  N, D):
     """
     ELBO computation
@@ -210,8 +208,7 @@ def elbo(lambda_phi, lambda_pi, lambda_beta,lambda_nu,
 
 def main():
     try:
-        if not ('.pkl' in args.dataset or '.PKL' in args.dataset):
-            raise Exception('input_format')
+        if not('.pkl' in args.dataset): raise Exception('input_format')
 
         # Get data
         with open('{}'.format(args.dataset), 'r') as inputfile:
@@ -219,33 +216,29 @@ def main():
             xn = data['xn']
         N, D = xn.shape
 
-        if VERBOSE: print('Data loaded')
-
         if VERBOSE: init_time = time()
 
         # Priors
         alpha_o = np.array([1.0] * K)
         nu_o = np.array([float(D)])
-        if nu_o[0] < D: raise ValueError
+        if nu_o[0] < D: raise Exception('degrees_of_freedom')
         w_o = generate_random_positive_matrix(D)
         m_o = np.array([0.0] * D)
         beta_o = np.array([0.7])
 
         # Variational parameters intialization
         lambda_phi = np.random.dirichlet(alpha_o, N) \
-            if RANDOM_INIT else init_kmeans(xn, N, K)
+            if args.randomInit else init_kmeans(xn, N, K)
         lambda_pi = np.zeros(shape=K)
         lambda_beta = np.zeros(shape=K)
         lambda_nu = np.zeros(shape=K)
         lambda_m = np.zeros(shape=(K, D))
         lambda_w = np.zeros(shape=(K, D, D))
 
-        if VERBOSE: print('Inference starts')
-
         # Inference
         lbs = []
         n_iters = 0
-        for _ in range(MAX_ITERS):
+        for _ in range(args.maxIter):
 
             # Variational parameter updates
             lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
@@ -279,9 +272,6 @@ def main():
             # Break condition
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
-            if n_iters > 0 and improve < THRESHOLD:
-                break
-
             n_iters += 1
 
         zn = np.array([np.argmax(lambda_phi[n, :]) for n in xrange(N)])
@@ -290,28 +280,32 @@ def main():
             print('\n******* RESULTS *******')
             for k in range(K):
                 print('Mu k{}: {}'.format(k, lambda_m[k, :]))
-                print('SD k{}: {}'.format(k, np.sqrt(
-                    np.diag(lambda_w[k, :, :] / (lambda_nu[k] - D - 1)))))
             final_time = time()
             exec_time = final_time - init_time
             print('Time: {} seconds'.format(exec_time))
             print('Iterations: {}'.format(n_iters))
             print('ELBOs: {}'.format(lbs))
 
-        if EXPORT_ASSIGNMENTS:
-            with open('assignments.csv', 'wb') as output:
+        if args.exportAssignments:
+            with open('generated/assignments.csv', 'wb') as output:
                 writer = csv.writer(output, delimiter=';', quotechar='',
                                     escapechar='\\', quoting=csv.QUOTE_NONE)
                 writer.writerow(['zn'])
                 for i in range(len(zn)):
                     writer.writerow([zn[i]])
 
-    except ValueError:
-        print('Degrees of freedom can not be smaller than D!')
+        if args.exportVariationalParameters:
+            with open('generated/variational_parameters.pkl', 'w') as output:
+                pkl.dump({'lambda_pi': lambda_pi, 'lambda_m': lambda_m,
+                          'lambda_beta': lambda_beta, 'lambda_nu': lambda_nu,
+                          'lambda_w': lambda_w, 'K': K, 'D': D}, output)
+
     except IOError:
         print('File not found!')
     except Exception as e:
         if e.args[0] == 'input_format': print('Input must be a pkl file')
+        elif e.args[0] == 'degrees_of_freedom':
+            print('Degrees of freedom can not be smaller than D!')
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise

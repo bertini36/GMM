@@ -3,8 +3,8 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH ="/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_nnint50.csv"
-ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/pyInference/generated/assignments.csv"
+TRACKS_PATH ="/home/alberto/Escritorio/porto_int50_subset.csv"
+ASSIGNMENTS_PATH = "/home/alberto/Escritorio/assignments_subset.csv"
 K = 30
 DELIMITER = ";"
 HEADER = TRUE
@@ -39,6 +39,7 @@ ids <- unique(index)
 png(filename="clusters.png", width=RESOLUTION[1], height=RESOLUTION[2])
 plot(tracks$lon, tracks$lat, type="n", axes=FALSE, xlab="", ylab="", main="", asp=1)
 for (i in 1:length(ids)) {
+  print(i)
   track <- subset(tracks, index==ids[i])
   lines(track$lon, track$lat, col=paste(COLORS[assignments[ids[i],] + 1], "30", sep=""))
 }
@@ -46,6 +47,7 @@ dev.off()
 
 # Cluster individuals maps
 for (i in 0:K-1) {
+  print(i)
   png(filename=paste("K", toString(i), ".png", sep=""), width=RESOLUTION[1], height=RESOLUTION[2])
   plot(tracks$lon, tracks$lat, type="n", axes=FALSE, xlab="", ylab="", main="", asp=1)
   for (j in 1:length(ids)) {

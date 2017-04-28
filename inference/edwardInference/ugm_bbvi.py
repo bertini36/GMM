@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Gradient Ascent Variational Inference
+Black Box Variational Inference
 process to approximate an univariate gaussian
 [DOING]
 """
@@ -24,22 +24,22 @@ print('mu=7')
 print('sigma=1')
 
 # Priors definition
-m = tf.Variable([0.], trainable=False)
-beta = tf.Variable([0.0001], trainable=False)
-a = tf.Variable([0.001], trainable=False)
-b = tf.Variable([0.001], trainable=False)
+m = tf.constant([0.])
+beta = tf.constant([0.0001])
+a = tf.constant([0.001])
+b = tf.constant([0.001])
 
 # Posterior inference
 # Probabilistic model
-mu = Normal(mu=m, sigma=beta)
-sigma = Gamma(alpha=a, beta=b)
-x = Normal(mu=tf.tile(mu, [N]), sigma=tf.tile(sigma, [N]))
+mu = Normal(loc=m, scale=beta)
+sigma = Gamma(a, b)
+x = Normal(loc=tf.tile(mu, [N]), scale=tf.tile(sigma, [N]))
 
 # Variational model
-qmu = Normal(mu=tf.Variable(tf.random_normal([1])),
-             sigma=tf.nn.softplus(tf.Variable(tf.random_normal([1]))))
-qsigma = Gamma(alpha=tf.nn.softplus(tf.Variable(tf.random_normal([1]))),
-               beta=tf.nn.softplus(tf.Variable(tf.random_normal([1]))))
+qmu = Normal(loc=tf.Variable(tf.random_normal([1])),
+             scale=tf.nn.softplus(tf.Variable(tf.random_normal([1]))))
+qsigma = Gamma(tf.nn.softplus(tf.Variable(tf.random_normal([1]))),
+               tf.nn.softplus(tf.Variable(tf.random_normal([1]))))
 
 # Inference
 inference = ed.KLqp({mu: qmu, sigma: qsigma}, data={x: xn})

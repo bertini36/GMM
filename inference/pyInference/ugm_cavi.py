@@ -19,18 +19,19 @@ Parameters:
     * maxIter: Max number of iterations
     * nElements: Number of data points to generate
     * verbose: Printing time, intermediate variational parameters, plots, ...
+    
+Execution:
+    python ugm_cavi.py -nElements 1000 -verbose 
 """
 
 parser = argparse.ArgumentParser(description='CAVI in univariate gaussian')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
-parser.add_argument('-nElements', metavar='nElements', type=int, default=100)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
+parser.add_argument('-nElements', metavar='nElements', type=int, default=1000)
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
 args = parser.parse_args()
 
 N = args.nElements
-MAX_ITERS = args.maxIter
 VERBOSE = args.verbose
 DATA_MEAN = 7
 THRESHOLD = 1e-6
@@ -108,7 +109,7 @@ def main():
 
     lbs = []
     n_iters = 0
-    for _ in range(MAX_ITERS):
+    for _ in range(args.maxIter):
 
         # Variational parameter updates
         lambda_m = update_lambda_m(lambda_a, lambda_b, m_o, beta_o, xn)

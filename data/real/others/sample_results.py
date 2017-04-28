@@ -1,14 +1,18 @@
 # -*- coding: UTF-8 -*-
 
+"""
+Results sampler
+"""
+
 import csv
 import random
 import sys
 
-TRACKS_PATH = 'mallorca_nnint50.csv'
+TRACKS_PATH = 'porto_int50.csv'
 ASSIGNMENTS_PATH = 'assignments.csv'
-NEW_TRACKS_PATH = 'genereated/mallorca_nnint50_plot.csv'
-NEW_ASSIGNMENTS_PATH = 'generated/assignments_plot.csv'
-N_1S = 1500
+NEW_TRACKS_PATH = 'porto_int50_subset.csv'
+NEW_ASSIGNMENTS_PATH = 'assignments_subset.csv'
+N_SAMPLES = 1500
 
 
 def main():
@@ -37,22 +41,16 @@ def main():
             assignments_writer.writerow(['zn'])
 
             lines = 0
-            for assignment in assignments_reader:
-                if int(assignment[0]) == 0:
-                    tracks_writer.writerow([tracks_reader.next()[0]])
-                    assignments_writer.writerow([assignment[0]])
-                lines += 1
-
-            tracks.seek(0)
+            for assignment in assignments_reader: lines += 1
             assignments.seek(0)
-            tracks_reader.next()
             assignments_reader.next()
 
-            i_samples = random.sample(range(1, lines), N_1S)
+            i_samples = random.sample(range(1, lines), N_SAMPLES)
             for i, track in enumerate(tracks_reader):
+            	ass = assignments_reader.next()
                 if i in i_samples:
                     tracks_writer.writerow([track[0]])
-                    assignments_writer.writerow([1])
+                    assignments_writer.writerow(ass)
 
     except IOError:
         print('File not found!')

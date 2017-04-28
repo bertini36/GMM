@@ -26,9 +26,7 @@ parser = argparse.ArgumentParser(description='KNN interpolation')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
 parser.add_argument('-n', metavar='n', type=int, default=50)
-parser.add_argument('--generatePKL', dest='generatePKL', action='store_true')
-parser.add_argument('--no-generatePKL', dest='generatePKL',
-                    action='store_false')
+parser.add_argument('-generatePKL', dest='generatePKL', action='store_true')
 parser.set_defaults(generatePKL=False)
 args = parser.parse_args()
 

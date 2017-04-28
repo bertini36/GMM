@@ -24,27 +24,25 @@ Parameters:
     * k: Number of clusters
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
+    
+Execution:
+    python gmm_means_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture og gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=10000000)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/k8/data_d3_k2_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=8)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
-parser.add_argument('--randomInit', dest='randomInit', action='store_true')
-parser.add_argument('--no-randomInit', dest='randomInit', action='store_false')
-parser.set_defaults(randomInit=True)
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
+parser.add_argument('-randomInit', dest='randomInit', action='store_true')
+parser.set_defaults(randomInit=False)
 args = parser.parse_args()
 
-MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
-RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'generated/gmm_means_cavi'
 
 
 def dirichlet_expectation(alpha):
@@ -145,7 +143,7 @@ def main():
 
     # Variational parameters intialization
     lambda_phi = np.random.dirichlet(alpha_o, N) \
-        if RANDOM_INIT else init_kmeans(xn, N, K)
+        if args.randomInit else init_kmeans(xn, N, K)
     lambda_beta = beta_o + np.sum(lambda_phi, axis=0)
     lambda_m = np.tile(1. / lambda_beta, (2, 1)).T * \
                (beta_o * m_o + np.dot(lambda_phi.T, xn))
@@ -161,7 +159,7 @@ def main():
     # Inference
     n_iters = 0
     lbs = []
-    for _ in range(MAX_ITERS):
+    for _ in range(args.maxIter):
 
         # Variational parameter updates
         lambda_pi = update_lambda_pi(lambda_phi, alpha_o)
@@ -188,7 +186,7 @@ def main():
 
         # Break condition
         if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
-            plt.savefig('{}.png'.format(PATH_IMAGE))
+            plt.savefig('generated/plot.png')
             break
 
         n_iters += 1

@@ -28,11 +28,11 @@ Execution:
 
 parser = argparse.ArgumentParser(description='New data generator')
 parser.add_argument('-variationalParameters', metavar='variationalParameters',
-                    type=str, default='generated/variational_parameters.pkl')
+                    type=str, default='../generated/variational_parameters.pkl')
 parser.add_argument('-N', metavar='N', type=int, default=100)
 parser.add_argument('-selectK', metavar='selectK', type=int, default=-1)
 parser.add_argument('-output', metavar='output',
-                    type=str, default='generated/new_data.pkl')
+                    type=str, default='../generated/new_data.pkl')
 args = parser.parse_args()
 
 N = args.N
@@ -103,10 +103,8 @@ def main():
     except IOError:
         print('File not found!')
     except Exception as e:
-        if e.args[0] == 'input_format':
-            print('Input must be a pkl file')
-        elif e.args[0] == 'output_format':
-            print('Input must be a pkl file')
+        if e.args[0] == 'input_format': print('Input must be a pkl file')
+        elif e.args[0] == 'output_format': print('Output must be a pkl file')
         else:
             print('Unexpected error: {}'.format(sys.exc_info()[0]))
             raise

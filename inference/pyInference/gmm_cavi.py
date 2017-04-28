@@ -34,40 +34,30 @@ Parameters:
                                    the variational parameters inferred
 
 Execution:
-    python gmm_cavi.py
-        -dataset ../../data/real/mallorca/mallorca_pca30.pkl
-        -k 2 --verbose --no-randomInit --exportAssignments
+    python gmm_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
+                       -exportAssignments -exportVariationalParameters
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
-parser.add_argument('-dataset', metavar='dataset', type=str, default='')
+parser.add_argument('-dataset', metavar='dataset', type=str,
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
-parser.add_argument('--randomInit', dest='randomInit', action='store_true')
-parser.add_argument('--no-randomInit', dest='randomInit', action='store_false')
+parser.set_defaults(exportVariationalParameters=False)
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
+parser.add_argument('-randomInit', dest='randomInit', action='store_true')
 parser.set_defaults(randomInit=False)
-parser.add_argument('--exportAssignments',
+parser.add_argument('-exportAssignments',
                     dest='exportAssignments', action='store_true')
-parser.add_argument('--no-exportAssignments',
-                    dest='exportAssignments', action='store_false')
-parser.set_defaults(exportAssignments=True)
-parser.add_argument('--exportVariationalParameters',
+parser.set_defaults(exportAssignments=False)
+parser.add_argument('-exportVariationalParameters',
                     dest='exportVariationalParameters', action='store_true')
-parser.add_argument('--no-exportVariationalParameters',
-                    dest='exportVariationalParameters', action='store_false')
-parser.set_defaults(exportVariationalParameters=True)
 args = parser.parse_args()
 
-MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
-RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-EXPORT_ASSIGNMENTS = args.exportAssignments
-EXPORT_VARIATIONAL_PARAMETERS = args.exportVariationalParameters
 
 
 def update_lambda_pi(lambda_pi, lambda_phi, alpha_o):
@@ -204,7 +194,7 @@ def main():
 
         # Variational parameters intialization
         lambda_phi = np.random.dirichlet(alpha_o, N) \
-            if RANDOM_INIT else init_kmeans(xn, N, K)
+            if args.randomInit else init_kmeans(xn, N, K)
         lambda_pi = np.zeros(shape=K)
         lambda_beta = np.zeros(shape=K)
         lambda_nu = np.zeros(shape=K)
@@ -222,7 +212,7 @@ def main():
         # Inference
         lbs = []
         n_iters = 0
-        for _ in range(MAX_ITERS):
+        for _ in range(args.maxIter):
 
             # Variational parameter updates
             lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
@@ -295,7 +285,7 @@ def main():
             plt.xlabel('Iterations')
             plt.savefig('generated/elbos.png')
 
-        if EXPORT_ASSIGNMENTS:
+        if args.exportAssignments:
             with open('generated/assignments.csv', 'wb') as output:
                 writer = csv.writer(output, delimiter=';', quotechar='',
                                     escapechar='\\', quoting=csv.QUOTE_NONE)
@@ -303,7 +293,7 @@ def main():
                 for i in range(len(zn)):
                     writer.writerow([zn[i]])
 
-        if EXPORT_VARIATIONAL_PARAMETERS:
+        if args.exportVariationalParameters:
             with open('generated/variational_parameters.pkl', 'w') as output:
                 pkl.dump({'lambda_pi': lambda_pi, 'lambda_m': lambda_m,
                           'lambda_beta': lambda_beta, 'lambda_nu': lambda_nu,
