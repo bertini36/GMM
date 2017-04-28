@@ -3,7 +3,7 @@
 # Execution: ./provision.sh
 
 echo "Configuring environment variables"
-export PROJECT=GMM2
+export PROJECT=GMM
 export WORKON_HOME=~/.virtualenvs
 
 echo "Installing virtualenv and virtualenvwrapper in case it is not installed"

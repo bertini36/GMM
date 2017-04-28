@@ -1,4 +1,15 @@
 .idea/
 *.pyc
-*.png
-graphics/UnivariateGaussian/*.html
+timing/*.html
+
+# Generated files
+timing/csv
+
+data/real/diomensionalityReduction/generated/
+data/real/interpolation/generated/
+data/real/maps/generated/
+data/real/others/generated/
+
+inference/agInference/generated
+inference/pyInference/generated
+inference/tfInference/generated

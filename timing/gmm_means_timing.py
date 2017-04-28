@@ -4,16 +4,16 @@
 Script to time different mixture of gaussians inferences
 """
 
-import csv
+import timing.mixtureOfGaussians.csv
 import subprocess
 
-PATH = '../../tfInference/mixtureOfGaussians/knownPrecisions/'
+PATH = '../../tfInference/elbos/knownPrecisions/'
 
 
 def main():
     with open('csv/gmm_means_times.csv', 'wb') as csvfile:
 
-        writer = csv.writer(csvfile, delimiter=';')
+        writer = timing.mixtureOfGaussians.csv.writer(csvfile, delimiter=';')
         writer.writerow(['Inference type', 'Dataset size',
                          'K', 'Time', 'Iterations', 'ELBO'])
 
@@ -60,7 +60,7 @@ def main():
                          for lb in (((output.split('\n')[2])
                                      .split('[')[1]).split(']')[0])
                              .split(',')]
-                writer2 = csv.writer(csvfile2, delimiter=';')
+                writer2 = timing.mixtureOfGaussians.csv.writer(csvfile2, delimiter=';')
                 writer2.writerow(['Iteration', 'ELBO'])
                 for i, elbo in enumerate(elbos):
                     writer2.writerow([i, elbo])

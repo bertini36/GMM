@@ -9,7 +9,7 @@ This document shows the comparison between the Univariate Gaussian inference wit
 
 ```{r, echo=FALSE, fig.align="center"}
 path <- "/home/alberto/Dropbox/BSC/GMM/"
-data <- read.csv(paste(path, "timing/UnivariateGaussian/csv/ugm_times.csv", sep=""), header=TRUE, sep=";")
+data <- read.csv(paste(path, "csv/ugm_times.csv", sep=""), header=TRUE, sep=";")
 View(data)
 x <- data$Dataset.size[data$Inference.type == "ugm_cavi"]
 
