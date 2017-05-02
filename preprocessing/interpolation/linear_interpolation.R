@@ -1,9 +1,9 @@
 # Linear interpolation
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca.csv"
-OUTPUT_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca_test.csv"
-N_POINTS_INTERPOLATION = 1000
+TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca.csv"
+OUTPUT_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca_test.csv"
+N_POINTS_INTERPOLATION = 30
 DELIMITER = ";"
 HEADER = TRUE
 
@@ -27,8 +27,8 @@ for (i in 1:50) {
     lat <- c(lat, as.numeric(point[1]))
     lon <- c(lon, as.numeric(point[2]))
   }
+  points.int <- approx(lat, lon, method="linear", n=N_POINTS_INTERPOLATION)
   if (length(lat) > 1) {
-    points.int <- approx(lat, lon, method="linear", n=N_POINTS_INTERPOLATION)
     track.format <- list()
     str <- "["
     for (j in 1:N_POINTS_INTERPOLATION) {

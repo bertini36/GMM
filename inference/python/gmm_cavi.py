@@ -1,14 +1,15 @@
 # -*- coding: UTF-8 -*-
 
 """
-Coordinate Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
+Coordinate Ascent Variational Inference
 """
 
 from __future__ import absolute_import
 
 import argparse
 import csv
+import math
 import os
 import pickle as pkl
 import sys
@@ -22,7 +23,8 @@ from scipy.special import gammaln, multigammaln, psi
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from utils import dirichlet_expectation, softmax
+from utils import dirichlet_expectation, dirichlet_expectation_k, \
+                  softmax, log_, log_beta_function
 
 from common import generate_random_positive_matrix, init_kmeans
 from viz import plot_iteration
@@ -47,8 +49,8 @@ Execution:
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    default='../../data/synthetic/2D/k8/data_k8_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=8)
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
@@ -143,7 +145,7 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
     for n in range(N):
         for k in range(K):
             inv_lambda_w = inv(lambda_w[k, :, :])
-            lambda_phi[n, k] = dirichlet_expectation(lambda_pi, k)
+            lambda_phi[n, k] = dirichlet_expectation_k(lambda_pi, k)
             lambda_phi[n, k] += np.dot(lambda_m[k, :], np.dot(
                 lambda_nu[k] * inv_lambda_w, xn[n, :]))
             lambda_phi[n, k] -= np.trace(
@@ -170,12 +172,58 @@ def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
            - gammaln(np.sum(lambda_pi)) + np.sum(gammaln(lambda_pi))
     lb -= N * D / 2. * np.log(2. * np.pi)
     for k in xrange(K):
-        lb += -(nu_o[0] * D * np.log(2.)) / 2. + (lambda_nu[k] * D * np.log(2.)) / 2.
-        lb += -multigammaln(nu_o[0] / 2., D) + multigammaln(lambda_nu[k] / 2., D)
-        lb += (D / 2.) * np.log(np.absolute(beta_o[0])) - (D / 2.) * np.log(np.absolute(lambda_beta[k]))
-        lb += (nu_o[0] / 2.) * np.log(det(w_o)) - (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
+        lb += (-(nu_o[0] * D * np.log(2.)) / 2.) \
+              + ((lambda_nu[k] * D * np.log(2.)) / 2.)
+        lb += - multigammaln(nu_o[0] / 2., D) \
+              + multigammaln(lambda_nu[k] / 2., D)
+        lb += (D / 2.) * np.log(np.absolute(beta_o[0])) \
+              - (D / 2.) * np.log(np.absolute(lambda_beta[k]))
+        lb += (nu_o[0] / 2.) * np.log(det(w_o)) \
+              - (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
         lb -= np.dot(np.log(lambda_phi[:, k]).T, lambda_phi[:, k])
     return lb
+
+
+def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
+               lambda_beta, nu_o, lambda_nu, w_o, lambda_w, N, K):
+    """
+    ELBO computation
+    """
+    e3 = e2 = h2 = 0
+
+    e1 = - log_beta_function(alpha_o) \
+         + np.dot((alpha_o-np.ones(K)), dirichlet_expectation(lambda_pi))
+    h1 = log_beta_function(lambda_pi) \
+         - np.dot((lambda_pi-np.ones(K)), dirichlet_expectation(lambda_pi))
+    logdet = np.log(np.array([det(lambda_w[k, :, :]) for k in xrange(K)]))
+    logDeltak = psi(lambda_nu/2.) \
+                + psi((lambda_nu-1.)/2.) + 2.*np.log(2.) + logdet
+
+    for n in range(N):
+        e2 += np.dot(lambda_phi[n, :], dirichlet_expectation(lambda_pi))
+        h2 += -np.dot(lambda_phi[n, :], log_(lambda_phi[n, :]))
+        product = np.array([np.dot(np.dot(
+            xn[n, :]-lambda_m[k, :], lambda_w[k, :, :]),
+            (xn[n, :]-lambda_m[k, :]).T) for k in xrange(K)])
+        e3 += 1./2 * np.dot(lambda_phi[n, :],
+                            (logDeltak - 2.*np.log(2*math.pi) -
+                             lambda_nu*product - 2./lambda_beta).T)
+
+    product = np.array([np.dot(np.dot(lambda_m[k, :]-m_o, lambda_w[k, :, :]),
+                               (lambda_m[k, :]-m_o).T) for k in xrange(K)])
+    traces = np.array([np.trace(np.dot(inv(w_o),
+                                       lambda_w[k, :, :])) for k in xrange(K)])
+    h4 = np.sum((1. + np.log(2.*math.pi) - 1./2*(np.log(lambda_beta) + logdet)))
+    logB = lambda_nu/2.*logdet + lambda_nu*np.log(2.) + 1./2*np.log(math.pi) \
+           + gammaln(lambda_nu/2.) + gammaln((lambda_nu-1)/2.)
+    h5 = np.sum((logB - (lambda_nu-3.)/2.*logDeltak + lambda_nu))
+    e4 = np.sum((1./2*(np.log(beta_o) + logDeltak - 2*np.log(2.*math.pi)
+                       - beta_o*lambda_nu*product - 2.*beta_o/lambda_beta)))
+    logB = nu_o/2.*np.log(np.linalg.det(w_o)) + nu_o*np.log(2.) \
+           + 1./2*np.log(math.pi) + gammaln(nu_o/2.) + gammaln((nu_o-1)/2.)
+    e5 = np.sum((-logB + (nu_o-3.)/2.*logDeltak - lambda_nu/2.*traces))
+
+    return e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 
 def main():
@@ -234,8 +282,9 @@ def main():
                                            xn, N, K, D)
 
             # ELBO computation
-            lb = elbo(lambda_phi, lambda_pi, lambda_beta,lambda_nu,
-                      lambda_w, alpha_o, beta_o, nu_o, w_o,  N, D)
+            lb = elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o,
+                       lambda_m, beta_o, lambda_beta, nu_o,
+                       lambda_nu, w_o, lambda_w, N, K)
             lbs.append(lb)
 
             if VERBOSE:

@@ -16,11 +16,10 @@ from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.special import psi
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from utils import log_beta_function, softmax
+from utils import dirichlet_expectation, log_beta_function, softmax
 
 from common import init_kmeans
 from viz import plot_iteration
@@ -51,14 +50,6 @@ args = parser.parse_args()
 K = args.k
 VERBOSE = args.verbose
 THRESHOLD = 1e-6
-
-
-def dirichlet_expectation(alpha):
-    """
-    Dirichlet expectation computation
-    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
-    """
-    return psi(alpha + np.finfo(np.float32).eps) - psi(np.sum(alpha))
 
 
 def update_lambda_pi(lambda_phi, alpha_o):

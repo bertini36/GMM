@@ -13,7 +13,6 @@ import tensorflow as tf
 from edward.models import Gamma, Normal
 
 N = 1000
-ed.set_seed(42)
 
 # Data generation
 xn = np.random.normal(7, 1, [N])
@@ -43,9 +42,10 @@ qsigma = Gamma(tf.nn.softplus(tf.Variable(tf.random_normal([1]))),
 
 # Inference
 inference = ed.KLqp({mu: qmu, sigma: qsigma}, data={x: xn})
-inference.run(n_iter=1500, n_samples=500)
+inference.run(n_iter=1500, n_samples=30)
 
 sess = ed.get_session()
 
 print('Inferred mu={}'.format(sess.run(qmu.mean())))
 print('Inferred sigma={}'.format(sess.run(qsigma.mean())))
+print('Inferred sigma={}'.format(sess.run(1/qsigma.mean())))

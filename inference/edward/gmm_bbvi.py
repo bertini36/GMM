@@ -51,7 +51,7 @@ inference = ed.KLqp(
     latent_vars={pi: qpi, mu: qmu, sigma: qsigma, c: qc},
     data={x: x_data})
 
-inference.initialize(n_iter=5000, n_samples=100)
+inference.initialize(n_iter=10000, n_samples=200)
 
 sess = ed.get_session()
 tf.global_variables_initializer().run()
@@ -61,6 +61,8 @@ for _ in range(inference.n_iter):
     inference.print_progress(info_dict)
     t = info_dict['t']
     if t == 1 or t % inference.n_print == 0:
-        qpi_mean, qmu_mean = sess.run([qpi.mean(), qmu.mean()])
+        qpi_mean, qmu_mean, qsigma_mean = \
+            sess.run([qpi.mean(), qmu.mean(), qsigma.mean()])
         print('\nInferred membership probabilities: {}'.format(qpi_mean))
         print('Inferred cluster means: {}'.format(qmu_mean))
+        print('Inferred sigmas: {}'.format(qsigma_mean))
