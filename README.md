@@ -55,28 +55,28 @@ algorithm to learn an UGM.
 
 
 ## Data generation scripts
-- `data/synthetic_data_generator.py` generates data from a mixture of 
+- `data/synthetic/synthetic_data_generator.py` generates data from a mixture of 
  gaussians with different precision matrixs per each components. 
-- `data/synthetic_data_generator_means.py` generates data from a mixture
+- `data/synthetic/synthetic_data_generator_means.py` generates data from a mixture
  of gaussians with a given precision matrix for all components. 
  
  
 ## 2D points interpolation scripts
-- `data/real/interpolation/nn_interpolation.py` Nearest Neighbors interpolation.
-- `data/real/interpolation/linear_interpolation.R` Linear interpolation.
+- `preprocessing/interpolation/nn_interpolation.py` Nearest Neighbors interpolation.
+- `preprocessing/interpolation/linear_interpolation.R` Linear interpolation.
 
 
 ## Maps generation scripts
-- `data/real/maps/map.R`  R map
-- `data/real/maps/gmap.R` R Google map
+- `preprocessing/maps/map.R`  R map
+- `preprocessing/maps/gmap.R` R Google map
  
  
 ## Dimensionality reduction scripts
-- `data/real/dimensionalityReduction/pca.py` Sklearn Principal Component Analysis.
-- `data/real/dimensionalityReduction/ipca.py` Sklearn Incremental Principal
+- `preprocessing/dimReduction/pca.py` Sklearn Principal Component Analysis.
+- `preprocessing/dimReduction/ipca.py` Sklearn Incremental Principal
  Component Analysis.
-- `data/real/dimensionalityReduction/ae.py` Keras autoencoder.
-- `data/real/dimensionalityReduction/ppca.py` Edward Probabilistic Principal
+- `preprocessing/dimReduction/ae.py` Keras autoencoder.
+- `preprocessing/dimReduction/ppca.py` Edward Probabilistic Principal
  Component Analysis.
  
  
