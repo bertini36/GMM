@@ -1,5 +1,7 @@
 # -*- coding: UTF-8 -*-
 
+from __future__ import absolute_import
+
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np

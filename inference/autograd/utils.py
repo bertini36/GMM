@@ -1,13 +1,13 @@
 # -*- coding: UTF-8 -*-
 
 """
-Python inference common functions
+Autograd common functions
 """
+
+from __future__ import absolute_import
 
 import autograd.numpy as agnp
 import autograd.scipy.special as agscipy
-import numpy as np
-from scipy import random
 from sklearn.cluster import KMeans
 
 
@@ -38,13 +38,3 @@ def init_kmeans(xn, N, K):
     for i, lab in enumerate(labels):
         lambda_phi[i, lab] = 0.9
     return lambda_phi
-
-
-def generate_random_positive_matrix(D):
-    """
-    Generate a random semidefinite positive matrix
-    :param D: Dimension
-    :return: DxD matrix
-    """
-    aux = random.rand(D, D)
-    return np.dot(aux, aux.transpose())

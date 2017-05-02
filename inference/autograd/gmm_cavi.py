@@ -6,9 +6,13 @@ process to approximate a Mixture of Gaussians (GMM)
 [DOING]
 """
 
+from __future__ import absolute_import
+
 import argparse
 import csv
+import os
 import pickle as pkl
+import sys
 from time import time
 
 import autograd.numpy as agnp
@@ -18,8 +22,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from autograd import elementwise_grad
 
-from libs.common import generate_random_positive_matrix, init_kmeans
-from libs.viz import create_cov_ellipse
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from utils import init_kmeans
+
+from common import generate_random_positive_matrix
+from viz import create_cov_ellipse
 
 """
 Parameters:

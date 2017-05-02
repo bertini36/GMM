@@ -5,6 +5,8 @@ Coordinate Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
 """
 
+from __future__ import absolute_import
+
 import argparse
 import csv
 import pickle as pkl

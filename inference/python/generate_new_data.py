@@ -4,6 +4,8 @@
 Generate and visualize new data with the inferred variational parameters
 """
 
+from __future__ import absolute_import
+
 import argparse
 import pickle as pkl
 import sys

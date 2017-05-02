@@ -23,7 +23,7 @@ pbr==1.10.0
 pexpect==4.2.1
 pickleshare==0.7.4
 prompt-toolkit==1.0.9
-protobuf==3.1.0.post1
+protobuf==3.2.0
 ptyprocess==0.5.1
 Pygments==2.2.0
 pyparsing==2.1.10
@@ -38,7 +38,8 @@ simplegeneric==0.8.1
 six==1.10.0
 sklearn==0.0
 subprocess32==3.2.7
-tensorflow==1.0.1
+tensorflow==1.1.0
 Theano==0.9.0
 traitlets==4.3.1
 wcwidth==0.1.7
+Werkzeug==0.12.1

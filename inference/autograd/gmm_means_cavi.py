@@ -5,17 +5,24 @@ Gradient Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM) with known precisions
 """
 
+from __future__ import absolute_import
+
 import argparse
 import math
+import os
 import pickle as pkl
+import sys
 from time import time
 
 import autograd.numpy as agnp
 import matplotlib.pyplot as plt
 from autograd import elementwise_grad
 
-from libs.common import dirichlet_expectation, log_beta_function
-from libs.viz import plot_iteration
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from utils import dirichlet_expectation, log_beta_function
+
+from viz import plot_iteration
 
 """
 Parameters:

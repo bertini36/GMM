@@ -7,7 +7,7 @@ Dirichlet distribution distribution
 import numpy as np
 from scipy.special import gammaln
 
-from common import dirichlet_expectation
+from inference.python.utils import dirichlet_expectation
 
 
 class Dir:

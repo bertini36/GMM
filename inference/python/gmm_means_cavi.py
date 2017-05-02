@@ -5,17 +5,25 @@ Coordinate Ascent Variational Inference process to
 approximate a Mixture of Gaussians (GMM) with known precisions
 """
 
+from __future__ import absolute_import
+
 import argparse
 import math
+import os
 import pickle as pkl
+import sys
 from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import psi
 
-from libs.viz import plot_iteration
-from libs.common import init_kmeans, softmax, log_beta_function
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from utils import log_beta_function, softmax
+
+from common import init_kmeans
+from viz import plot_iteration
 
 """
 Parameters:

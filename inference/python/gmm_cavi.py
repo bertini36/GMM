@@ -5,8 +5,11 @@ Coordinate Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
 """
 
+from __future__ import absolute_import
+
 import argparse
 import csv
+import os
 import pickle as pkl
 import sys
 from time import time
@@ -14,13 +17,16 @@ from time import time
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 from numpy.linalg import det, inv
 from scipy.special import gammaln, multigammaln, psi
 
-from libs.common import (dirichlet_expectation,
-                         generate_random_positive_matrix, init_kmeans, softmax)
-from libs.viz import plot_iteration
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from utils import dirichlet_expectation, softmax
+
+from common import generate_random_positive_matrix, init_kmeans
+from viz import plot_iteration
+
 
 """
 Parameters:

@@ -4,6 +4,8 @@
 Tensorflow inference common functions
 """
 
+from __future__ import absolute_import
+
 import numpy as np
 import tensorflow as tf
 
@@ -37,3 +39,18 @@ def softmax(x):
                   tf.reduce_sum(
                       tf.add(tf.exp(tf.subtract(x, tf.reduce_max(x))),
                              np.finfo(np.float32).eps)))
+
+
+def multilgamma(a, D, D_t):
+    """
+    ln multigamma Tensorflow implementation
+    """
+    res = tf.multiply(tf.multiply(D_t, tf.multiply(tf.subtract(D_t, 1),
+                                                   tf.cast(0.25,
+                                                           dtype=tf.float64))),
+                      tf.log(tf.cast(np.pi, dtype=tf.float64)))
+    res += tf.reduce_sum(tf.lgamma([tf.subtract(a, tf.div(
+        tf.subtract(tf.cast(j, dtype=tf.float64),
+                    tf.cast(1., dtype=tf.float64)),
+        tf.cast(2., dtype=tf.float64))) for j in range(1, D + 1)]), axis=0)
+    return res

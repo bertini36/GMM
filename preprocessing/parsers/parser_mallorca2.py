@@ -39,7 +39,8 @@ def main():
                 secs = str(point.time).split(' ')
                 if len(secs) > 1:
                     secs = secs[1].split(':')
-                    secs = float(secs[0]) * 60 * 60 + float(secs[1]) * 60 + float(secs[2])
+                    secs = float(secs[0]) * 60 * 60 \
+                           + float(secs[1]) * 60 + float(secs[2])
                 else: secs = 0
                 if pre_secs is not None:
                     time += np.absolute(pre_secs-secs)

@@ -5,10 +5,10 @@ timing/*.html
 # Generated files
 timing/csv
 
-data/real/diomensionalityReduction/generated/
-data/real/interpolation/generated/
-data/real/maps/generated/
-data/real/others/generated/
+preprocessing/dimReduction/generated/
+preprocessing/interpolation/generated/
+preprocessing/maps/generated/
+preprocessing/others/generated/
 
 inference/autograd/generated
 inference/python/generated

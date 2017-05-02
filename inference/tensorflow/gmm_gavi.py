@@ -7,24 +7,17 @@ Tensorflow implementation
 [DOING]
 """
 
+from __future__ import absolute_import
+
 import argparse
-import csv
 import pickle as pkl
 import sys
 from time import time
 
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from mpl_toolkits.mplot3d import Axes3D
-from numpy.linalg import det, inv
-from scipy.special import gammaln, multigammaln, psi
 
-from libs.common import (dirichlet_expectation,
-                         generate_random_positive_matrix, init_kmeans,
-                         multilgamma, softmax)
-from libs.viz import plot_iteration
+from utils import multilgamma
 
 """
 Parameters:
@@ -45,26 +38,18 @@ parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str, default='')
 parser.add_argument('-k', metavar='k', type=int, default=2)
-parser.add_argument('--verbose', dest='verbose', action='store_true')
-parser.add_argument('--no-verbose', dest='verbose', action='store_false')
-parser.set_defaults(verbose=True)
-parser.add_argument('--randomInit', dest='randomInit', action='store_true')
-parser.add_argument('--no-randomInit', dest='randomInit', action='store_false')
+parser.add_argument('-verbose', dest='verbose', action='store_true')
+parser.set_defaults(verbose=False)
+parser.add_argument('-randomInit', dest='randomInit', action='store_true')
 parser.set_defaults(randomInit=False)
-parser.add_argument('--exportAssignments',
+parser.add_argument('-exportAssignments',
                     dest='exportAssignments', action='store_true')
-parser.add_argument('--no-exportAssignments',
-                    dest='exportAssignments', action='store_false')
-parser.set_defaults(exportAssignments=True)
+parser.set_defaults(exportAssignments=False)
 args = parser.parse_args()
 
-MAX_ITERS = args.maxIter
 K = args.k
 VERBOSE = args.verbose
-RANDOM_INIT = args.randomInit
 THRESHOLD = 1e-6
-PATH_IMAGE = 'generated/plot.png'
-EXPORT_ASSIGNMENTS = args.exportAssignments
 LR = 0.01
 
 sess = tf.Session()

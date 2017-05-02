@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Dimensionality reduction with incremental principal component analysis
+Dimensionality reduction with principal component analysis
 """
 
 import argparse
@@ -10,38 +10,31 @@ import pickle as pkl
 import sys
 
 import numpy as np
-from sklearn.decomposition import IncrementalPCA
+from sklearn.decomposition import PCA
+
+from .common import format_track
 
 """
 Parameters:
     * input: Input path (CSV with ; delimiter)
     * output: Output path (PKL file)
     * c: PCA number of principal components
+    * savePCA: Save PCA object
 
 Execution:
-    python ipca.py -input mallorca_nnint50.csv 
-                   -output generated/mallorca_nnint50_pca50.pkl -c 50
+    python pca.py -input mallorca_nnint50.csv 
+                  -output generated/mallorca_nnint50_pca50.pkl -c 50
 """
 
-parser = argparse.ArgumentParser(description='Incremental PCA')
+parser = argparse.ArgumentParser(description='Principal Component Analysis')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
-parser.add_argument('-c', metavar='c', type=int, default=50)
+parser.add_argument('-c', metavar='c', type=int)
+parser.add_argument('-savePCA', dest='savePCA', action='store_true')
+parser.set_defaults(savePCA=False)
 args = parser.parse_args()
 
-
-def format_track(track):
-    """
-    Format track from String to coordinates list
-    :param track: Track as a string
-    :return: Track as a Python list of coordinates
-    """
-    new_track = []
-    for point in track.split('[[')[1].split(']]')[0].split('], ['):
-        aux = [float(n) for n in point.split(', ')]
-        new_track.append(aux[0])
-        new_track.append(aux[1])
-    return new_track
+SAVE_PCA = args.savePCA
 
 
 def main():
@@ -60,12 +53,28 @@ def main():
                 xn.append(track)
                 n += 1
 
-            print('Doing Incremental PCA...')
-            pca = IncrementalPCA(n_components=args.c, batch_size=500)
+            print('Length xn: {}'.format(len(xn)))
+            print('Length xn[0]: {}'.format(len(xn[0])))
+
+            if args.c is not None:
+                print('Doing PCA...')
+                pca = PCA(n_components=args.c)
+            else:
+                print('Doing PCA with MLE...')
+                pca = PCA(n_components='mle', svd_solver='full')
             xn_new = pca.fit_transform(xn)
+
+            print('Explained variance: {}'
+                  .format(pca.explained_variance_ratio_))
+            print('Number of components: {}'
+                  .format(len(pca.explained_variance_ratio_)))
 
             with open(args.output, 'w') as output:
                 pkl.dump({'xn': np.array(xn_new)}, output)
+
+            if SAVE_PCA:
+                with open('pca.pkl', 'w') as output:
+                    pkl.dump({'pca': pca}, output)
 
     except IOError:
         print('File not found!')

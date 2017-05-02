@@ -5,17 +5,24 @@ Coordinate Ascent Variational Inference process to approximate a mixture
 of gaussians with common variance for all classes
 """
 
+from __future__ import absolute_import
+
 import argparse
 import math
+import os
 import pickle as pkl
+import sys
 from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from libs.common import dirichlet_expectation, log_beta_function, softmax
-from libs.viz import plot_iteration
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from utils import dirichlet_expectation, log_beta_function, softmax
+
+from viz import plot_iteration
 
 """
 Parameters:

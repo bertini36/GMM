@@ -5,6 +5,8 @@ Coordinate Ascent Variational Inference with Linesearch process
 to approximate an univariate gaussian
 """
 
+from __future__ import absolute_import
+
 import argparse
 import math
 from time import time

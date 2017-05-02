@@ -3,7 +3,8 @@
 This repo contains different variational methods to learn a Gaussian Mixture 
 Model (GMM) and an Univariate Gaussian (UGM) from data. It also contains 
 documentation regarding the algorithm derivations, 2D interpolation scripts,
-dimensionality reduction scripts, map visualization scripts, other models, ...
+dimensionality reduction scripts, map visualization scripts and other 
+interesting models.
 
 
 ## List of available algorithms
@@ -80,31 +81,30 @@ algorithm to learn an UGM.
  
  
 ## Other models
+
 ### Python
-- `basicModels/dirichlet_categorical.py` Exact inference in a Dirichlet Categorical
+- `models/dirichlet_categorical.py` Exact inference in a Dirichlet Categorical
  model.
-- `basicModels/invgamma_normal.py` Exact inference in a Inverse-Gamma Normal
+- `models/invgamma_normal.py` Exact inference in a Inverse-Gamma Normal
  model.
-- `basicModels/NIW_normal.py` Exact inference in a Normal-Inverse-Wishart Normal
+- `models/NIW_normal.py` Exact inference in a Normal-Inverse-Wishart Normal
  model.
  
 ### Tensorflow
-- `basicModels/linear_regression_tf.py` Linear regression model optimization 
+- `models/linear_regression_tf.py` Linear regression model optimization 
  with Gradient Descent algorithm.
 
 ### Autograd
-- `basicModels/linear_regression_ag.py` Linear regression model optimization
+- `models/linear_regression_ag.py` Linear regression model optimization
  with Gradient Descent algorithm.
  
 ### Edward
-- `basicModels/dirichlet_categorical_edward.py` Black Box Variational Inference
+- `models/dirichlet_categorical_edward.py` Black Box Variational Inference
  in a Dirichlet Categorical model.
-- `basicModels/invgamma_normal_edward.py` Black Box Variational Inference in a 
+- `models/invgamma_normal_edward.py` Black Box Variational Inference in a 
  Inverse-Gamma Normal model.
-- `basicModels/NW_normal_edward.py` [DOING] Black Box Variational Inference in a
+- `models/NW_normal_edward.py` [DOING] Black Box Variational Inference in a
  Normal-Wishart Normal model.
- 
- 
 
 
 ## Documentation
