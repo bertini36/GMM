@@ -30,3 +30,13 @@ def init_kmeans(xn, N, K):
     for i, lab in enumerate(labels):
         lambda_phi[i, lab] = 0.9
     return lambda_phi
+
+
+def softmax(x):
+    """
+    Softmax computation
+    e^{x} / sum_{i=1}^{K}(e^x_{i})
+    """
+    e_x = np.exp(x - np.max(x))
+    return (e_x + np.finfo(np.float32).eps) / \
+           (e_x.sum(axis=0) + np.finfo(np.float32).eps)

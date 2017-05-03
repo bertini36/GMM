@@ -24,9 +24,9 @@ from scipy.special import gammaln, multigammaln, psi
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from utils import dirichlet_expectation, dirichlet_expectation_k, \
-                  softmax, log_, log_beta_function
+                  log_, log_beta_function
 
-from common import generate_random_positive_matrix, init_kmeans
+from common import generate_random_positive_matrix, init_kmeans, softmax
 from viz import plot_iteration
 
 
@@ -49,8 +49,8 @@ Execution:
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k8/data_k8_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=8)
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)

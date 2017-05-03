@@ -14,10 +14,13 @@ from sklearn.cluster import KMeans
 def dirichlet_expectation(alpha):
     """
     Dirichlet expectation computation
-    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
+    \Psi(\alpha) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
     """
-    return agscipy.psi(alpha + agnp.finfo(agnp.float32).eps) \
-           - agscipy.psi(agnp.sum(alpha))
+    if len(alpha.shape) == 1:
+        return agscipy.psi(alpha + agnp.finfo(agnp.float32).eps) \
+               - agscipy.psi(agnp.sum(alpha))
+    return agscipy.psi(alpha + agnp.finfo(agnp.float32).eps)\
+           - agscipy.psi(agnp.sum(alpha, 1))[:, agnp.newaxis]
 
 
 def log_beta_function(x):
@@ -38,3 +41,24 @@ def init_kmeans(xn, N, K):
     for i, lab in enumerate(labels):
         lambda_phi[i, lab] = 0.9
     return lambda_phi
+
+
+def log_(x):
+    return agnp.log(x + agnp.finfo(agnp.float32).eps)
+
+
+def softmax(x):
+    """
+    Softmax computation
+    e^{x} / sum_{i=1}^{K}(e^x_{i})
+    """
+    e_x = agnp.exp(x - agnp.max(x))
+    return (e_x + agnp.finfo(agnp.float32).eps) / \
+           (e_x.sum(axis=0) + agnp.finfo(agnp.float32).eps)
+
+
+def softplus(x):
+    """
+    Softplus computation
+    """
+    return agnp.log(1 + agnp.exp(x))

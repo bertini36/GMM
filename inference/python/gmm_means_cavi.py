@@ -19,9 +19,9 @@ import numpy as np
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from utils import dirichlet_expectation, log_beta_function, softmax
+from utils import dirichlet_expectation, log_beta_function
 
-from common import init_kmeans
+from common import init_kmeans, softmax
 from viz import plot_iteration
 
 """

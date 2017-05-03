@@ -13,7 +13,16 @@ K = 2
 sess = tf.Session()
 
 
-def dirichlet_expectation(alpha, k):
+def dirichlet_expectation(alpha):
+    """
+    Dirichlet expectation computation
+    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
+    """
+    return tf.subtract(tf.digamma(tf.add(alpha, np.finfo(np.float32).eps)),
+                       tf.digamma(tf.reduce_sum(alpha)))
+
+
+def dirichlet_expectation_k(alpha, k):
     """
     Dirichlet expectation computation
     \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
@@ -130,7 +139,7 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
     for n in range(N):
         for k in range(K):
             inv_lambda_w = inv(lambda_w[k, :, :])
-            lambda_phi[n, k] = dirichlet_expectation(lambda_pi, k)
+            lambda_phi[n, k] = dirichlet_expectation_k(lambda_pi, k)
             lambda_phi[n, k] += np.dot(lambda_m[k, :], np.dot(
                 lambda_nu[k] * inv_lambda_w, xn[n, :]))
             lambda_phi[n, k] -= np.trace(
@@ -146,6 +155,19 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
             lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_w[k, :, :]))
         lambda_phi[n, :] = softmax(lambda_phi[n, :])
     return lambda_phi
+
+
+def log_beta_function(x):
+    """
+    Log beta function
+    ln(\gamma(x)) - ln(\gamma(\sum_{i=1}^{N}(x_{i}))
+    """
+    return tf.reduce_sum(tf.lgamma(tf.add(x, np.finfo(np.float32).eps))) \
+           - tf.lgamma(tf.reduce_sum(tf.add(x, np.finfo(np.float32).eps)))
+
+
+def log_(x):
+    return tf.log(tf.add(x, np.finfo(np.float32).eps))
 
 
 def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
@@ -188,6 +210,111 @@ def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
             lambda_phi[:, k]
         )))
     return lb
+
+
+def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
+          lambda_beta, nu_o, lambda_nu, w_o, lambda_w, N, K):
+    """
+    ELBO computation
+    """
+    e3 = tf.convert_to_tensor(0., dtype=tf.float64)
+    e2 = tf.convert_to_tensor(0., dtype=tf.float64)
+    h2 = tf.convert_to_tensor(0., dtype=tf.float64)
+    e1 = tf.add(-log_beta_function(alpha_o),
+                tf.reduce_sum(tf.multiply(
+                    tf.subtract(alpha_o, tf.ones(K, dtype=tf.float64)),
+                    dirichlet_expectation(lambda_pi))))
+    h1 = tf.subtract(log_beta_function(lambda_pi),
+                     tf.reduce_sum(tf.multiply(
+                         tf.subtract(lambda_pi, tf.ones(K, dtype=tf.float64)),
+                         dirichlet_expectation(lambda_pi))))
+    logdet = tf.log(tf.convert_to_tensor([
+        tf.matrix_determinant(lambda_w[k, :, :]) for k in xrange(K)]))
+    logDeltak = tf.add(tf.digamma(tf.div(lambda_nu, 2.)),
+                       tf.add(tf.digamma(tf.div(tf.subtract(lambda_nu,
+                                                            tf.cast(1.,
+                                                                    dtype=tf.float64)),
+                                                tf.cast(2., dtype=tf.float64))),
+                              tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
+                                                 tf.cast(tf.log(2.),
+                                                         dtype=tf.float64)),
+                                     logdet)))
+    for n in range(1):
+        e2 = tf.add(e2, tf.reduce_sum(
+            tf.multiply(lambda_phi[n, :], dirichlet_expectation(lambda_pi))))
+        h2 = tf.add(h2, -tf.reduce_sum(
+            tf.multiply(lambda_phi[n, :], log_(lambda_phi[n, :]))))
+        product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
+            tf.matmul(tf.reshape(tf.subtract(xn[n, :], lambda_m[k, :]), [1, 2]),
+                      lambda_w[k, :, :]),
+            tf.reshape(tf.transpose(tf.subtract(xn[n, :], lambda_m[k, :])),
+                       [2, 1]))) for k in range(K)])
+        aux = tf.transpose(tf.subtract(
+            logDeltak, tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
+                                          tf.cast(tf.log(2. * np.pi),
+                                                  dtype=tf.float64)),
+                              tf.add(tf.multiply(lambda_nu, product),
+                                     tf.div(tf.cast(2., dtype=tf.float64),
+                                            lambda_beta)))))
+        e3 = tf.add(e3, tf.reduce_sum(
+            tf.multiply(tf.cast(1 / 2., dtype=tf.float64),
+                        tf.multiply(lambda_phi[n, :], aux))))
+    product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
+        tf.matmul(tf.reshape(tf.subtract(lambda_m[k, :], m_o), [1, 2]),
+                  lambda_w[k, :, :]),
+        tf.reshape(tf.transpose(tf.subtract(lambda_m[k, :], m_o)), [2, 1]))) for
+        k in range(K)])
+    traces = tf.convert_to_tensor([tf.trace(tf.matmul(
+        tf.matrix_inverse(w_o), lambda_w[k, :, :])) for k in range(K)])
+    h4 = tf.reduce_sum(
+        tf.add(tf.cast(1., dtype=tf.float64),
+               tf.subtract(tf.log(tf.cast(2., dtype=tf.float64) * np.pi),
+                           tf.multiply(tf.cast(1. / 2., dtype=tf.float64),
+                                       tf.add(tf.cast(tf.log(lambda_beta),
+                                                      dtype=tf.float64),
+                                              logdet)))))
+    aux = tf.add(tf.multiply(tf.cast(1. / 2., dtype=tf.float64), tf.log(
+        tf.cast(tf.constant(np.pi), dtype=tf.float64))),
+                 tf.add(tf.lgamma(
+                     tf.div(lambda_nu, tf.cast(2., dtype=tf.float64))),
+                        tf.lgamma(tf.div(tf.subtract(lambda_nu, tf.cast(1.,
+                                                                        dtype=tf.float64)),
+                                         tf.cast(2., dtype=tf.float64)))))
+    logB = tf.add(
+        tf.multiply(tf.div(lambda_nu, tf.cast(2., dtype=tf.float64)), logdet),
+        tf.add(tf.multiply(lambda_nu, tf.log(tf.cast(2., dtype=tf.float64))),
+               aux))
+    h5 = tf.reduce_sum(tf.subtract(tf.add(logB, lambda_nu),
+                                   tf.multiply(tf.div(tf.subtract(
+                                       lambda_nu,
+                                       tf.cast(3., dtype=tf.float64)),
+                                       tf.cast(2., dtype=tf.float64)),
+                                       logDeltak)))
+    aux = tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
+                             tf.log(tf.cast(2., dtype=tf.float64) * np.pi)),
+                 tf.add(tf.multiply(beta_o, tf.multiply(lambda_nu, product)),
+                        tf.multiply(tf.cast(2., dtype=tf.float64),
+                                    tf.div(beta_o, lambda_beta))))
+    e4 = tf.reduce_sum(tf.multiply(tf.cast(1. / 2., dtype=tf.float64),
+                                   tf.subtract(
+                                       tf.add(tf.log(beta_o), logDeltak), aux)))
+    logB = tf.add(
+        tf.multiply(tf.div(nu_o, tf.cast(2., dtype=tf.float64)),
+                    tf.log(tf.matrix_determinant(w_o))),
+        tf.add(tf.multiply(nu_o, tf.cast(tf.log(2.), dtype=tf.float64)),
+               tf.add(tf.multiply(tf.cast(1. / 2., dtype=tf.float64),
+                                  tf.cast(tf.log(np.pi), dtype=tf.float64)),
+                      tf.add(tf.lgamma(
+                          tf.div(nu_o, tf.cast(2., dtype=tf.float64))),
+                             tf.lgamma(tf.div(tf.subtract(nu_o, tf.cast(1.,
+                                                                        dtype=tf.float64)),
+                                              tf.cast(2.,
+                                                      dtype=tf.float64)))))))
+    e5 = tf.reduce_sum(tf.add(-logB, tf.subtract(
+        tf.multiply(tf.div(tf.subtract(nu_o, tf.cast(3., dtype=tf.float64)),
+                           tf.cast(2., dtype=tf.float64)), logDeltak),
+        tf.multiply(tf.div(lambda_nu, tf.cast(2., dtype=tf.float64)), traces))))
+    return e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 
 def main():
@@ -242,10 +369,15 @@ def main():
     init = tf.global_variables_initializer()
     sess.run(init)
 
+    # ELBO computation
     lb = elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
               lambda_w, alpha_o, beta_o, nu_o, w_o, N, D)
-
     print('ELBO: {}'.format(sess.run(lb)))
+
+    # ELBO2 computation
+    lb2 = elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
+                lambda_beta, nu_o, lambda_nu, w_o, lambda_w, N, K)
+    print('ELBO2: {}'.format(sess.run(lb2)))
 
 
 if __name__ == '__main__': main()
