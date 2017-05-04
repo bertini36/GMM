@@ -192,7 +192,7 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
     logdet = np.log(np.array([det(lambda_w[k, :, :]) for k in xrange(K)]))
     logDeltak = psi(lambda_nu / 2.) \
                 + psi((lambda_nu - 1.) / 2.) + 2. * np.log(2.) + logdet
-    for n in range(1):
+    for n in range(N):
         e2 += np.dot(lambda_phi[n, :], dirichlet_expectation(lambda_pi))
         h2 += -np.dot(lambda_phi[n, :], log_(lambda_phi[n, :]))
         product = np.array([np.dot(np.dot(

@@ -239,7 +239,7 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
                                                  tf.cast(tf.log(2.),
                                                          dtype=tf.float64)),
                                      logdet)))
-    for n in range(1):
+    for n in range(N):
         e2 = tf.add(e2, tf.reduce_sum(
             tf.multiply(lambda_phi[n, :], dirichlet_expectation(lambda_pi))))
         h2 = tf.add(h2, -tf.reduce_sum(

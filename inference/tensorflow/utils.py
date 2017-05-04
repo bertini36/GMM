@@ -54,3 +54,8 @@ def multilgamma(a, D, D_t):
                     tf.cast(1., dtype=tf.float64)),
         tf.cast(2., dtype=tf.float64))) for j in range(1, D + 1)]), axis=0)
     return res
+
+
+def log_(x):
+    return tf.log(tf.add(x, np.finfo(np.float32).eps))
+
