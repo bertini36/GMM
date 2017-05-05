@@ -31,7 +31,7 @@ Parameters:
                                    the variational parameters inferred
 
 Execution:
-    python gmm_means_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
+    python gmm_means_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
                              -exportAssignments -exportVariationalParameters
 """
 

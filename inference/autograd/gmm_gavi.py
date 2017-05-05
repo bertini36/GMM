@@ -44,7 +44,7 @@ Parameters:
     * exportAssignments: If true generate a csv with the cluster assignments
      
 Execution:
-    python gmm_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose
+    python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
@@ -69,12 +69,12 @@ MACHINE_PRECISION = 2.2204460492503131e-16
 
 # Gradient ascent step sizes of variational parameters
 ps = {
-    'lambda_phi': 0.0001,
-    'lambda_pi': 0.0001,
-    'lambda_m': 0.0000000001,
-    'lambda_w': 0.0000000001,
-    'lambda_beta': 0.0001,
-    'lambda_nu': 0.0001
+    'lambda_phi': 0.001,
+    'lambda_pi': 0.001,
+    'lambda_m': 0.001,
+    'lambda_w': 0.001,
+    'lambda_beta': 0.001,
+    'lambda_nu': 0.001
 }
 
 
@@ -193,7 +193,7 @@ def elbo((lambda_pi, lambda_phi, lambda_m, lambda_beta, lambda_nu, lambda_w)):
          - agnp.dot((lambda_pi - agnp.ones(K)),
                     dirichlet_expectation(lambda_pi))
     logdet = agnp.log(
-        agnp.array([agnp.linalg.det(lambda_w[k, :, :]) for k in xrange(K)]))
+        agnp.array([agnp.linalg.det(lambda_w[k, :, :]) for k in range(K)]))
     logDeltak = agscipy.psi(lambda_nu / 2.) \
                 + agscipy.psi((lambda_nu - 1.) / 2.) + 2. * agnp.log(
         2.) + logdet
@@ -203,7 +203,7 @@ def elbo((lambda_pi, lambda_phi, lambda_m, lambda_beta, lambda_nu, lambda_w)):
         h2 += -agnp.dot(lambda_phi[n, :], log_(lambda_phi[n, :]))
         product = agnp.array([agnp.dot(agnp.dot(
             xn[n, :] - lambda_m[k, :], lambda_w[k, :, :]),
-            (xn[n, :] - lambda_m[k, :]).T) for k in xrange(K)])
+            (xn[n, :] - lambda_m[k, :]).T) for k in range(K)])
         e3 += 1. / 2 * agnp.dot(lambda_phi[n, :],
                                 (logDeltak - 2. * agnp.log(2 * agnp.pi) -
                                  lambda_nu * product - 2. / lambda_beta).T)
@@ -211,10 +211,10 @@ def elbo((lambda_pi, lambda_phi, lambda_m, lambda_beta, lambda_nu, lambda_w)):
     product = agnp.array([agnp.dot(agnp.dot(lambda_m[k, :] - m_o,
                                             lambda_w[k, :, :]),
                                    (lambda_m[k, :] - m_o).T) for k in
-                          xrange(K)])
+                          range(K)])
     traces = agnp.array([agnp.trace(agnp.dot(agnp.linalg.inv(w_o),
                                              lambda_w[k, :, :])) for k in
-                         xrange(K)])
+                         range(K)])
     h4 = agnp.sum((1. + agnp.log(2. * agnp.pi) - 1. / 2 * (
     agnp.log(lambda_beta) + logdet)))
     logB = lambda_nu / 2. * logdet + lambda_nu * agnp.log(
@@ -297,26 +297,30 @@ for _ in range(args.maxIter):
                                     lambda_beta, lambda_nu, lambda_w))
 
     # Variational parameter updates (gradient ascent)
-    """
     lambda_pi -= ps['lambda_pi'] * grads[0]
     lambda_phi -= ps['lambda_phi'] * grads[1]
-    lambda_phi = agnp.array([softmax(lambda_phi[i]) for i in range(N)])
     lambda_m -= ps['lambda_m'] * grads[2]
     lambda_beta -= ps['lambda_beta'] * grads[3]
     lambda_nu -= ps['lambda_nu'] * grads[4]
-    lambda_w = softplus(lambda_w - (ps['lambda_w'] * grads[5]))
-    """
+    lambda_w -= ps['lambda_w'] * grads[5]
 
+    lambda_phi = agnp.array([softmax(lambda_phi[i]) for i in range(N)])
+    lambda_beta = softplus(lambda_beta)
+    lambda_nu = softplus(lambda_nu)
+    lambda_pi = softplus(lambda_pi)
+    lambda_w = agnp.array([agnp.dot(lambda_w[k], lambda_w[k].T)
+                           for k in range(K)])
+
+    """
     lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
     Nks = np.sum(lambda_phi, axis=0)
     lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
     lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
-    print('Gradiants lambda_m: {}'.format(grads[2]))
     lambda_m -= ps['lambda_m'] * grads[2]
-    print('Gradiants lambda_w: {}'.format(grads[5]))
     lambda_w = lambda_w - (ps['lambda_w'] * grads[5])
     lambda_phi -= ps['lambda_phi'] * grads[1]
     lambda_phi = agnp.array([softmax(lambda_phi[i]) for i in range(N)])
+    """
 
     # ELBO computation
     lb = elbo((lambda_pi, lambda_phi, lambda_m,
@@ -350,7 +354,7 @@ for _ in range(args.maxIter):
 
     n_iters += 1
 
-zn = agnp.array([agnp.argmax(lambda_phi[n, :]) for n in xrange(N)])
+zn = agnp.array([agnp.argmax(lambda_phi[n, :]) for n in range(N)])
 
 if VERBOSE:
     print('\n******* RESULTS *******')

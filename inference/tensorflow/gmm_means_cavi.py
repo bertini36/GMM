@@ -32,7 +32,7 @@ Parameters:
     * verbose: Printing time, intermediate variational parameters, plots, ...
     
 Execution:
-    python gmm_means_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
+    python gmm_means_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
