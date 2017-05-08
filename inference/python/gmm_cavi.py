@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
 
 """
-process to approximate a Mixture of Gaussians (GMM)
 Coordinate Ascent Variational Inference
+process to approximate a Mixture of Gaussians (GMM)
 """
 
 from __future__ import absolute_import
@@ -299,6 +299,7 @@ def main():
                 if D == 2:
                     covs = [lambda_w[k, :, :] / (lambda_nu[k] - D - 1)
                             for k in range(K)]
+                    print('COVS: {}'.format(covs))
                     ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
                                                              sctZ, lambda_m,
                                                              covs, xn,

@@ -5,10 +5,11 @@ library(plotKML)
 # Configuration
 TRACKS_PATH ="/home/alberto/Escritorio/porto_int50_subset.csv"
 ASSIGNMENTS_PATH = "/home/alberto/Escritorio/assignments_subset.csv"
-K = 30
+K = 2
 DELIMITER = ";"
 HEADER = TRUE
 COLORS = colorRampPalette(c("blue", "red"))(30) 
+COLORS = c("#0066CC", "#CC0000")
 RESOLUTION = c(1920, 1080)
 
 # Read tracks and assignments

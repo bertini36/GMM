@@ -327,10 +327,10 @@ def main():
     np.random.seed(0)
 
     # Priors
-    alpha_o = np.array([1.0] * K)
+    alpha_o = np.array([7.0, 3.0])
     nu_o = np.array([float(D)])
-    w_o = np.array([[2, 1], [3, 2]])
-    m_o = np.array([0.0] * D)
+    w_o = np.array([[2, 1], [3, 8]])
+    m_o = np.array([7.0] * D)
     beta_o = np.array([0.7])
 
     # Variational parameters intialization

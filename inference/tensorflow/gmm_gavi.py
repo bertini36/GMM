@@ -56,7 +56,7 @@ args = parser.parse_args()
 
 K = args.k
 VERBOSE = args.verbose
-LR = 0.5
+LR = 0.3
 THRESHOLD = 1e-6
 
 sess = tf.Session()
@@ -72,7 +72,7 @@ if VERBOSE: init_time = time()
 # Priors
 alpha_o = np.array([1.0] * K)
 nu_o = np.array([float(D)])
-w_o = generate_random_positive_matrix(D)
+w_o = np.array([[20, 8], [8, 7]])
 m_o = np.array([0.0] * D)
 beta_o = np.array([0.7])
 
@@ -81,7 +81,7 @@ lambda_phi_var = np.random.dirichlet(alpha_o, N) \
     if args.randomInit else init_kmeans(xn, N, K)
 lambda_pi_var = np.zeros(shape=K)
 lambda_beta_var = np.zeros(shape=K)
-lambda_nu_var = np.zeros(shape=K)
+lambda_nu_var = np.zeros(shape=K) + D
 lambda_m_var = np.zeros(shape=(K, D))
 lambda_w_var = np.array([np.copy(w_o) for _ in range(K)])
 
@@ -96,10 +96,20 @@ lambda_w_var = tf.Variable(lambda_w_var, dtype=tf.float64)
 lambda_pi = tf.nn.softplus(lambda_pi_var)
 lambda_beta = tf.nn.softplus(lambda_beta_var)
 lambda_phi = tf.nn.softmax(lambda_phi_var)
-lambda_nu = tf.nn.softplus(lambda_nu_var)
-lambda_w = tf.convert_to_tensor([tf.matmul(lambda_w_var[k],
-                                           tf.transpose(lambda_w_var[k]))
-                                 for k in range(K)])
+lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var), tf.cast(D, dtype=tf.float64))
+lambda_w = tf.convert_to_tensor([tf.matrix_set_diag(
+    tf.eye(D, dtype=tf.float64), tf.nn.softplus(tf.diag_part(lambda_w_var[k])))
+    for k in range(K)])
+
+# Semidefinite positive matrices definition with Cholesky descomposition
+"""
+mats = []
+for k in range(K):
+    aux1 = tf.matrix_set_diag(tf.matrix_band_part(lambda_w_var[k], -1, 0),
+                              tf.nn.softplus(tf.diag_part(lambda_w_var[k])))
+    mats.append(tf.matmul(aux1, tf.transpose(aux1)))
+lambda_w = tf.convert_to_tensor(mats)
+"""
 
 alpha_o = tf.convert_to_tensor(alpha_o, dtype=tf.float64)
 nu_o = tf.convert_to_tensor(nu_o, dtype=tf.float64)
@@ -122,14 +132,12 @@ h1 = tf.subtract(log_beta_function(lambda_pi),
 logdet = tf.log(tf.convert_to_tensor([
     tf.matrix_determinant(lambda_w[k, :, :]) for k in xrange(K)]))
 logDeltak = tf.add(tf.digamma(tf.div(lambda_nu, 2.)),
-                   tf.add(tf.digamma(tf.div(tf.subtract(lambda_nu,
-                                                        tf.cast(1.,
-                                                                dtype=tf.float64)),
-                                            tf.cast(2., dtype=tf.float64))),
-                          tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
-                                             tf.cast(tf.log(2.),
-                                                     dtype=tf.float64)),
-                                 logdet)))
+                   tf.add(tf.digamma(tf.div(tf.subtract(
+                       lambda_nu, tf.cast(1., dtype=tf.float64)),
+                       tf.cast(2., dtype=tf.float64))),
+                       tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
+                                          tf.cast(tf.log(2.),
+                                                  dtype=tf.float64)), logdet)))
 for n in range(N):
     e2 = tf.add(e2, tf.reduce_sum(
         tf.multiply(lambda_phi[n, :], dirichlet_expectation(lambda_pi))))
@@ -168,19 +176,17 @@ aux = tf.add(tf.multiply(tf.cast(1. / 2., dtype=tf.float64), tf.log(
     tf.cast(tf.constant(np.pi), dtype=tf.float64))),
              tf.add(tf.lgamma(
                  tf.div(lambda_nu, tf.cast(2., dtype=tf.float64))),
-                    tf.lgamma(tf.div(tf.subtract(lambda_nu, tf.cast(1.,
-                                                                    dtype=tf.float64)),
-                                     tf.cast(2., dtype=tf.float64)))))
+                    tf.lgamma(tf.div(
+                        tf.subtract(lambda_nu, tf.cast(1., dtype=tf.float64)),
+                        tf.cast(2., dtype=tf.float64)))))
 logB = tf.add(
     tf.multiply(tf.div(lambda_nu, tf.cast(2., dtype=tf.float64)), logdet),
-    tf.add(tf.multiply(lambda_nu, tf.log(tf.cast(2., dtype=tf.float64))),
-           aux))
+    tf.add(tf.multiply(lambda_nu, tf.log(tf.cast(2., dtype=tf.float64))), aux))
 h5 = tf.reduce_sum(tf.subtract(tf.add(logB, lambda_nu),
                                tf.multiply(tf.div(tf.subtract(
                                    lambda_nu,
                                    tf.cast(3., dtype=tf.float64)),
-                                   tf.cast(2., dtype=tf.float64)),
-                                   logDeltak)))
+                                   tf.cast(2., dtype=tf.float64)), logDeltak)))
 aux = tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
                          tf.log(tf.cast(2., dtype=tf.float64) * np.pi)),
              tf.add(tf.multiply(beta_o, tf.multiply(lambda_nu, product)),
@@ -197,10 +203,9 @@ logB = tf.add(
                               tf.cast(tf.log(np.pi), dtype=tf.float64)),
                   tf.add(tf.lgamma(
                       tf.div(nu_o, tf.cast(2., dtype=tf.float64))),
-                         tf.lgamma(tf.div(tf.subtract(nu_o, tf.cast(1.,
-                                                                    dtype=tf.float64)),
-                                          tf.cast(2.,
-                                                  dtype=tf.float64)))))))
+                         tf.lgamma(tf.div(tf.subtract(
+                             nu_o, tf.cast(1., dtype=tf.float64)),
+                                          tf.cast(2., dtype=tf.float64)))))))
 e5 = tf.reduce_sum(tf.add(-logB, tf.subtract(
     tf.multiply(tf.div(tf.subtract(nu_o, tf.cast(3., dtype=tf.float64)),
                        tf.cast(2., dtype=tf.float64)), logDeltak),
@@ -208,7 +213,10 @@ e5 = tf.reduce_sum(tf.add(-logB, tf.subtract(
 LB = e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 # Optimizer definition
-optimizer = tf.train.AdamOptimizer(learning_rate=LR)
+global_step = tf.Variable(0)
+learning_rate = tf.train.exponential_decay(LR, global_step,
+                                           100000, 0.95, staircase=True)
+optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
 grads_and_vars = optimizer.compute_gradients(
     -LB, var_list=[lambda_pi_var, lambda_phi_var, lambda_m,
                    lambda_beta_var, lambda_nu_var, lambda_w_var])
@@ -257,7 +265,11 @@ def main():
             print('lambda_nu: {}'.format(nu_out))
             print('lambda_w: {}'.format(w_out))
             print('ELBO: {}'.format(lb))
-            covs = [(w_out[k, :, :] / (nu_out[k] - D - 1)) for k in range(K)]
+            covs = []
+            for k in range(K):
+                w_out[k, 0, 0] = 1.0 / w_out[k, 0, 0]
+                w_out[k, 1, 1] = 1.0 / w_out[k, 1, 1]
+                covs.append(w_out[k, :, :] / (nu_out[k] - D - 1))
             ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
                                                      sctZ, m_out,
                                                      covs, xn,
