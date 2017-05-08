@@ -308,7 +308,8 @@ def main():
             # Break condition
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
-            if n_iters > 0 and improve < THRESHOLD:
+            if (n_iters == (args.maxIter-1)) \
+                    or (n_iters > 0 and improve < THRESHOLD):
                 if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 

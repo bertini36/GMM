@@ -41,7 +41,7 @@ Execution:
 """
 
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=1000000)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
                     default='../../data/synthetic/2D/k2/data_k2_100.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -57,7 +57,7 @@ args = parser.parse_args()
 K = args.k
 VERBOSE = args.verbose
 LR = 0.3
-THRESHOLD = 1e-6
+THRESHOLD = 1e-12
 
 sess = tf.Session()
 
@@ -97,19 +97,14 @@ lambda_pi = tf.nn.softplus(lambda_pi_var)
 lambda_beta = tf.nn.softplus(lambda_beta_var)
 lambda_phi = tf.nn.softmax(lambda_phi_var)
 lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var), tf.cast(D, dtype=tf.float64))
-lambda_w = tf.convert_to_tensor([tf.matrix_set_diag(
-    tf.eye(D, dtype=tf.float64), tf.nn.softplus(tf.diag_part(lambda_w_var[k])))
-    for k in range(K)])
 
 # Semidefinite positive matrices definition with Cholesky descomposition
-"""
 mats = []
 for k in range(K):
     aux1 = tf.matrix_set_diag(tf.matrix_band_part(lambda_w_var[k], -1, 0),
                               tf.nn.softplus(tf.diag_part(lambda_w_var[k])))
-    mats.append(tf.matmul(aux1, tf.transpose(aux1)))
+    mats.append(tf.matmul(aux1, aux1, transpose_b=True))
 lambda_w = tf.convert_to_tensor(mats)
-"""
 
 alpha_o = tf.convert_to_tensor(alpha_o, dtype=tf.float64)
 nu_o = tf.convert_to_tensor(nu_o, dtype=tf.float64)
@@ -220,7 +215,7 @@ optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
 grads_and_vars = optimizer.compute_gradients(
     -LB, var_list=[lambda_pi_var, lambda_phi_var, lambda_m,
                    lambda_beta_var, lambda_nu_var, lambda_w_var])
-train = optimizer.apply_gradients(grads_and_vars)
+train = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
 # Summaries definition
 tf.summary.histogram('lambda_pi', lambda_pi)
@@ -270,15 +265,19 @@ def main():
                 w_out[k, 0, 0] = 1.0 / w_out[k, 0, 0]
                 w_out[k, 1, 1] = 1.0 / w_out[k, 1, 1]
                 covs.append(w_out[k, :, :] / (nu_out[k] - D - 1))
+            print('COVS: {}'.format(covs))
             ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
                                                      sctZ, m_out,
                                                      covs, xn,
                                                      n_iters, K)
 
-        # Break condition
-        if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
-            plt.savefig('generated/plot.png')
-            break
+            # Break condition
+            improve = abs(lb - lbs[n_iters - 1])
+            if VERBOSE: print('Improve: {}'.format(improve))
+            if (n_iters == (args.maxIter - 1)) \
+                    or (n_iters > 0 and improve < THRESHOLD):
+                if VERBOSE and D == 2: plt.savefig('generated/plot.png')
+                break
 
         n_iters += 1
         file_writer.add_summary(mer, n_iters)
@@ -292,5 +291,10 @@ def main():
         print('Time: {} seconds'.format(exec_time))
         print('Iterations: {}'.format(n_iters))
         print('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
+        plt.gcf().clear()
+        plt.plot(np.arange(len(lbs)), lbs)
+        plt.ylabel('ELBO')
+        plt.xlabel('Iterations')
+        plt.savefig('generated/elbos.png')
 
 if __name__ == '__main__': main()
