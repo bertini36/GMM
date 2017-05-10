@@ -19,6 +19,15 @@ def dirichlet_expectation(alpha):
                        tf.digamma(tf.reduce_sum(alpha)))
 
 
+def dirichlet_expectation_k(alpha, k):
+    """
+    Dirichlet expectation computation
+    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
+    """
+    return tf.subtract(tf.digamma(tf.add(alpha[k], np.finfo(np.float32).eps)),
+                       tf.digamma(tf.reduce_sum(alpha)))
+
+
 def log_beta_function(x):
     """
     Log beta function
