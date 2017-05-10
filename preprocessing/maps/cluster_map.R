@@ -3,13 +3,13 @@
 library(plotKML)
 
 # Configuration
-TRACKS_PATH ="/home/alberto/Escritorio/porto_int50_subset.csv"
-ASSIGNMENTS_PATH = "/home/alberto/Escritorio/assignments_subset.csv"
-K = 2
+TRACKS_PATH ="/home/alberto/Dropbox/BSC/GMM/data/real/mallorca_nnint50.csv"
+ASSIGNMENTS_PATH = "/home/alberto/Dropbox/BSC/GMM/inference/python/generated/assignments.csv"
+K = 4
 DELIMITER = ";"
 HEADER = TRUE
 COLORS = colorRampPalette(c("blue", "red"))(30) 
-COLORS = c("#0066CC", "#CC0000")
+# COLORS = c("#0066CC", "#CC0000")
 RESOLUTION = c(1920, 1080)
 
 # Read tracks and assignments

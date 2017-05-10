@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 from edward.models import Normal
 
-from .common import format_track
+from common import format_track
 
 """
 Parameters:
@@ -26,7 +26,7 @@ Parameters:
 
 Execution:
     python ppca.py -input mallorca_nnint50.csv 
-                   -output generated/mallorca_nnint50_ppca.pkl -k 100
+                   -output generated/mallorca_nnint50_ppca8.pkl -k 100
 """
 
 parser = argparse.ArgumentParser(description='PCA')
@@ -108,15 +108,23 @@ def main():
 
             alphas = tf.exp(qalpha.distribution.mean()).eval()
             alphas.sort()
-            mean_alphas = np.mean(alphas)
+            # mean_alphas = np.mean(alphas)
             print('Alphas: {}'.format(alphas))
 
             points = qz.eval()
             xn_new = []
             for i in range(len(alphas)):
-                if alphas[i] > (mean_alphas * 1.2):
-                    xn_new.append(points[i])
+                # if alphas[i] > (mean_alphas * 1.2):
+                xn_new.append(points[i])
             xn_new = np.asarray(xn_new).T
+
+            # Normalization
+            maxs = np.max(xn_new, axis=0)
+            mins = np.min(xn_new, axis=0)
+            rng = maxs - mins
+            high = 100.0
+            low = 0.0
+            xn_new = high - (((high - low) * (maxs - xn_new)) / rng)
 
             print('New points: {}'.format(xn_new))
             print('Number of points: {}'.format(len(xn_new)))
