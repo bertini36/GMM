@@ -43,8 +43,8 @@ Execution:
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=4)
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
 parser.add_argument('-randomInit', dest='randomInit', action='store_true')
@@ -93,7 +93,7 @@ lambda_m = tf.Variable(lambda_m_var, dtype=tf.float64)
 lambda_w_var = tf.Variable(lambda_w_var, dtype=tf.float64)
 
 # Maintain numerical stability
-lambda_pi = tf.nn.softplus(lambda_pi_var)
+lambda_pi = tf.nn.softmax(lambda_pi_var)
 lambda_beta = tf.nn.softplus(lambda_beta_var)
 lambda_phi = tf.nn.softmax(lambda_phi_var)
 lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var), tf.cast(D, dtype=tf.float64))
@@ -112,7 +112,7 @@ w_o = tf.convert_to_tensor(w_o, dtype=tf.float64)
 m_o = tf.convert_to_tensor(m_o, dtype=tf.float64)
 beta_o = tf.convert_to_tensor(beta_o, dtype=tf.float64)
 
-# Lower Bound definition
+# Evidence Lower Bound definition
 e3 = tf.convert_to_tensor(0., dtype=tf.float64)
 e2 = tf.convert_to_tensor(0., dtype=tf.float64)
 h2 = tf.convert_to_tensor(0., dtype=tf.float64)

@@ -16,14 +16,14 @@ from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.linalg import det, inv
 import tensorflow as tf
+from scipy.special import psi
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from utils import dirichlet_expectation, dirichlet_expectation_k, \
-                  log_, log_beta_function, multilgamma, softmax
+from utils import dirichlet_expectation, log_, log_beta_function, multilgamma
 
-from common import init_kmeans, generate_random_positive_matrix
 from viz import plot_iteration
 
 """
@@ -44,8 +44,8 @@ Execution:
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=4)
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
 parser.add_argument('-randomInit', dest='randomInit', action='store_true')
@@ -53,12 +53,14 @@ parser.set_defaults(randomInit=False)
 parser.add_argument('-exportAssignments',
                     dest='exportAssignments', action='store_true')
 parser.set_defaults(exportAssignments=False)
+
 args = parser.parse_args()
 
 K = args.k
 VERBOSE = args.verbose
-LR = 0.3
+LR = 0.7
 THRESHOLD = 1e-12
+BATCH_SIZE = 100
 
 sess = tf.Session()
 
@@ -73,32 +75,27 @@ if VERBOSE: init_time = time()
 # Priors
 alpha_o = np.array([1.0] * K)
 nu_o = np.array([float(D)])
-w_o = np.array([[20, 8], [8, 7]])
+w_o = np.array([[20.0, 8.0], [8.0, 7.0]])
 m_o = np.array([0.0] * D)
 beta_o = np.array([0.7])
 
 # Variational parameters intialization
-lambda_phi_var = np.random.dirichlet(alpha_o, N) \
-    if args.randomInit else init_kmeans(xn, N, K)
+lambda_phi_var = np.random.dirichlet(alpha_o, N)
 lambda_pi_var = np.zeros(shape=K)
 lambda_beta_var = np.zeros(shape=K)
 lambda_nu_var = np.zeros(shape=K) + D
-lambda_m_var = np.zeros(shape=(K, D))
 lambda_w_var = np.array([np.copy(w_o) for _ in range(K)])
 
-lambda_phi_var = tf.Variable(lambda_phi_var, dtype=tf.float64)
+lambda_phi = tf.Variable(lambda_phi_var, trainable=False, dtype=tf.float64)
 lambda_pi_var = tf.Variable(lambda_pi_var, dtype=tf.float64)
 lambda_beta_var = tf.Variable(lambda_beta_var, dtype=tf.float64)
 lambda_nu_var = tf.Variable(lambda_nu_var, dtype=tf.float64)
-lambda_m = tf.Variable(lambda_m_var, dtype=tf.float64)
+lambda_m = tf.Variable([[0.0, 0.0], [12.0, 4.0]], dtype=tf.float64)
 lambda_w_var = tf.Variable(lambda_w_var, dtype=tf.float64)
 
-lambda_phi_update = tf.Variable([N, K])
-
 # Maintain numerical stability
-lambda_pi = tf.nn.softplus(lambda_pi_var)
+lambda_pi = tf.nn.softmax(lambda_pi_var)
 lambda_beta = tf.nn.softplus(lambda_beta_var)
-lambda_phi = tf.nn.softmax(lambda_phi_var)
 lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var), tf.cast(D, dtype=tf.float64))
 
 # Semidefinite positive matrices definition with Cholesky descomposition
@@ -109,43 +106,13 @@ for k in range(K):
     mats.append(tf.matmul(aux1, aux1, transpose_b=True))
 lambda_w = tf.convert_to_tensor(mats)
 
+idx_tensor = tf.placeholder(tf.int32, shape=(BATCH_SIZE))
+
 alpha_o = tf.convert_to_tensor(alpha_o, dtype=tf.float64)
 nu_o = tf.convert_to_tensor(nu_o, dtype=tf.float64)
 w_o = tf.convert_to_tensor(w_o, dtype=tf.float64)
 m_o = tf.convert_to_tensor(m_o, dtype=tf.float64)
 beta_o = tf.convert_to_tensor(beta_o, dtype=tf.float64)
-
-# lambda phi variational update
-for n in range(N):
-    for k in range(K):
-        inv_lambda_w = tf.matrix_inverse(lambda_w[k, :, :])
-        lambda_phi_update[n, k] = dirichlet_expectation_k(lambda_pi, k)
-        lambda_phi_update[n, k] = tf.add(
-            lambda_phi_update[n, k], tf.matmul(
-                lambda_m[k, :], tf.matmul(tf.multiply(
-                    lambda_nu[k], inv_lambda_w), xn[n, :])))
-        lambda_phi_update[n, k] = tf.subtract(
-            lambda_phi_update[n, k], tf.trace(tf.matmul(
-                tf.multiply((1 / 2.) * lambda_nu[k], inv_lambda_w),
-                tf.multiply(tf.reshape(xn[n, :], [D, 1]),
-                            tf.reshape(xn[n, :], [1,D])))))
-        lambda_phi_update[n, k] = tf.subtract(
-            lambda_phi_update[n, k], (D / 2.) * tf.div(1, lambda_beta[k]))
-        lambda_phi_update[n, k] = tf.subtract(
-            lambda_phi_update[n, k], (1. / 2.) * tf.matmul(
-                tf.matmul(lambda_nu[k] * tf.transpose(lambda_m[k, :]),
-                          inv_lambda_w), lambda_m[k, :]))
-        lambda_phi_update[n, k] = tf.add(lambda_phi_update[n, k],
-                                         (D / 2.) * tf.log(2.))
-        lambda_phi_update[n, k] = tf.add(
-            lambda_phi_update[n, k],
-            (1 / 2.) * tf.reduce_sum([tf.digamma(tf.add(tf.div(
-                lambda_nu[k], 2.), ((1 - i) / 2.))) for i in range(D)]))
-        lambda_phi_update[n, k] = tf.subtract(
-            lambda_phi_update[n, k],
-            (1 / 2.) * tf.log(tf.matrix_determinant(lambda_w[k, :, :])))
-    lambda_phi_update[n, :] = softmax(lambda_phi_update[n, :])
-assign_lambda_phi = lambda_phi.assign(lambda_phi_update)
 
 # Evidence Lower Bound definition
 e3 = tf.convert_to_tensor(0., dtype=tf.float64)
@@ -168,15 +135,16 @@ logDeltak = tf.add(tf.digamma(tf.div(lambda_nu, 2.)),
                        tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
                                           tf.cast(tf.log(2.),
                                                   dtype=tf.float64)), logdet)))
-for n in range(N):
+for i in range(BATCH_SIZE):
+    n = idx_tensor[i]
     e2 = tf.add(e2, tf.reduce_sum(
-        tf.multiply(lambda_phi[n, :], dirichlet_expectation(lambda_pi))))
+        tf.multiply(tf.gather(lambda_phi, n), dirichlet_expectation(lambda_pi))))
     h2 = tf.add(h2, -tf.reduce_sum(
-        tf.multiply(lambda_phi[n, :], log_(lambda_phi[n, :]))))
+        tf.multiply(tf.gather(lambda_phi, n), log_(tf.gather(lambda_phi, n)))))
     product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
-        tf.matmul(tf.reshape(tf.subtract(xn[n, :], lambda_m[k, :]), [1, 2]),
+        tf.matmul(tf.reshape(tf.subtract(tf.gather(xn, n), lambda_m[k, :]), [1, 2]),
                   lambda_w[k, :, :]),
-        tf.reshape(tf.transpose(tf.subtract(xn[n, :], lambda_m[k, :])),
+        tf.reshape(tf.transpose(tf.subtract(tf.gather(xn, n), lambda_m[k, :])),
                    [2, 1]))) for k in range(K)])
     aux = tf.transpose(tf.subtract(
         logDeltak, tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
@@ -187,7 +155,7 @@ for n in range(N):
                                         lambda_beta)))))
     e3 = tf.add(e3, tf.reduce_sum(
         tf.multiply(tf.cast(1 / 2., dtype=tf.float64),
-                    tf.multiply(lambda_phi[n, :], aux))))
+                    tf.multiply(tf.gather(lambda_phi, n), aux))))
 product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
     tf.matmul(tf.reshape(tf.subtract(lambda_m[k, :], m_o), [1, 2]),
               lambda_w[k, :, :]),
@@ -245,19 +213,61 @@ LB = e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 # Optimizer definition
 optimizer = tf.train.RMSPropOptimizer(learning_rate=LR)
 grads_and_vars = optimizer.compute_gradients(
-    -LB, var_list=[lambda_pi_var, lambda_phi_var, lambda_m,
+    -LB, var_list=[lambda_pi_var, lambda_m,
                    lambda_beta_var, lambda_nu_var, lambda_w_var])
 train = optimizer.apply_gradients(grads_and_vars)
 
-# Summaries definition
-tf.summary.histogram('lambda_pi', lambda_pi)
-tf.summary.histogram('lambda_phi', lambda_phi)
-tf.summary.histogram('lambda_m', lambda_m)
-tf.summary.histogram('lambda_beta', lambda_beta)
-tf.summary.histogram('lambda_nu', lambda_nu)
-tf.summary.histogram('lambda_w', lambda_w)
-merged = tf.summary.merge_all()
-file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
+
+def dirichlet_expectation_k(alpha, k):
+    """
+    Dirichlet expectation computation
+    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
+    """
+    return psi(alpha[k] + np.finfo(np.float32).eps) - psi(np.sum(alpha))
+
+
+def softmax(x):
+    """
+    Softmax computation
+    e^{x} / sum_{i=1}^{K}(e^x_{i})
+    """
+    e_x = np.exp(x - np.max(x))
+    return (e_x + np.finfo(np.float32).eps) / \
+           (e_x.sum(axis=0) + np.finfo(np.float32).eps)
+
+
+def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
+                      lambda_nu, lambda_w, lambda_beta, xn, idx, K, D):
+    """
+    Update lambda_phi
+    softmax[dirichlet_expectation(lambda_pi) +
+            lambda_m * lambda_nu * lambda_w^{-1} * x_{n} -
+            1/2 * lambda_nu * lambda_w^{-1} * x_{n} * x_{n}.T -
+            1/2 * lambda_beta^{-1} -
+            lambda_nu * lambda_m.T * lambda_w^{-1} * lambda_m +
+            D/2 * log(2) +
+            1/2 * sum_{i=1}^{D}(\Psi(lambda_nu/2 + (1-i)/2)) -
+            1/2 log(|lambda_w|)]
+    """
+    for n in idx:
+        for k in range(K):
+            inv_lambda_w = inv(lambda_w[k, :, :])
+            lambda_phi[n, k] = dirichlet_expectation_k(lambda_pi, k)
+            lambda_phi[n, k] += np.dot(lambda_m[k, :], np.dot(
+                lambda_nu[k] * inv_lambda_w, xn[n, :]))
+            lambda_phi[n, k] -= np.trace(
+                np.dot((1 / 2.) * lambda_nu[k] * inv_lambda_w,
+                       np.outer(xn[n, :], xn[n, :])))
+            lambda_phi[n, k] -= (D / 2.) * (1 / lambda_beta[k])
+            lambda_phi[n, k] -= (1. / 2.) * np.dot(
+                np.dot(lambda_nu[k] * lambda_m[k, :].T, inv_lambda_w),
+                lambda_m[k, :])
+            lambda_phi[n, k] += (D / 2.) * np.log(2.)
+            lambda_phi[n, k] += (1 / 2.) * np.sum(
+                [psi((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)])
+            lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_w[k, :, :]))
+        lambda_phi[n, :] = softmax(lambda_phi[n, :])
+    return lambda_phi
 
 
 def main():
@@ -275,12 +285,29 @@ def main():
     sess.run(init)
     lbs = []
     n_iters = 0
+
+    phi_out = sess.run(lambda_phi)
+    pi_out = sess.run(lambda_pi)
+    m_out = sess.run(lambda_m)
+    nu_out = sess.run(lambda_nu)
+    w_out = sess.run(lambda_w)
+    beta_out = sess.run(lambda_beta)
+
     for _ in range(args.maxIter):
 
-        # ELBO computation
-        _, mer, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
-            [train, merged, LB, lambda_pi, lambda_phi,
-             lambda_m, lambda_beta, lambda_nu, lambda_w])
+        # Sample xn
+        idx = np.random.randint(N, size=BATCH_SIZE)
+
+        # Update local variational parameter lambda_phi
+        new_lambda_phi = update_lambda_phi(phi_out, pi_out, m_out, nu_out,
+                                           w_out, beta_out, xn, idx, K, D)
+        sess.run(lambda_phi.assign(new_lambda_phi))
+
+        # ELBO computation and global variational parameter updates
+        _, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
+            [train, LB, lambda_pi, lambda_phi,
+             lambda_m, lambda_beta, lambda_nu, lambda_w],
+            feed_dict={idx_tensor: idx})
         lbs.append(lb)
 
         if VERBOSE:
@@ -293,10 +320,11 @@ def main():
             print('lambda_w: {}'.format(w_out))
             print('ELBO: {}'.format(lb))
             covs = []
+            aux_w_out = np.copy(w_out)
             for k in range(K):
-                w_out[k, 0, 0] = 1.0 / w_out[k, 0, 0]
-                w_out[k, 1, 1] = 1.0 / w_out[k, 1, 1]
-                covs.append(w_out[k, :, :] / (nu_out[k] - D - 1))
+                aux_w_out[k, 0, 0] = 1.0 / w_out[k, 0, 0]
+                aux_w_out[k, 1, 1] = 1.0 / w_out[k, 1, 1]
+                covs.append(aux_w_out[k, :, :] / (nu_out[k] - D - 1))
             ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
                                                      sctZ, m_out,
                                                      covs, xn,
@@ -311,7 +339,6 @@ def main():
                 break
 
         n_iters += 1
-        file_writer.add_summary(mer, n_iters)
 
     if VERBOSE:
         print('\n******* RESULTS *******')

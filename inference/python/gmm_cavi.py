@@ -282,7 +282,7 @@ def main():
                                            lambda_nu, lambda_w, lambda_beta,
                                            xn, N, K, D)
 
-            # ELBO computation
+            # ELBO computation and variational parameter updates
             lb = elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o,
                        lambda_m, beta_o, lambda_beta, nu_o,
                        lambda_nu, w_o, lambda_w, N, K)
