@@ -34,9 +34,7 @@ Parameters:
     * exportAssignments: If true generate a csv with the cluster assignments
 
 Execution:
-    python gmm_gavi.py
-        -dataset ../../data/real/mallorca/mallorca_pca30.pkl
-        -k 2 --verbose --no-randomInit --exportAssignments
+    python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose randomInit
 """
 
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
@@ -55,7 +53,7 @@ args = parser.parse_args()
 
 K = args.k
 VERBOSE = args.verbose
-LR = 0.3
+INITIAL_LR = 0.7
 THRESHOLD = 1e-6
 
 sess = tf.Session()
@@ -207,11 +205,14 @@ e5 = tf.reduce_sum(tf.add(-logB, tf.subtract(
 LB = e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 # Optimizer definition
-optimizer = tf.train.RMSPropOptimizer(learning_rate=LR)
+global_step = tf.Variable(0)
+learning_rate = tf.train.exponential_decay(INITIAL_LR, global_step,
+                                           100000, 0.95, staircase=True)
+optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
 grads_and_vars = optimizer.compute_gradients(
-    -LB, var_list=[lambda_pi_var, lambda_phi_var, lambda_m,
+    -LB, var_list=[lambda_pi_var, lambda_m,
                    lambda_beta_var, lambda_nu_var, lambda_w_var])
-train = optimizer.apply_gradients(grads_and_vars)
+train = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
 # Summaries definition
 tf.summary.histogram('lambda_pi', lambda_pi)

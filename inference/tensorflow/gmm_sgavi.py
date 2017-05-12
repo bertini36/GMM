@@ -23,6 +23,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from utils import dirichlet_expectation, log_, log_beta_function, multilgamma
 
+from common import init_kmeans
 from viz import plot_iteration
 
 """
@@ -30,14 +31,13 @@ Parameters:
     * maxIter: Max number of iterations
     * dataset: Dataset path
     * k: Number of clusters
+    * bs: Batch size
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
 
 Execution:
-    python gmm_gavi.py
-        -dataset ../../data/real/mallorca/mallorca_pca30.pkl
-        -k 2 --verbose --no-randomInit --exportAssignments
+    python gmm_sgavi.py -dataset data_k2_10000.pkl -k 2 -verbose -bs 100 
 """
 
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
@@ -58,7 +58,7 @@ args = parser.parse_args()
 
 K = args.k
 VERBOSE = args.verbose
-LR = 0.7
+INITIAL_LR = 0.01
 THRESHOLD = 1e-6
 BATCH_SIZE = args.bs
 
@@ -80,7 +80,8 @@ m_o = np.array([0.0] * D)
 beta_o = np.array([0.7])
 
 # Variational parameters intialization
-lambda_phi_var = np.random.dirichlet(alpha_o, N)
+lambda_phi_var = np.random.dirichlet(alpha_o, N) \
+    if args.randomInit else init_kmeans(xn, N, K)
 lambda_pi_var = np.zeros(shape=K)
 lambda_beta_var = np.zeros(shape=K)
 lambda_nu_var = np.zeros(shape=K) + D
@@ -90,7 +91,7 @@ lambda_phi = tf.Variable(lambda_phi_var, trainable=False, dtype=tf.float64)
 lambda_pi_var = tf.Variable(lambda_pi_var, dtype=tf.float64)
 lambda_beta_var = tf.Variable(lambda_beta_var, dtype=tf.float64)
 lambda_nu_var = tf.Variable(lambda_nu_var, dtype=tf.float64)
-lambda_m = tf.Variable([[0.0, 0.0], [12.0, 4.0]], dtype=tf.float64)
+lambda_m = tf.Variable([[-4.0, 2.0], [8.0, -8.0]], dtype=tf.float64)
 lambda_w_var = tf.Variable(lambda_w_var, dtype=tf.float64)
 
 # Maintain numerical stability
@@ -138,12 +139,13 @@ logDeltak = tf.add(tf.digamma(tf.div(lambda_nu, 2.)),
 for i in range(BATCH_SIZE):
     n = idx_tensor[i]
     e2 = tf.add(e2, tf.reduce_sum(
-        tf.multiply(tf.gather(lambda_phi, n), dirichlet_expectation(lambda_pi))))
+        tf.multiply(tf.gather(lambda_phi, n),
+                    dirichlet_expectation(lambda_pi))))
     h2 = tf.add(h2, -tf.reduce_sum(
         tf.multiply(tf.gather(lambda_phi, n), log_(tf.gather(lambda_phi, n)))))
     product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
-        tf.matmul(tf.reshape(tf.subtract(tf.gather(xn, n), lambda_m[k, :]), [1, 2]),
-                  lambda_w[k, :, :]),
+        tf.matmul(tf.reshape(tf.subtract(tf.gather(xn, n), lambda_m[k, :]),
+                             [1, 2]), lambda_w[k, :, :]),
         tf.reshape(tf.transpose(tf.subtract(tf.gather(xn, n), lambda_m[k, :])),
                    [2, 1]))) for k in range(K)])
     aux = tf.transpose(tf.subtract(
@@ -211,11 +213,24 @@ e5 = tf.reduce_sum(tf.add(-logB, tf.subtract(
 LB = e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 # Optimizer definition
-optimizer = tf.train.RMSPropOptimizer(learning_rate=LR)
+global_step = tf.Variable(0)
+learning_rate = tf.train.exponential_decay(INITIAL_LR, global_step,
+                                           100000, 0.95, staircase=True)
+optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
 grads_and_vars = optimizer.compute_gradients(
     -LB, var_list=[lambda_pi_var, lambda_m,
                    lambda_beta_var, lambda_nu_var, lambda_w_var])
-train = optimizer.apply_gradients(grads_and_vars)
+train = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
+
+# Summaries definition
+tf.summary.histogram('lambda_pi', lambda_pi)
+tf.summary.histogram('lambda_phi', lambda_phi)
+tf.summary.histogram('lambda_m', lambda_m)
+tf.summary.histogram('lambda_beta', lambda_beta)
+tf.summary.histogram('lambda_nu', lambda_nu)
+tf.summary.histogram('lambda_w', lambda_w)
+merged = tf.summary.merge_all()
+file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
 
 
 def dirichlet_expectation_k(alpha, k):
@@ -304,10 +319,9 @@ def main():
         sess.run(lambda_phi.assign(new_lambda_phi))
 
         # ELBO computation and global variational parameter updates
-        _, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
-            [train, LB, lambda_pi, lambda_phi,
-             lambda_m, lambda_beta, lambda_nu, lambda_w],
-            feed_dict={idx_tensor: idx})
+        _, mer, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
+            [train, merged, LB, lambda_pi, lambda_phi, lambda_m,
+             lambda_beta, lambda_nu, lambda_w], feed_dict={idx_tensor: idx})
         lbs.append(lb)
 
         if VERBOSE:
@@ -339,6 +353,7 @@ def main():
                 break
 
         n_iters += 1
+        file_writer.add_summary(mer, n_iters)
 
     if VERBOSE:
         print('\n******* RESULTS *******')

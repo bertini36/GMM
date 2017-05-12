@@ -43,7 +43,7 @@ Parameters:
                                    the variational parameters inferred
 
 Execution:
-    python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
+    python gmm_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
                        -exportAssignments -exportVariationalParameters
 """
 
@@ -199,7 +199,6 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
     logdet = np.log(np.array([det(lambda_w[k, :, :]) for k in xrange(K)]))
     logDeltak = psi(lambda_nu/2.) \
                 + psi((lambda_nu-1.)/2.) + 2.*np.log(2.) + logdet
-
     for n in range(N):
         e2 += np.dot(lambda_phi[n, :], dirichlet_expectation(lambda_pi))
         h2 += -np.dot(lambda_phi[n, :], log_(lambda_phi[n, :]))
@@ -223,7 +222,6 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
     logB = nu_o/2.*np.log(np.linalg.det(w_o)) + nu_o*np.log(2.) \
            + 1./2*np.log(math.pi) + gammaln(nu_o/2.) + gammaln((nu_o-1)/2.)
     e5 = np.sum((-logB + (nu_o-3.)/2.*logDeltak - lambda_nu/2.*traces))
-
     return e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 

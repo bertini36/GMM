@@ -37,6 +37,7 @@ Parameters:
     * maxIter: Max number of iterations
     * dataset: Dataset path (pkl)
     * k: Number of clusters
+    * bs: Batch size
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
@@ -44,8 +45,7 @@ Parameters:
                                    the variational parameters inferred
 
 Execution:
-    python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
-                       -exportAssignments -exportVariationalParameters
+    python gmm_scavi.py -dataset data_k2_10000.pkl -k 2 -verbose -bs 500
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
@@ -199,24 +199,22 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
          + np.dot((alpha_o-np.ones(K)), dirichlet_expectation(lambda_pi))
     h1 = log_beta_function(lambda_pi) \
          - np.dot((lambda_pi-np.ones(K)), dirichlet_expectation(lambda_pi))
-    logdet = np.log(np.array([det(lambda_w[k, :, :]) for k in xrange(K)]))
+    logdet = np.log(np.array([det(lambda_w[k, :, :]) for k in range(K)]))
     logDeltak = psi(lambda_nu/2.) \
                 + psi((lambda_nu-1.)/2.) + 2.*np.log(2.) + logdet
-
     for n in range(N):
         e2 += np.dot(lambda_phi[n, :], dirichlet_expectation(lambda_pi))
         h2 += -np.dot(lambda_phi[n, :], log_(lambda_phi[n, :]))
         product = np.array([np.dot(np.dot(
             xn[n, :]-lambda_m[k, :], lambda_w[k, :, :]),
-            (xn[n, :]-lambda_m[k, :]).T) for k in xrange(K)])
+            (xn[n, :]-lambda_m[k, :]).T) for k in range(K)])
         e3 += 1./2 * np.dot(lambda_phi[n, :],
                             (logDeltak - 2.*np.log(2*math.pi) -
                              lambda_nu*product - 2./lambda_beta).T)
-
     product = np.array([np.dot(np.dot(lambda_m[k, :]-m_o, lambda_w[k, :, :]),
-                               (lambda_m[k, :]-m_o).T) for k in xrange(K)])
+                               (lambda_m[k, :]-m_o).T) for k in range(K)])
     traces = np.array([np.trace(np.dot(inv(w_o),
-                                       lambda_w[k, :, :])) for k in xrange(K)])
+                                       lambda_w[k, :, :])) for k in range(K)])
     h4 = np.sum((1. + np.log(2.*math.pi) - 1./2*(np.log(lambda_beta) + logdet)))
     logB = lambda_nu/2.*logdet + lambda_nu*np.log(2.) + 1./2*np.log(math.pi) \
            + gammaln(lambda_nu/2.) + gammaln((lambda_nu-1)/2.)
@@ -226,7 +224,6 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
     logB = nu_o/2.*np.log(np.linalg.det(w_o)) + nu_o*np.log(2.) \
            + 1./2*np.log(math.pi) + gammaln(nu_o/2.) + gammaln((nu_o-1)/2.)
     e5 = np.sum((-logB + (nu_o-3.)/2.*logDeltak - lambda_nu/2.*traces))
-
     return e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 
@@ -262,6 +259,7 @@ def main():
         # Plot configs
         if VERBOSE and D == 2:
             plt.ion()
+            plt.style.use('seaborn-darkgrid')
             fig = plt.figure(figsize=(10, 10))
             ax_spatial = fig.add_subplot(1, 1, 1)
             circs = []
