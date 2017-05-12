@@ -1,9 +1,8 @@
 # -*- coding: UTF-8 -*-
 
 """
-Sthocastic Variational Inference
+Sthocastic Gradient Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
-Tensorflow implementation
 """
 
 from __future__ import absolute_import
@@ -44,8 +43,9 @@ Execution:
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_10000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
+parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
 parser.add_argument('-randomInit', dest='randomInit', action='store_true')
@@ -59,8 +59,8 @@ args = parser.parse_args()
 K = args.k
 VERBOSE = args.verbose
 LR = 0.7
-THRESHOLD = 1e-12
-BATCH_SIZE = 100
+THRESHOLD = 1e-6
+BATCH_SIZE = args.bs
 
 sess = tf.Session()
 
@@ -331,10 +331,10 @@ def main():
                                                      n_iters, K)
 
             # Break condition
-            improve = abs(lb - lbs[n_iters - 1])
+            improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter - 1)) \
-                    or (n_iters > 0 and improve < THRESHOLD):
+                    or (n_iters > 0 and 0 < improve < THRESHOLD):
                 if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 

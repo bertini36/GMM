@@ -3,7 +3,6 @@
 """
 Gradient Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
-Tensorflow implementation
 """
 
 from __future__ import absolute_import
@@ -57,7 +56,7 @@ args = parser.parse_args()
 K = args.k
 VERBOSE = args.verbose
 LR = 0.3
-THRESHOLD = 1e-12
+THRESHOLD = 1e-6
 
 sess = tf.Session()
 
@@ -268,10 +267,10 @@ def main():
                                                      n_iters, K)
 
             # Break condition
-            improve = abs(lb - lbs[n_iters - 1])
+            improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter - 1)) \
-                    or (n_iters > 0 and improve < THRESHOLD):
+                    or (n_iters > 0 and 0 < improve < THRESHOLD):
                 if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 

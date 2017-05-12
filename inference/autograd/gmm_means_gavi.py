@@ -36,7 +36,7 @@ Execution:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=1000)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
                     default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -46,7 +46,7 @@ args = parser.parse_args()
 
 K = args.k
 VERBOSE = args.verbose
-THRESHOLD = 1e-3
+THRESHOLD = 1e-6
 PATH_IMAGE = 'generated/gmm_means_cavi'
 MACHINE_PRECISION = 2.2204460492503131e-16
 
@@ -153,7 +153,9 @@ for _ in range(args.maxIter):
                                                  n_iters, K)
 
     # Break condition
-    if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD:
+    improve = lb - lbs[n_iters - 1]
+    if (n_iters == (args.maxIter - 1)) \
+            or (n_iters > 0 and 0 < improve < THRESHOLD):
         plt.savefig('{}.png'.format(PATH_IMAGE))
         break
 

@@ -27,7 +27,7 @@ Execution:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in univariate gaussian')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=100)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-nElements', metavar='nElements', type=int, default=1000)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
@@ -133,7 +133,11 @@ def main():
             print('ELBO: {}'.format(lb))
 
         # Break condition
-        if n_iters > 0 and abs(lb - lbs[n_iters - 1]) < THRESHOLD: break
+        improve = lb - lbs[n_iters - 1]
+        if VERBOSE: print('Improve: {}'.format(improve))
+        if (n_iters == (args.maxIter - 1)) \
+                or (n_iters > 0 and 0 < improve < THRESHOLD):
+            break
 
         n_iters += 1
 

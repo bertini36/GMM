@@ -36,7 +36,7 @@ Execution:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=20)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
                     default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -274,6 +274,10 @@ def main():
             # Break condition
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
+            if (n_iters == (args.maxIter - 1)) \
+                    or (n_iters > 0 and 0 < improve < THRESHOLD):
+                break
+
             n_iters += 1
 
         zn = np.array([np.argmax(lambda_phi[n, :]) for n in xrange(N)])

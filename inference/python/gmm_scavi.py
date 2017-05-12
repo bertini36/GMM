@@ -1,9 +1,10 @@
 # -*- coding: UTF-8 -*-
 
 """
-Coordinate Ascent Variational Inference
+Sthocastic Coordinate Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
 """
+
 
 from __future__ import absolute_import
 
@@ -50,8 +51,9 @@ Execution:
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_10000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
+parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
@@ -67,6 +69,7 @@ args = parser.parse_args()
 K = args.k
 VERBOSE = args.verbose
 THRESHOLD = 1e-6
+BATCH_SIZE = args.bs
 
 
 def update_lambda_pi(lambda_pi, lambda_phi, alpha_o):
@@ -130,8 +133,8 @@ def update_lambda_w(lambda_w, lambda_phi, lambda_beta,
     return lambda_w
 
 
-def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
-                      lambda_nu, lambda_w, lambda_beta, xn, N, K, D):
+def update_lambda_phi(lambda_phi, lambda_pi, lambda_m, lambda_nu,
+                      lambda_w, lambda_beta, xn, K, D, idx):
     """
     Update lambda_phi
     softmax[dirichlet_expectation(lambda_pi) +
@@ -143,7 +146,7 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
             1/2 * sum_{i=1}^{D}(\Psi(lambda_nu/2 + (1-i)/2)) -
             1/2 log(|lambda_w|)]
     """
-    for n in range(N):
+    for n in idx:
         for k in range(K):
             inv_lambda_w = inv(lambda_w[k, :, :])
             lambda_phi[n, k] = dirichlet_expectation_k(lambda_pi, k)
@@ -269,23 +272,29 @@ def main():
         n_iters = 0
         for _ in range(args.maxIter):
 
+            # Sample xn
+            idx = np.random.randint(N, size=BATCH_SIZE)
+            x_batch = xn[idx, :]
+
             # Variational parameter updates
-            lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
-            Nks = np.sum(lambda_phi, axis=0)
+            lambda_pi = update_lambda_pi(lambda_pi, lambda_phi[idx, :], alpha_o)
+            Nks = np.sum(lambda_phi[idx, :], axis=0)
             lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
             lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
-            lambda_m = update_lambda_m(lambda_m, lambda_phi, lambda_beta, m_o,
-                                       beta_o, xn, N, D)
-            lambda_w = update_lambda_w(lambda_w, lambda_phi, lambda_beta,
-                                       lambda_m, w_o, beta_o, m_o, xn, K, N, D)
-            lambda_phi = update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
-                                           lambda_nu, lambda_w, lambda_beta,
-                                           xn, N, K, D)
+            lambda_m = update_lambda_m(lambda_m, lambda_phi[idx, :],
+                                       lambda_beta, m_o, beta_o,
+                                       x_batch, BATCH_SIZE, D)
+            lambda_w = update_lambda_w(lambda_w, lambda_phi[idx, :],
+                                       lambda_beta, lambda_m, w_o,
+                                       beta_o, m_o, x_batch, K, BATCH_SIZE, D)
+            lambda_phi = update_lambda_phi(lambda_phi, lambda_pi,
+                                           lambda_m, lambda_nu, lambda_w,
+                                           lambda_beta, xn, K, D, idx)
 
             # ELBO computation and variational parameter updates
-            lb = elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o,
+            lb = elbo2(x_batch, alpha_o, lambda_pi, lambda_phi[idx, :], m_o,
                        lambda_m, beta_o, lambda_beta, nu_o,
-                       lambda_nu, w_o, lambda_w, N, K)
+                       lambda_nu, w_o, lambda_w, BATCH_SIZE, K)
             lbs.append(lb)
 
             if VERBOSE:

@@ -33,7 +33,6 @@ from common import generate_random_positive_matrix, softmax
 from viz import plot_iteration
 
 
-
 """
 Parameters:
     * maxIter: Max number of iterations
@@ -48,7 +47,7 @@ Execution:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=1000)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
                     default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -348,7 +347,8 @@ for _ in range(args.maxIter):
     # Break condition
     improve = lb - lbs[n_iters - 1]
     if VERBOSE: print('Improve: {}'.format(improve))
-    if n_iters > 0 and abs(improve) < THRESHOLD:
+    if (n_iters == (args.maxIter - 1)) \
+            or (n_iters > 0 and 0 < improve < THRESHOLD):
         if VERBOSE and D == 2: plt.savefig(PATH_IMAGE)
         break
 
