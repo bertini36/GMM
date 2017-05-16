@@ -15,7 +15,9 @@ from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.linalg import det, inv
 import tensorflow as tf
+from scipy.special import psi
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
@@ -32,7 +34,6 @@ Parameters:
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
-
 Execution:
     python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose randomInit
 """
@@ -53,7 +54,7 @@ args = parser.parse_args()
 
 K = args.k
 VERBOSE = args.verbose
-INITIAL_LR = 0.7
+INITIAL_LR = 0.1
 THRESHOLD = 1e-6
 
 sess = tf.Session()
@@ -69,7 +70,7 @@ if VERBOSE: init_time = time()
 # Priors
 alpha_o = np.array([1.0] * K)
 nu_o = np.array([float(D)])
-w_o = np.array([[20, 8], [8, 7]])
+w_o = generate_random_positive_matrix(D)
 m_o = np.array([0.0] * D)
 beta_o = np.array([0.7])
 
@@ -79,10 +80,10 @@ lambda_phi_var = np.random.dirichlet(alpha_o, N) \
 lambda_pi_var = np.zeros(shape=K)
 lambda_beta_var = np.zeros(shape=K)
 lambda_nu_var = np.zeros(shape=K) + D
-lambda_m_var = np.zeros(shape=(K, D))
+lambda_m_var = np.random.uniform(-6, 6, (K, D))
 lambda_w_var = np.array([np.copy(w_o) for _ in range(K)])
 
-lambda_phi_var = tf.Variable(lambda_phi_var, dtype=tf.float64)
+lambda_phi = tf.Variable(lambda_phi_var, trainable=False, dtype=tf.float64)
 lambda_pi_var = tf.Variable(lambda_pi_var, dtype=tf.float64)
 lambda_beta_var = tf.Variable(lambda_beta_var, dtype=tf.float64)
 lambda_nu_var = tf.Variable(lambda_nu_var, dtype=tf.float64)
@@ -90,9 +91,8 @@ lambda_m = tf.Variable(lambda_m_var, dtype=tf.float64)
 lambda_w_var = tf.Variable(lambda_w_var, dtype=tf.float64)
 
 # Maintain numerical stability
-lambda_pi = tf.nn.softmax(lambda_pi_var)
+lambda_pi = tf.nn.softplus(lambda_pi_var)
 lambda_beta = tf.nn.softplus(lambda_beta_var)
-lambda_phi = tf.nn.softmax(lambda_phi_var)
 lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var), tf.cast(D, dtype=tf.float64))
 
 # Semidefinite positive matrices definition with Cholesky descomposition
@@ -207,7 +207,7 @@ LB = e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 # Optimizer definition
 global_step = tf.Variable(0)
 learning_rate = tf.train.exponential_decay(INITIAL_LR, global_step,
-                                           100000, 0.95, staircase=True)
+                                           100, 0.96, staircase=True)
 optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
 grads_and_vars = optimizer.compute_gradients(
     -LB, var_list=[lambda_pi_var, lambda_m,
@@ -225,11 +225,64 @@ merged = tf.summary.merge_all()
 file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
 
 
+def dirichlet_expectation_k(alpha, k):
+    """
+    Dirichlet expectation computation
+    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
+    """
+    return psi(alpha[k] + np.finfo(np.float32).eps) - psi(np.sum(alpha))
+
+
+def softmax(x):
+    """
+    Softmax computation
+    e^{x} / sum_{i=1}^{K}(e^x_{i})
+    """
+    e_x = np.exp(x - np.max(x))
+    return (e_x + np.finfo(np.float32).eps) / \
+           (e_x.sum(axis=0) + np.finfo(np.float32).eps)
+
+
+def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
+                      lambda_nu, lambda_w, lambda_beta, xn, N, K, D):
+    """
+    Update lambda_phi
+    softmax[dirichlet_expectation(lambda_pi) +
+            lambda_m * lambda_nu * lambda_w^{-1} * x_{n} -
+            1/2 * lambda_nu * lambda_w^{-1} * x_{n} * x_{n}.T -
+            1/2 * lambda_beta^{-1} -
+            lambda_nu * lambda_m.T * lambda_w^{-1} * lambda_m +
+            D/2 * log(2) +
+            1/2 * sum_{i=1}^{D}(\Psi(lambda_nu/2 + (1-i)/2)) -
+            1/2 log(|lambda_w|)]
+    """
+    for n in range(N):
+        for k in range(K):
+            inv_lambda_w = inv(lambda_w[k, :, :])
+            lambda_phi[n, k] = dirichlet_expectation_k(lambda_pi, k)
+            lambda_phi[n, k] += np.dot(lambda_m[k, :], np.dot(
+                lambda_nu[k] * inv_lambda_w, xn[n, :]))
+            lambda_phi[n, k] -= np.trace(
+                np.dot((1 / 2.) * lambda_nu[k] * inv_lambda_w,
+                       np.outer(xn[n, :], xn[n, :])))
+            lambda_phi[n, k] -= (D / 2.) * (1 / lambda_beta[k])
+            lambda_phi[n, k] -= (1. / 2.) * np.dot(
+                np.dot(lambda_nu[k] * lambda_m[k, :].T, inv_lambda_w),
+                lambda_m[k, :])
+            lambda_phi[n, k] += (D / 2.) * np.log(2.)
+            lambda_phi[n, k] += (1 / 2.) * np.sum(
+                [psi((lambda_nu[k] / 2.) + ((1 - i) / 2.)) for i in range(D)])
+            lambda_phi[n, k] -= (1 / 2.) * np.log(det(lambda_w[k, :, :]))
+        lambda_phi[n, :] = softmax(lambda_phi[n, :])
+    return lambda_phi
+
+
 def main():
 
     # Plot configs
     if VERBOSE:
         plt.ion()
+        plt.style.use('seaborn-darkgrid')
         fig = plt.figure(figsize=(10, 10))
         ax_spatial = fig.add_subplot(1, 1, 1)
         circs = []
@@ -240,7 +293,20 @@ def main():
     sess.run(init)
     lbs = []
     n_iters = 0
+
+    phi_out = sess.run(lambda_phi)
+    pi_out = sess.run(lambda_pi)
+    m_out = sess.run(lambda_m)
+    nu_out = sess.run(lambda_nu)
+    w_out = sess.run(lambda_w)
+    beta_out = sess.run(lambda_beta)
+
     for _ in range(args.maxIter):
+
+        # Update local variational parameter lambda_phi
+        new_lambda_phi = update_lambda_phi(phi_out, pi_out, m_out, nu_out,
+                                           w_out, beta_out, xn, N, K, D)
+        sess.run(lambda_phi.assign(new_lambda_phi))
 
         # ELBO computation
         _, mer, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
@@ -271,7 +337,7 @@ def main():
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter - 1)) \
-                    or (n_iters > 0 and 0 < improve < THRESHOLD):
+                    or (n_iters > 0 and 0 <= improve < THRESHOLD):
                 if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 

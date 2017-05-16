@@ -23,7 +23,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from utils import dirichlet_expectation, log_, log_beta_function, multilgamma
 
-from common import init_kmeans
+from common import init_kmeans, generate_random_positive_matrix
 from viz import plot_iteration
 
 """
@@ -43,7 +43,7 @@ Execution:
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_10000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
@@ -58,7 +58,7 @@ args = parser.parse_args()
 
 K = args.k
 VERBOSE = args.verbose
-INITIAL_LR = 0.01
+INITIAL_LR = 0.1
 THRESHOLD = 1e-6
 BATCH_SIZE = args.bs
 
@@ -75,7 +75,7 @@ if VERBOSE: init_time = time()
 # Priors
 alpha_o = np.array([1.0] * K)
 nu_o = np.array([float(D)])
-w_o = np.array([[20.0, 8.0], [8.0, 7.0]])
+w_o = generate_random_positive_matrix(D)
 m_o = np.array([0.0] * D)
 beta_o = np.array([0.7])
 
@@ -85,17 +85,18 @@ lambda_phi_var = np.random.dirichlet(alpha_o, N) \
 lambda_pi_var = np.zeros(shape=K)
 lambda_beta_var = np.zeros(shape=K)
 lambda_nu_var = np.zeros(shape=K) + D
+lambda_m_var = np.random.rand(K, D)
 lambda_w_var = np.array([np.copy(w_o) for _ in range(K)])
 
 lambda_phi = tf.Variable(lambda_phi_var, trainable=False, dtype=tf.float64)
 lambda_pi_var = tf.Variable(lambda_pi_var, dtype=tf.float64)
 lambda_beta_var = tf.Variable(lambda_beta_var, dtype=tf.float64)
 lambda_nu_var = tf.Variable(lambda_nu_var, dtype=tf.float64)
-lambda_m = tf.Variable([[-4.0, 2.0], [8.0, -8.0]], dtype=tf.float64)
+lambda_m = tf.Variable(lambda_m_var, dtype=tf.float64)
 lambda_w_var = tf.Variable(lambda_w_var, dtype=tf.float64)
 
 # Maintain numerical stability
-lambda_pi = tf.nn.softmax(lambda_pi_var)
+lambda_pi = tf.nn.softplus(lambda_pi_var)
 lambda_beta = tf.nn.softplus(lambda_beta_var)
 lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var), tf.cast(D, dtype=tf.float64))
 
@@ -215,7 +216,7 @@ LB = e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 # Optimizer definition
 global_step = tf.Variable(0)
 learning_rate = tf.train.exponential_decay(INITIAL_LR, global_step,
-                                           100000, 0.95, staircase=True)
+                                           100, 0.96, staircase=True)
 optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
 grads_and_vars = optimizer.compute_gradients(
     -LB, var_list=[lambda_pi_var, lambda_m,
@@ -290,6 +291,7 @@ def main():
     # Plot configs
     if VERBOSE:
         plt.ion()
+        plt.style.use('seaborn-darkgrid')
         fig = plt.figure(figsize=(10, 10))
         ax_spatial = fig.add_subplot(1, 1, 1)
         circs = []
@@ -331,7 +333,6 @@ def main():
             print('lambda_m: {}'.format(m_out))
             print('lambda_beta: {}'.format(beta_out))
             print('lambda_nu: {}'.format(nu_out))
-            print('lambda_w: {}'.format(w_out))
             print('ELBO: {}'.format(lb))
             covs = []
             aux_w_out = np.copy(w_out)
@@ -343,12 +344,13 @@ def main():
                                                      sctZ, m_out,
                                                      covs, xn,
                                                      n_iters, K)
+            print('lambda_w: {}'.format(aux_w_out))
 
             # Break condition
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter - 1)) \
-                    or (n_iters > 0 and 0 < improve < THRESHOLD):
+                    or (n_iters > 0 and 0 <= improve < THRESHOLD):
                 if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 
@@ -365,7 +367,7 @@ def main():
         print('Iterations: {}'.format(n_iters))
         print('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
         plt.gcf().clear()
-        plt.plot(np.arange(len(lbs)), lbs)
+        plt.plot(np.arange(len(lbs)), list(np.array(lbs) / (N / BATCH_SIZE)))
         plt.ylabel('ELBO')
         plt.xlabel('Iterations')
         plt.savefig('generated/elbos.png')

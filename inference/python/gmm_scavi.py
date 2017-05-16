@@ -51,7 +51,7 @@ Execution:
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_10000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.set_defaults(exportVariationalParameters=False)
@@ -253,8 +253,8 @@ def main():
         lambda_pi = np.zeros(shape=K)
         lambda_beta = np.zeros(shape=K)
         lambda_nu = np.zeros(shape=K)
-        lambda_m = np.zeros(shape=(K, D))
-        lambda_w = np.zeros(shape=(K, D, D))
+        lambda_m = np.random.rand(K, D)
+        lambda_w = np.array([np.copy(w_o) for _ in range(K)])
 
         # Plot configs
         if VERBOSE and D == 2:
@@ -316,7 +316,7 @@ def main():
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter-1)) \
-                    or (n_iters > 0 and 0 < improve < THRESHOLD):
+                    or (n_iters > 0 and 0 <= improve < THRESHOLD):
                 if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 
@@ -332,7 +332,7 @@ def main():
             exec_time = final_time - init_time
             print('Time: {} seconds'.format(exec_time))
             print('Iterations: {}'.format(n_iters))
-            print('ELBOs: {}'.format(lbs))
+            print('ELBOs: {}'.format(lbs[len(lbs) - 10:len(lbs)]))
             if D == 3:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection='3d')
@@ -343,7 +343,7 @@ def main():
                 ax.set_zlabel('Z')
                 plt.show()
             plt.gcf().clear()
-            plt.plot(np.arange(len(lbs)), lbs)
+            plt.plot(np.arange(len(lbs)), list(np.array(lbs) / (N / BATCH_SIZE)))
             plt.ylabel('ELBO')
             plt.xlabel('Iterations')
             plt.savefig('generated/elbos.png')

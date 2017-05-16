@@ -191,7 +191,6 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
     ELBO computation
     """
     e3 = e2 = h2 = 0
-
     e1 = - log_beta_function(alpha_o) \
          + np.dot((alpha_o-np.ones(K)), dirichlet_expectation(lambda_pi))
     h1 = log_beta_function(lambda_pi) \
@@ -208,7 +207,6 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
         e3 += 1./2 * np.dot(lambda_phi[n, :],
                             (logDeltak - 2.*np.log(2*math.pi) -
                              lambda_nu*product - 2./lambda_beta).T)
-
     product = np.array([np.dot(np.dot(lambda_m[k, :]-m_o, lambda_w[k, :, :]),
                                (lambda_m[k, :]-m_o).T) for k in xrange(K)])
     traces = np.array([np.trace(np.dot(inv(w_o),
@@ -257,6 +255,7 @@ def main():
         # Plot configs
         if VERBOSE and D == 2:
             plt.ion()
+            plt.style.use('seaborn-darkgrid')
             fig = plt.figure(figsize=(10, 10))
             ax_spatial = fig.add_subplot(1, 1, 1)
             circs = []
@@ -307,7 +306,7 @@ def main():
             improve = lb - lbs[n_iters - 1]
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter-1)) \
-                    or (n_iters > 0 and 0 < improve < THRESHOLD):
+                    or (n_iters > 0 and 0 <= improve < THRESHOLD):
                 if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 
