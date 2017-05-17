@@ -308,7 +308,6 @@ def main():
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter-1)) \
                     or (n_iters > 0 and 0 <= improve < THRESHOLD):
-                if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 
             n_iters += 1
@@ -324,6 +323,7 @@ def main():
             print('Time: {} seconds'.format(exec_time))
             print('Iterations: {}'.format(n_iters))
             print('ELBOs: {}'.format(lbs))
+            if D == 2: plt.savefig('generated/plot.png')
             if D == 3:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection='3d')

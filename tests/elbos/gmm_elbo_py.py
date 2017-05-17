@@ -223,7 +223,7 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
 
 def main():
     # Get data
-    with open('../../data/synthetic/2D/k2/data_k2_1000.pkl', 'r') as inputfile:
+    with open('../../data/synthetic/2D/k2/data_k2_100.pkl', 'r') as inputfile:
         data = pkl.load(inputfile)
         xn = data['xn']
     N, D = xn.shape
@@ -264,7 +264,7 @@ def main():
 
     # ELBO 2 computation
     lb2 = elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
-                lambda_beta, nu_o, lambda_nu, w_o, lambda_w, N, K)
+                lambda_beta, nu_o, lambda_nu, w_o, inv(lambda_w), N, K)
     print('ELBO2: {}'.format(lb2))
 
 

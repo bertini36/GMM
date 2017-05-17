@@ -366,6 +366,7 @@ def main():
         print('Time: {} seconds'.format(exec_time))
         print('Iterations: {}'.format(n_iters))
         print('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
+        if D == 2: plt.savefig('generated/plot.png')
         plt.gcf().clear()
         plt.plot(np.arange(len(lbs)), list(np.array(lbs) / (N / BATCH_SIZE)))
         plt.ylabel('ELBO')

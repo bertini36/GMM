@@ -293,6 +293,7 @@ def main():
             lb = elbo2(x_batch, alpha_o, lambda_pi, lambda_phi[idx, :], m_o,
                        lambda_m, beta_o, lambda_beta, nu_o,
                        lambda_nu, w_o, inv(lambda_w), BATCH_SIZE, K)
+            lb = lb * (N / BATCH_SIZE)
             lbs.append(lb)
 
             if VERBOSE:
@@ -317,7 +318,6 @@ def main():
             if VERBOSE: print('Improve: {}'.format(improve))
             if (n_iters == (args.maxIter-1)) \
                     or (n_iters > 0 and 0 <= improve < THRESHOLD):
-                if VERBOSE and D == 2: plt.savefig('generated/plot.png')
                 break
 
             n_iters += 1
@@ -333,6 +333,7 @@ def main():
             print('Time: {} seconds'.format(exec_time))
             print('Iterations: {}'.format(n_iters))
             print('ELBOs: {}'.format(lbs[len(lbs) - 10:len(lbs)]))
+            if D == 2: plt.savefig('generated/plot.png')
             if D == 3:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection='3d')
@@ -343,7 +344,7 @@ def main():
                 ax.set_zlabel('Z')
                 plt.show()
             plt.gcf().clear()
-            plt.plot(np.arange(len(lbs)), list(np.array(lbs) / (N / BATCH_SIZE)))
+            plt.plot(np.arange(len(lbs)), lbs)
             plt.ylabel('ELBO')
             plt.xlabel('Iterations')
             plt.savefig('generated/elbos.png')

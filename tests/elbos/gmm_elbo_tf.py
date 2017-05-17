@@ -231,14 +231,13 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
     logdet = tf.log(tf.convert_to_tensor([
         tf.matrix_determinant(lambda_w[k, :, :]) for k in xrange(K)]))
     logDeltak = tf.add(tf.digamma(tf.div(lambda_nu, 2.)),
-                       tf.add(tf.digamma(tf.div(tf.subtract(lambda_nu,
-                                                            tf.cast(1.,
-                                                                    dtype=tf.float64)),
-                                                tf.cast(2., dtype=tf.float64))),
-                              tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
-                                                 tf.cast(tf.log(2.),
-                                                         dtype=tf.float64)),
-                                     logdet)))
+                       tf.add(tf.digamma(tf.div(tf.subtract(
+                           lambda_nu, tf.cast(1., dtype=tf.float64)),
+                           tf.cast(2., dtype=tf.float64))),
+                              tf.add(tf.multiply(
+                                  tf.cast(2., dtype=tf.float64),
+                                  tf.cast(tf.log(2.), dtype=tf.float64)),
+                                  logdet)))
     for n in range(N):
         e2 = tf.add(e2, tf.reduce_sum(
             tf.multiply(lambda_phi[n, :], dirichlet_expectation(lambda_pi))))
@@ -277,9 +276,9 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
         tf.cast(tf.constant(np.pi), dtype=tf.float64))),
                  tf.add(tf.lgamma(
                      tf.div(lambda_nu, tf.cast(2., dtype=tf.float64))),
-                        tf.lgamma(tf.div(tf.subtract(lambda_nu, tf.cast(1.,
-                                                                        dtype=tf.float64)),
-                                         tf.cast(2., dtype=tf.float64)))))
+                        tf.lgamma(tf.div(tf.subtract(
+                            lambda_nu, tf.cast(1., dtype=tf.float64)),
+                            tf.cast(2., dtype=tf.float64)))))
     logB = tf.add(
         tf.multiply(tf.div(lambda_nu, tf.cast(2., dtype=tf.float64)), logdet),
         tf.add(tf.multiply(lambda_nu, tf.log(tf.cast(2., dtype=tf.float64))),
@@ -306,10 +305,9 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
                                   tf.cast(tf.log(np.pi), dtype=tf.float64)),
                       tf.add(tf.lgamma(
                           tf.div(nu_o, tf.cast(2., dtype=tf.float64))),
-                             tf.lgamma(tf.div(tf.subtract(nu_o, tf.cast(1.,
-                                                                        dtype=tf.float64)),
-                                              tf.cast(2.,
-                                                      dtype=tf.float64)))))))
+                             tf.lgamma(tf.div(tf.subtract(
+                                 nu_o, tf.cast(1., dtype=tf.float64)),
+                                 tf.cast(2., dtype=tf.float64)))))))
     e5 = tf.reduce_sum(tf.add(-logB, tf.subtract(
         tf.multiply(tf.div(tf.subtract(nu_o, tf.cast(3., dtype=tf.float64)),
                            tf.cast(2., dtype=tf.float64)), logDeltak),
@@ -319,7 +317,7 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
 
 def main():
     # Get data
-    with open('../../data/synthetic/2D/k2/data_k2_1000.pkl', 'r') as inputfile:
+    with open('../../data/synthetic/2D/k2/data_k2_100.pkl', 'r') as inputfile:
         data = pkl.load(inputfile)
         xn = data['xn']
     N, D = xn.shape
@@ -358,7 +356,8 @@ def main():
     lambda_beta = tf.Variable(lambda_beta, dtype=tf.float64)
     lambda_nu = tf.Variable(lambda_nu, dtype=tf.float64)
     lambda_m = tf.Variable(lambda_m, dtype=tf.float64)
-    lambda_w = tf.Variable(lambda_w, dtype=tf.float64)
+    lambda_w_1 = tf.Variable(lambda_w, dtype=tf.float64)
+    lambda_w_2 = tf.Variable(inv(lambda_w), dtype=tf.float64)
 
     alpha_o = tf.convert_to_tensor(alpha_o, dtype=tf.float64)
     nu_o = tf.convert_to_tensor(nu_o, dtype=tf.float64)
@@ -371,12 +370,12 @@ def main():
 
     # ELBO computation
     lb = elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
-              lambda_w, alpha_o, beta_o, nu_o, w_o, N, D)
+              lambda_w_1, alpha_o, beta_o, nu_o, w_o, N, D)
     print('ELBO: {}'.format(sess.run(lb)))
 
     # ELBO2 computation
     lb2 = elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
-                lambda_beta, nu_o, lambda_nu, w_o, lambda_w, N, K)
+                lambda_beta, nu_o, lambda_nu, w_o, lambda_w_2, N, K)
     print('ELBO2: {}'.format(sess.run(lb2)))
 
 
