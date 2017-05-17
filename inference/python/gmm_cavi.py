@@ -186,7 +186,7 @@ def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
 
 
 def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
-               lambda_beta, nu_o, lambda_nu, w_o, lambda_w, N, K):
+          lambda_beta, nu_o, lambda_nu, w_o, lambda_w, N, K):
     """
     ELBO computation
     """
@@ -195,6 +195,7 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
          + np.dot((alpha_o-np.ones(K)), dirichlet_expectation(lambda_pi))
     h1 = log_beta_function(lambda_pi) \
          - np.dot((lambda_pi-np.ones(K)), dirichlet_expectation(lambda_pi))
+    print('HOLA: {}'.format(np.array([det(lambda_w[k, :, :]) for k in xrange(K)])))
     logdet = np.log(np.array([det(lambda_w[k, :, :]) for k in xrange(K)]))
     logDeltak = psi(lambda_nu/2.) \
                 + psi((lambda_nu-1.)/2.) + 2.*np.log(2.) + logdet
@@ -282,7 +283,7 @@ def main():
             # ELBO computation and variational parameter updates
             lb = elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o,
                        lambda_m, beta_o, lambda_beta, nu_o,
-                       lambda_nu, w_o, lambda_w, N, K)
+                       lambda_nu, w_o, inv(lambda_w), N, K)
             lbs.append(lb)
 
             if VERBOSE:

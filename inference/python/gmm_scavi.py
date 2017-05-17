@@ -292,7 +292,7 @@ def main():
             # ELBO computation and variational parameter updates
             lb = elbo2(x_batch, alpha_o, lambda_pi, lambda_phi[idx, :], m_o,
                        lambda_m, beta_o, lambda_beta, nu_o,
-                       lambda_nu, w_o, lambda_w, BATCH_SIZE, K)
+                       lambda_nu, w_o, inv(lambda_w), BATCH_SIZE, K)
             lbs.append(lb)
 
             if VERBOSE:
