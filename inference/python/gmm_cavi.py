@@ -43,15 +43,15 @@ Parameters:
                                    the variational parameters inferred
 
 Execution:
-    python gmm_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
+    python gmm_cavi.py -dataset data_k4_1000.pkl -k 2 -verbose 
                        -exportAssignments -exportVariationalParameters
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=4)
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
@@ -195,7 +195,6 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
          + np.dot((alpha_o-np.ones(K)), dirichlet_expectation(lambda_pi))
     h1 = log_beta_function(lambda_pi) \
          - np.dot((lambda_pi-np.ones(K)), dirichlet_expectation(lambda_pi))
-    print('HOLA: {}'.format(np.array([det(lambda_w[k, :, :]) for k in xrange(K)])))
     logdet = np.log(np.array([det(lambda_w[k, :, :]) for k in xrange(K)]))
     logDeltak = psi(lambda_nu/2.) \
                 + psi((lambda_nu-1.)/2.) + 2.*np.log(2.) + logdet

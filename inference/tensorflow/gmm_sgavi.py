@@ -40,11 +40,12 @@ Execution:
     python gmm_sgavi.py -dataset data_k2_10000.pkl -k 2 -verbose -bs 100 
 """
 
-parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
+parser = argparse.ArgumentParser(description='Sthocastic GAVI in'
+                                             ' mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=4)
 parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
@@ -324,6 +325,7 @@ def main():
         _, mer, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
             [train, merged, LB, lambda_pi, lambda_phi, lambda_m,
              lambda_beta, lambda_nu, lambda_w], feed_dict={idx_tensor: idx})
+        lb = lb * (N / BATCH_SIZE)
         lbs.append(lb)
 
         if VERBOSE:

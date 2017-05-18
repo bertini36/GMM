@@ -48,11 +48,12 @@ Execution:
     python gmm_scavi.py -dataset data_k2_10000.pkl -k 2 -verbose -bs 500
 """
 
-parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
+parser = argparse.ArgumentParser(description='Sthocastic CAVI in'
+                                             ' mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=4)
 parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-verbose', dest='verbose', action='store_true')

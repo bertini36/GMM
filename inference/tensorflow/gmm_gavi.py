@@ -35,14 +35,14 @@ Parameters:
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
 Execution:
-    python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose randomInit
+    python gmm_gavi.py -dataset data_k4_1000.pkl -k 2 -verbose randomInit
 """
 
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=2)
+                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=4)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
 parser.add_argument('-randomInit', dest='randomInit', action='store_true')
@@ -216,7 +216,6 @@ train = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
 # Summaries definition
 tf.summary.histogram('lambda_pi', lambda_pi)
-tf.summary.histogram('lambda_phi', lambda_phi)
 tf.summary.histogram('lambda_m', lambda_m)
 tf.summary.histogram('lambda_beta', lambda_beta)
 tf.summary.histogram('lambda_nu', lambda_nu)
