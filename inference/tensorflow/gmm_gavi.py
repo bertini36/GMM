@@ -42,11 +42,12 @@ Parameters:
     * exportELBOs: If true generates a pkl wirh the ELBOs list
     
 Execution:
-    python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose randomInit
+    python [-m memory_profiler] gmm_gavi.py 
+           -dataset data_k2_1000.pkl -k 2 -verbose randomInit
 """
 
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=5)
 parser.add_argument('-dataset', metavar='dataset', type=str,
                     default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
@@ -287,6 +288,7 @@ def update_lambda_phi(lambda_phi, lambda_pi, lambda_m,
     return lambda_phi
 
 
+@profile
 def main():
 
     # Plot configs
@@ -394,6 +396,6 @@ def main():
 
     if args.exportELBOs:
         with open('generated/gavi_elbos.pkl', 'w') as output:
-            pkl.dump({'elbos': lbs}, output)
+            pkl.dump({'elbos': lbs, 'iter_time': exec_time/n_iters}, output)
 
 if __name__ == '__main__': main()

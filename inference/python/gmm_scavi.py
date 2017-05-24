@@ -370,7 +370,7 @@ def main():
 
         if args.exportELBOs:
             with open('generated/scavi_elbos.pkl', 'w') as output:
-                pkl.dump({'elbos': lbs}, output)
+                pkl.dump({'elbos': lbs, 'iter_time': exec_time/n_iters}, output)
 
     except IOError:
         print('File not found!')

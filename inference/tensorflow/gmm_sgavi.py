@@ -413,7 +413,7 @@ def main():
 
         if args.exportELBOs:
             with open('generated/sgavi_elbos.pkl', 'w') as output:
-                pkl.dump({'elbos': lbs}, output)
+                pkl.dump({'elbos': lbs, 'iter_time': exec_time/n_iters}, output)
 
 
 if __name__ == '__main__': main()
