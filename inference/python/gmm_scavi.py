@@ -43,17 +43,18 @@ Parameters:
     * exportAssignments: If true generate a csv with the cluster assignments
     * exportVariationalParameters: If true generate a pkl of a dictionary with
                                    the variational parameters inferred
-
+    * exportELBOs: If true generates a pkl wirh the ELBOs list
+                                   
 Execution:
-    python gmm_scavi.py -dataset data_k2_10000.pkl -k 2 -verbose -bs 500
+    python gmm_scavi.py -dataset data_k2_1000.pkl -k 2 -verbose -bs 100
 """
 
 parser = argparse.ArgumentParser(description='Sthocastic CAVI in'
                                              ' mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=4)
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
@@ -65,6 +66,9 @@ parser.add_argument('-exportAssignments',
 parser.set_defaults(exportAssignments=False)
 parser.add_argument('-exportVariationalParameters',
                     dest='exportVariationalParameters', action='store_true')
+parser.set_defaults(exportVariationalParameters=False)
+parser.add_argument('-exportELBOs', dest='exportELBOs', action='store_true')
+parser.set_defaults(exportELBOs=False)
 args = parser.parse_args()
 
 K = args.k
@@ -268,8 +272,9 @@ def main():
 
         # Inference
         lbs = []
+        aux_lbs = []
         n_iters = 0
-        for _ in range(args.maxIter):
+        for i in range(args.maxIter * (N / BATCH_SIZE)):
 
             # Sample xn
             idx = np.random.randint(N, size=BATCH_SIZE)
@@ -295,7 +300,11 @@ def main():
                        lambda_m, beta_o, lambda_beta, nu_o,
                        lambda_nu, w_o, inv(lambda_w), BATCH_SIZE, K)
             lb = lb * (N / BATCH_SIZE)
-            lbs.append(lb)
+            aux_lbs.append(lb)
+            if len(aux_lbs) == (N / BATCH_SIZE):
+                lbs.append(np.mean(aux_lbs))
+                n_iters += 1
+                aux_lbs = []
 
             if VERBOSE:
                 print('\n******* ITERATION {} *******'.format(n_iters))
@@ -311,17 +320,12 @@ def main():
                             for k in range(K)]
                     ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
                                                              sctZ, lambda_m,
-                                                             covs, xn,
-                                                             n_iters, K)
+                                                             covs, xn, i, K)
 
             # Break condition
-            improve = lb - lbs[n_iters - 1]
+            improve = lb - lbs[n_iters - 1] if n_iters > 0 else lb
             if VERBOSE: print('Improve: {}'.format(improve))
-            if (n_iters == (args.maxIter-1)) \
-                    or (n_iters > 0 and 0 <= improve < THRESHOLD):
-                break
-
-            n_iters += 1
+            if n_iters > 0 and 0 <= improve < THRESHOLD: break
 
         zn = np.array([np.argmax(lambda_phi[n, :]) for n in xrange(N)])
 
@@ -334,7 +338,7 @@ def main():
             print('Time: {} seconds'.format(exec_time))
             print('Iterations: {}'.format(n_iters))
             print('ELBOs: {}'.format(lbs[len(lbs) - 10:len(lbs)]))
-            if D == 2: plt.savefig('generated/plot.png')
+            if D == 2: plt.savefig('generated/scavi_plot.png')
             if D == 3:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection='3d')
@@ -348,10 +352,10 @@ def main():
             plt.plot(np.arange(len(lbs)), lbs)
             plt.ylabel('ELBO')
             plt.xlabel('Iterations')
-            plt.savefig('generated/elbos.png')
+            plt.savefig('generated/scavi_elbos.png')
 
         if args.exportAssignments:
-            with open('generated/assignments.csv', 'wb') as output:
+            with open('generated/scavi_assignments.csv', 'wb') as output:
                 writer = csv.writer(output, delimiter=';', quotechar='',
                                     escapechar='\\', quoting=csv.QUOTE_NONE)
                 writer.writerow(['zn'])
@@ -359,10 +363,14 @@ def main():
                     writer.writerow([zn[i]])
 
         if args.exportVariationalParameters:
-            with open('generated/variational_parameters.pkl', 'w') as output:
+            with open('generated/scavi_variational_parameters.pkl', 'w') as output:
                 pkl.dump({'lambda_pi': lambda_pi, 'lambda_m': lambda_m,
                           'lambda_beta': lambda_beta, 'lambda_nu': lambda_nu,
                           'lambda_w': lambda_w, 'K': K, 'D': D}, output)
+
+        if args.exportELBOs:
+            with open('generated/scavi_elbos.pkl', 'w') as output:
+                pkl.dump({'elbos': lbs}, output)
 
     except IOError:
         print('File not found!')

@@ -8,13 +8,16 @@ process to approximate a Mixture of Gaussians (GMM)
 from __future__ import absolute_import
 
 import argparse
+import csv
 import os
 import pickle as pkl
 import sys
 from time import time
 
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 from numpy.linalg import det, inv
 import tensorflow as tf
 from scipy.special import psi
@@ -35,17 +38,20 @@ Parameters:
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
+    * exportVariationalParameters: If true generates a pkl of a dictionary with
+                                   the variational parameters inferred
+    * exportELBOs: If true generates a pkl wirh the ELBOs list
 
 Execution:
-    python gmm_sgavi.py -dataset data_k2_10000.pkl -k 2 -verbose -bs 100 
+    python gmm_sgavi.py -dataset data_k2_1000.pkl -k 2 -verbose -bs 100 
 """
 
 parser = argparse.ArgumentParser(description='Sthocastic GAVI in'
                                              ' mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=4)
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
@@ -54,7 +60,11 @@ parser.set_defaults(randomInit=False)
 parser.add_argument('-exportAssignments',
                     dest='exportAssignments', action='store_true')
 parser.set_defaults(exportAssignments=False)
-
+parser.add_argument('-exportVariationalParameters',
+                    dest='exportVariationalParameters', action='store_true')
+parser.set_defaults(exportVariationalParameters=False)
+parser.add_argument('-exportELBOs', dest='exportELBOs', action='store_true')
+parser.set_defaults(exportELBOs=False)
 args = parser.parse_args()
 
 K = args.k
@@ -302,6 +312,7 @@ def main():
     init = tf.global_variables_initializer()
     sess.run(init)
     lbs = []
+    aux_lbs = []
     n_iters = 0
 
     phi_out = sess.run(lambda_phi)
@@ -311,7 +322,7 @@ def main():
     w_out = sess.run(lambda_w)
     beta_out = sess.run(lambda_beta)
 
-    for _ in range(args.maxIter):
+    for i in range(args.maxIter * (N / BATCH_SIZE)):
 
         # Sample xn
         idx = np.random.randint(N, size=BATCH_SIZE)
@@ -326,7 +337,11 @@ def main():
             [train, merged, LB, lambda_pi, lambda_phi, lambda_m,
              lambda_beta, lambda_nu, lambda_w], feed_dict={idx_tensor: idx})
         lb = lb * (N / BATCH_SIZE)
-        lbs.append(lb)
+        aux_lbs.append(lb)
+        if len(aux_lbs) == (N / BATCH_SIZE):
+            lbs.append(np.mean(aux_lbs))
+            n_iters += 1
+            aux_lbs = []
 
         if VERBOSE:
             print('\n******* ITERATION {} *******'.format(n_iters))
@@ -336,28 +351,25 @@ def main():
             print('lambda_beta: {}'.format(beta_out))
             print('lambda_nu: {}'.format(nu_out))
             print('ELBO: {}'.format(lb))
-            covs = []
-            aux_w_out = np.copy(w_out)
-            for k in range(K):
-                aux_w_out[k, 0, 0] = 1.0 / w_out[k, 0, 0]
-                aux_w_out[k, 1, 1] = 1.0 / w_out[k, 1, 1]
-                covs.append(aux_w_out[k, :, :] / (nu_out[k] - D - 1))
-            ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
-                                                     sctZ, m_out,
-                                                     covs, xn,
-                                                     n_iters, K)
-            print('lambda_w: {}'.format(aux_w_out))
+            if D == 2:
+                covs = []
+                aux_w_out = np.copy(w_out)
+                for k in range(K):
+                    aux_w_out[k, 0, 0] = 1.0 / w_out[k, 0, 0]
+                    aux_w_out[k, 1, 1] = 1.0 / w_out[k, 1, 1]
+                    covs.append(aux_w_out[k, :, :] / (nu_out[k] - D - 1))
+                ax_spatial, circs, sctZ = plot_iteration(ax_spatial, circs,
+                                                         sctZ, m_out,
+                                                         covs, xn, i, K)
 
             # Break condition
-            improve = lb - lbs[n_iters - 1]
+            improve = lb - lbs[n_iters - 1] if n_iters > 0 else lb
             if VERBOSE: print('Improve: {}'.format(improve))
-            if (n_iters == (args.maxIter - 1)) \
-                    or (n_iters > 0 and 0 <= improve < THRESHOLD):
-                if VERBOSE and D == 2: plt.savefig('generated/plot.png')
-                break
+            if n_iters > 0 and 0 <= improve < THRESHOLD: break
 
-        n_iters += 1
         file_writer.add_summary(mer, n_iters)
+
+    zn = np.array([np.argmax(phi_out[n, :]) for n in xrange(N)])
 
     if VERBOSE:
         print('\n******* RESULTS *******')
@@ -368,11 +380,40 @@ def main():
         print('Time: {} seconds'.format(exec_time))
         print('Iterations: {}'.format(n_iters))
         print('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
-        if D == 2: plt.savefig('generated/plot.png')
+        if D == 2: plt.savefig('generated/sgavi_plot.png')
+        if D == 3:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(xn[:, 0], xn[:, 1], xn[:, 2],
+                       c=zn, cmap=cm.gist_rainbow, s=5)
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
+            plt.show()
         plt.gcf().clear()
-        plt.plot(np.arange(len(lbs)), list(np.array(lbs) / (N / BATCH_SIZE)))
+        plt.plot(np.arange(len(lbs)), lbs)
         plt.ylabel('ELBO')
         plt.xlabel('Iterations')
-        plt.savefig('generated/elbos.png')
+        plt.savefig('generated/sgavi_elbos.png')
+
+        if args.exportAssignments:
+            with open('generated/sgavi_assignments.csv', 'wb') as output:
+                writer = csv.writer(output, delimiter=';', quotechar='',
+                                    escapechar='\\', quoting=csv.QUOTE_NONE)
+                writer.writerow(['zn'])
+                for i in range(len(zn)):
+                    writer.writerow([zn[i]])
+
+        if args.exportVariationalParameters:
+            with open('generated/sgavi_variational_parameters.pkl',
+                      'w') as output:
+                pkl.dump({'lambda_pi': pi_out, 'lambda_m': m_out,
+                          'lambda_beta': beta_out, 'lambda_nu': nu_out,
+                          'lambda_w': w_out, 'K': K, 'D': D}, output)
+
+        if args.exportELBOs:
+            with open('generated/sgavi_elbos.pkl', 'w') as output:
+                pkl.dump({'elbos': lbs}, output)
+
 
 if __name__ == '__main__': main()

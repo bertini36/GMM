@@ -13,3 +13,4 @@ preprocessing/others/generated/
 inference/autograd/generated
 inference/python/generated
 inference/tensorflow/generated
+inference/generated

@@ -8,13 +8,16 @@ process to approximate a Mixture of Gaussians (GMM)
 from __future__ import absolute_import
 
 import argparse
+import csv
 import os
 import pickle as pkl
 import sys
 from time import time
 
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 from numpy.linalg import det, inv
 import tensorflow as tf
 from scipy.special import psi
@@ -34,22 +37,30 @@ Parameters:
     * verbose: Printing time, intermediate variational parameters, plots, ...
     * randomInit: Init assignations randomly or with Kmeans
     * exportAssignments: If true generate a csv with the cluster assignments
+    * exportVariationalParameters: If true generate a pkl of a dictionary with
+                                   the variational parameters inferred
+    * exportELBOs: If true generates a pkl wirh the ELBOs list
+    
 Execution:
-    python gmm_gavi.py -dataset data_k4_1000.pkl -k 2 -verbose randomInit
+    python gmm_gavi.py -dataset data_k2_1000.pkl -k 2 -verbose randomInit
 """
 
 parser = argparse.ArgumentParser(description='GAVI in mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k4/data_k4_1000.pkl')
-parser.add_argument('-k', metavar='k', type=int, default=4)
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
+parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
 parser.add_argument('-randomInit', dest='randomInit', action='store_true')
 parser.set_defaults(randomInit=False)
 parser.add_argument('-exportAssignments',
                     dest='exportAssignments', action='store_true')
-parser.set_defaults(exportAssignments=False)
+parser.add_argument('-exportVariationalParameters',
+                    dest='exportVariationalParameters', action='store_true')
+parser.set_defaults(exportVariationalParameters=False)
+parser.add_argument('-exportELBOs', dest='exportELBOs', action='store_true')
+parser.set_defaults(exportELBOs=False)
 args = parser.parse_args()
 
 K = args.k
@@ -333,14 +344,14 @@ def main():
                                                      n_iters, K)
 
             # Break condition
-            improve = lb - lbs[n_iters - 1]
+            improve = lb - lbs[n_iters - 1] if n_iters > 0 else lb
             if VERBOSE: print('Improve: {}'.format(improve))
-            if (n_iters == (args.maxIter - 1)) \
-                    or (n_iters > 0 and 0 <= improve < THRESHOLD):
-                break
+            if n_iters > 0 and 0 <= improve < THRESHOLD: break
 
         n_iters += 1
         file_writer.add_summary(mer, n_iters)
+
+    zn = np.array([np.argmax(phi_out[n, :]) for n in xrange(N)])
 
     if VERBOSE:
         print('\n******* RESULTS *******')
@@ -351,11 +362,38 @@ def main():
         print('Time: {} seconds'.format(exec_time))
         print('Iterations: {}'.format(n_iters))
         print('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
-        if D == 2: plt.savefig('generated/plot.png')
+        if D == 2: plt.savefig('generated/gavi_plot.png')
+        if D == 3:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(xn[:, 0], xn[:, 1], xn[:, 2],
+                       c=zn, cmap=cm.gist_rainbow, s=5)
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
+            plt.show()
         plt.gcf().clear()
         plt.plot(np.arange(len(lbs)), lbs)
         plt.ylabel('ELBO')
         plt.xlabel('Iterations')
-        plt.savefig('generated/elbos.png')
+        plt.savefig('generated/gavi_elbos.png')
+
+    if args.exportAssignments:
+        with open('generated/gavi_assignments.csv', 'wb') as output:
+            writer = csv.writer(output, delimiter=';', quotechar='',
+                                escapechar='\\', quoting=csv.QUOTE_NONE)
+            writer.writerow(['zn'])
+            for i in range(len(zn)):
+                writer.writerow([zn[i]])
+
+    if args.exportVariationalParameters:
+        with open('generated/gavi_variational_parameters.pkl', 'w') as output:
+            pkl.dump({'lambda_pi': pi_out, 'lambda_m': m_out,
+                      'lambda_beta': beta_out, 'lambda_nu': nu_out,
+                      'lambda_w': w_out, 'K': K, 'D': D}, output)
+
+    if args.exportELBOs:
+        with open('generated/gavi_elbos.pkl', 'w') as output:
+            pkl.dump({'elbos': lbs}, output)
 
 if __name__ == '__main__': main()

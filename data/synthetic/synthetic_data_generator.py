@@ -32,7 +32,7 @@ parser.add_argument('-N', metavar='N', type=int, default=1000)
 parser.add_argument('-K', metavar='K', type=int, default=2)
 parser.add_argument('-D', metavar='D', type=int, default=2)
 parser.add_argument('-filename', metavar='filename',
-                    type=str, default='data_k4_1000.pkl')
+                    type=str, default='data_k4_10000.pkl')
 
 # Priors. m_mu and w_delta depend on the data dimension
 # (Default only for 2D data). nu_delta must be greater equal than dimension (D)
