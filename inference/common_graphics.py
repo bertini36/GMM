@@ -9,7 +9,6 @@ Script that executes:
 with common configurations and plot:
     - Its elbo's evolutions
     - Its time per iteration
-    - Its memory usage
 """
 
 from __future__ import absolute_import
@@ -21,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 DATASET = '../data/synthetic/2D/k2/data_k2_1000.pkl'
-MAX_ITER = 100
+MAX_ITER = 300
 K = 2
 VERBOSE = False
 BATCH_SIZE = 100
@@ -35,32 +34,32 @@ def main():
         subprocess.call(['python', 'python/gmm_cavi.py', '-dataset', DATASET,
                          '-maxIter', str(MAX_ITER),
                          '-k', str(K), '-verbose', '-exportELBOs'])
-        subprocess.call(['python', 'tensorflow/gmm_gavi.py', '-dataset', DATASET,
-                         '-maxIter', str(MAX_ITER),
+        subprocess.call(['python', 'tensorflow/gmm_gavi.py', '-dataset',
+                         DATASET, '-maxIter', str(MAX_ITER),
                          '-k', str(K), '-verbose', '-exportELBOs'])
         subprocess.call(['python', 'python/gmm_scavi.py', '-dataset', DATASET,
                          '-maxIter', str(MAX_ITER), '-k', str(K),
                          '-verbose', '-bs', str(BATCH_SIZE), '-exportELBOs'])
-        subprocess.call(['python', 'tensorflow/gmm_sgavi.py', '-dataset', DATASET,
-                         '-maxIter', str(MAX_ITER), '-k', str(K),
+        subprocess.call(['python', 'tensorflow/gmm_sgavi.py', '-dataset',
+                         DATASET, '-maxIter', str(MAX_ITER), '-k', str(K),
                          '-verbose', '-bs', str(BATCH_SIZE), '-exportELBOs'])
 
     with open('generated/cavi_elbos.pkl', 'r') as input:
         data = pkl.load(input)
         elbos_cavi = data['elbos']
-        # iter_time_cavi = data['iter_time']
+        iter_time_cavi = data['iter_time']
     with open('generated/gavi_elbos.pkl', 'r') as input:
         data = pkl.load(input)
         elbos_gavi = data['elbos']
-        # iter_time_gavi = data['iter_time']
+        iter_time_gavi = data['iter_time']
     with open('generated/scavi_elbos.pkl', 'r') as input:
         data = pkl.load(input)
         elbos_scavi = data['elbos']
-        # iter_time_scavi = data['iter_time']
+        iter_time_scavi = data['iter_time']
     with open('generated/sgavi_elbos.pkl', 'r') as input:
         data = pkl.load(input)
         elbos_sgavi = data['elbos']
-        # iter_time_sgavi = data['iter_time']
+        iter_time_sgavi = data['iter_time']
 
     plt.style.use('seaborn-darkgrid')
 
@@ -78,14 +77,10 @@ def main():
 
     # Plot normalized ELBOs
     plt.style.use('seaborn-darkgrid')
-    plt.plot(np.arange(len(elbos_cavi)),
-             np.log(elbos_cavi + abs(np.min(elbos_cavi))))
-    plt.plot(np.arange(len(elbos_gavi)),
-             np.log(elbos_gavi + abs(np.min(elbos_gavi))))
-    plt.plot(np.arange(len(elbos_scavi)),
-             np.log(elbos_scavi + abs(np.min(elbos_scavi))))
-    plt.plot(np.arange(len(elbos_sgavi)),
-             np.log(elbos_sgavi + abs(np.min(elbos_sgavi))))
+    plt.plot(np.arange(len(elbos_cavi)), -np.log(np.absolute(elbos_cavi)))
+    plt.plot(np.arange(len(elbos_gavi)), -np.log(np.absolute(elbos_gavi)))
+    plt.plot(np.arange(len(elbos_scavi)), -np.log(np.absolute(elbos_scavi)))
+    plt.plot(np.arange(len(elbos_sgavi)), -np.log(np.absolute(elbos_sgavi)))
     plt.ylabel('ELBO')
     plt.xlabel('Iterations')
     plt.legend(ALGORITHMS, loc='lower right')
@@ -94,11 +89,8 @@ def main():
     plt.gcf().clear()
 
     # Plot iter time histogram
-    """
     times = np.array([iter_time_cavi, iter_time_gavi,
                       iter_time_scavi, iter_time_sgavi])
-    """
-    times = [4.0, 3.0, 5.0, 7.0]
     pos = np.arange(len(ALGORITHMS))
     width = 0.95
     ax = plt.axes()

@@ -44,9 +44,8 @@ Parameters:
     * exportELBOs: If true generates a pkl wirh the ELBOs list
 
 Execution:
-    python [-m memory_profiler] gmm_cavi.py
-           -dataset data_k2_1000.pkl -k 2 -verbose 
-           -exportAssignments -exportVariationalParameters
+    python gmm_cavi.py -dataset data_k2_1000.pkl -k 2 -verbose 
+                       -exportAssignments -exportVariationalParameters
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
@@ -228,7 +227,6 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
     return e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 
 
-@profile
 def main():
     try:
         if not('.pkl' in args.dataset): raise Exception('input_format')
