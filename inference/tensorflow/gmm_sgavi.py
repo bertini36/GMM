@@ -96,7 +96,7 @@ lambda_phi_var = np.random.dirichlet(alpha_o, N) \
 lambda_pi_var = np.zeros(shape=K)
 lambda_beta_var = np.zeros(shape=K)
 lambda_nu_var = np.zeros(shape=K) + D
-lambda_m_var = np.random.uniform(np.min(xn[:, 0]), np.max(xn[:, 0]), (K, D))
+lambda_m_var = np.random.rand(K, D)
 lambda_w_var = np.array([np.copy(w_o) for _ in range(K)])
 
 lambda_phi = tf.Variable(lambda_phi_var, trainable=False, dtype=tf.float64)

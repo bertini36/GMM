@@ -19,9 +19,9 @@ import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 
-DATASET = '../data/synthetic/2D/k2/data_k2_1000.pkl'
+DATASET = '../data/synthetic/2D/k4/data_k4_1000.pkl'
 MAX_ITER = 300
-K = 2
+K = 4
 VERBOSE = False
 BATCH_SIZE = 100
 CALL = False
@@ -43,6 +43,10 @@ def main():
         subprocess.call(['python', 'tensorflow/gmm_sgavi.py', '-dataset',
                          DATASET, '-maxIter', str(MAX_ITER), '-k', str(K),
                          '-verbose', '-bs', str(BATCH_SIZE), '-exportELBOs'])
+
+    subprocess.call(['python', 'tensorflow/gmm_gavi.py', '-dataset',
+                     DATASET, '-maxIter', str(MAX_ITER),
+                     '-k', str(K), '-verbose', '-exportELBOs'])
 
     with open('generated/cavi_elbos.pkl', 'r') as input:
         data = pkl.load(input)
