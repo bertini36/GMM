@@ -41,6 +41,7 @@ Parameters:
     * exportVariationalParameters: If true generates a pkl of a dictionary with
                                    the variational parameters inferred
     * exportELBOs: If true generates a pkl wirh the ELBOs list
+    * optimizer: Gradient optimizer
 
 Execution:
     python gmm_sgavi.py -dataset data_k2_1000.pkl -k 2 -verbose -bs 100 
@@ -65,6 +66,8 @@ parser.add_argument('-exportVariationalParameters',
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-exportELBOs', dest='exportELBOs', action='store_true')
 parser.set_defaults(exportELBOs=False)
+parser.add_argument('-optimizer', metavar='optimizer',
+                    type=str, default='rmsprop')
 args = parser.parse_args()
 
 K = args.k
@@ -228,7 +231,14 @@ LB = e1 + e2 + e3 + e4 + e5 + h1 + h2 + h4 + h5
 global_step = tf.Variable(0)
 learning_rate = tf.train.exponential_decay(INITIAL_LR, global_step,
                                            100, 0.96, staircase=True)
-optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
+if args.optimizer == 'rmsprop':
+    optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
+elif args.optimizer == 'adam':
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+elif args.optimizer == 'adadelta':
+    optimizer = tf.train.AdadeltaOptimizer(learning_rate=learning_rate)
+elif args.optimizer == 'adagrad':
+    optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
 grads_and_vars = optimizer.compute_gradients(
     -LB, var_list=[lambda_pi_var, lambda_m,
                    lambda_beta_var, lambda_nu_var, lambda_w_var])
@@ -380,7 +390,8 @@ def main():
         print('Time: {} seconds'.format(exec_time))
         print('Iterations: {}'.format(n_iters))
         print('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
-        if D == 2: plt.savefig('generated/sgavi_plot.png')
+        if D == 2: plt.savefig(
+            'generated/sgavi_{}_plot.png'.format(args.optimizer))
         if D == 3:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
@@ -394,10 +405,11 @@ def main():
         plt.plot(np.arange(len(lbs)), lbs)
         plt.ylabel('ELBO')
         plt.xlabel('Iterations')
-        plt.savefig('generated/sgavi_elbos.png')
+        plt.savefig('generated/sgavi_{}_elbos.png'.format(args.optimizer))
 
         if args.exportAssignments:
-            with open('generated/sgavi_assignments.csv', 'wb') as output:
+            with open('generated/sgavi_{}_assignments.csv'
+                              .format(args.optimizer), 'wb') as output:
                 writer = csv.writer(output, delimiter=';', quotechar='',
                                     escapechar='\\', quoting=csv.QUOTE_NONE)
                 writer.writerow(['zn'])
@@ -405,14 +417,15 @@ def main():
                     writer.writerow([zn[i]])
 
         if args.exportVariationalParameters:
-            with open('generated/sgavi_variational_parameters.pkl',
-                      'w') as output:
+            with open('generated/sgavi_{}_variational_parameters.pkl'
+                              .format(args.optimizer), 'w') as output:
                 pkl.dump({'lambda_pi': pi_out, 'lambda_m': m_out,
                           'lambda_beta': beta_out, 'lambda_nu': nu_out,
                           'lambda_w': w_out, 'K': K, 'D': D}, output)
 
         if args.exportELBOs:
-            with open('generated/sgavi_elbos.pkl', 'w') as output:
+            with open('generated/sgavi_{}_elbos.pkl'
+                              .format(args.optimizer), 'w') as output:
                 pkl.dump({'elbos': lbs, 'iter_time': exec_time/n_iters}, output)
 
 
