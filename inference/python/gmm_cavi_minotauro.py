@@ -31,8 +31,8 @@ Parameters:
                                    the variational parameters inferred
 
 Execution:
-    python gmm_means_gavi.py -dataset data_k4_10000.pkl -k 2 -verbose 
-                             -exportAssignments -exportVariationalParameters
+    python gmm_cavi_minotauro.py -dataset data_k4_10000.pkl -k 2 -verbose 
+                                 -exportAssignments -exportVariationalParameters
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
