@@ -18,7 +18,7 @@ import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 
-DATASET = '../../data/synthetic/2D/k2/data_k4_1000.pkl'
+DATASET = '../../data/synthetic/2D/k4/data_k4_1000.pkl'
 MAX_ITER = 300
 K = 4
 VERBOSE = False
