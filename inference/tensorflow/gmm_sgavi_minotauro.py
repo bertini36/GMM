@@ -19,6 +19,8 @@ from scipy import random
 from scipy.special import psi
 from sklearn.cluster import KMeans
 
+tf.logging.set_verbosity(tf.logging.INFO)
+
 """
 Parameters:
     * maxIter: Max number of iterations
@@ -67,7 +69,7 @@ INITIAL_LR = 0.1
 THRESHOLD = 1e-6
 BATCH_SIZE = args.bs
 
-sess = tf.Session()
+sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
 
 def dirichlet_expectation(alpha):
@@ -163,7 +165,8 @@ lambda_w_var = tf.Variable(lambda_w_var, dtype=tf.float64)
 # Maintain numerical stability
 lambda_pi = tf.nn.softplus(lambda_pi_var)
 lambda_beta = tf.nn.softplus(lambda_beta_var)
-lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var), tf.cast(D, dtype=tf.float64))
+lambda_nu = tf.add(tf.nn.softplus(lambda_nu_var),
+                   tf.cast(D, dtype=tf.float64))
 
 # Semidefinite positive matrices definition with Cholesky descomposition
 mats = []
@@ -182,6 +185,10 @@ m_o = tf.convert_to_tensor(m_o, dtype=tf.float64)
 beta_o = tf.convert_to_tensor(beta_o, dtype=tf.float64)
 
 # Evidence Lower Bound definition
+det1 = [tf.matrix_determinant(lambda_w[k, :, :]) for k in range(K)]
+inv1 = tf.matrix_inverse(w_o)
+det2 = tf.matrix_determinant(w_o)
+
 e3 = tf.convert_to_tensor(0., dtype=tf.float64)
 e2 = tf.convert_to_tensor(0., dtype=tf.float64)
 h2 = tf.convert_to_tensor(0., dtype=tf.float64)
@@ -193,26 +200,34 @@ h1 = tf.subtract(log_beta_function(lambda_pi),
                  tf.reduce_sum(tf.multiply(
                      tf.subtract(lambda_pi, tf.ones(K, dtype=tf.float64)),
                      dirichlet_expectation(lambda_pi))))
-logdet = tf.log(tf.convert_to_tensor([
-    tf.matrix_determinant(lambda_w[k, :, :]) for k in range(K)]))
+logdet = tf.log(tf.convert_to_tensor(det1))
 logDeltak = tf.add(tf.digamma(tf.div(lambda_nu, 2.)),
                    tf.add(tf.digamma(tf.div(tf.subtract(
                        lambda_nu, tf.cast(1., dtype=tf.float64)),
                        tf.cast(2., dtype=tf.float64))),
                        tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
                                           tf.cast(tf.log(2.),
-                                                  dtype=tf.float64)), logdet)))
+                                                  dtype=tf.float64)),
+                              logdet)))
+product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
+    tf.matmul(tf.reshape(tf.subtract(lambda_m[k, :], m_o), [1, 2]),
+              lambda_w[k, :, :]),
+    tf.reshape(tf.transpose(tf.subtract(lambda_m[k, :],
+                                        m_o)), [2, 1]))) for k in range(K)])
+
 for i in range(BATCH_SIZE):
     n = idx_tensor[i]
     e2 = tf.add(e2, tf.reduce_sum(
         tf.multiply(tf.gather(lambda_phi, n),
                     dirichlet_expectation(lambda_pi))))
     h2 = tf.add(h2, -tf.reduce_sum(
-        tf.multiply(tf.gather(lambda_phi, n), log_(tf.gather(lambda_phi, n)))))
+        tf.multiply(tf.gather(lambda_phi, n), log_(
+            tf.gather(lambda_phi, n)))))
     product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
         tf.matmul(tf.reshape(tf.subtract(tf.gather(xn, n), lambda_m[k, :]),
                              [1, 2]), lambda_w[k, :, :]),
-        tf.reshape(tf.transpose(tf.subtract(tf.gather(xn, n), lambda_m[k, :])),
+        tf.reshape(tf.transpose(tf.subtract(tf.gather(xn, n),
+                                            lambda_m[k, :])),
                    [2, 1]))) for k in range(K)])
     aux = tf.transpose(tf.subtract(
         logDeltak, tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
@@ -224,13 +239,9 @@ for i in range(BATCH_SIZE):
     e3 = tf.add(e3, tf.reduce_sum(
         tf.multiply(tf.cast(1 / 2., dtype=tf.float64),
                     tf.multiply(tf.gather(lambda_phi, n), aux))))
-product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
-    tf.matmul(tf.reshape(tf.subtract(lambda_m[k, :], m_o), [1, 2]),
-              lambda_w[k, :, :]),
-    tf.reshape(tf.transpose(tf.subtract(lambda_m[k, :], m_o)), [2, 1]))) for
-    k in range(K)])
-traces = tf.convert_to_tensor([tf.trace(tf.matmul(
-    tf.matrix_inverse(w_o), lambda_w[k, :, :])) for k in range(K)])
+
+traces = tf.convert_to_tensor([tf.trace(
+    tf.matmul(inv1, lambda_w[k, :, :])) for k in range(K)])
 h4 = tf.reduce_sum(
     tf.add(tf.cast(1., dtype=tf.float64),
            tf.subtract(tf.log(tf.cast(2., dtype=tf.float64) * np.pi),
@@ -247,12 +258,15 @@ aux = tf.add(tf.multiply(tf.cast(1. / 2., dtype=tf.float64), tf.log(
                         tf.cast(2., dtype=tf.float64)))))
 logB = tf.add(
     tf.multiply(tf.div(lambda_nu, tf.cast(2., dtype=tf.float64)), logdet),
-    tf.add(tf.multiply(lambda_nu, tf.log(tf.cast(2., dtype=tf.float64))), aux))
+    tf.add(tf.multiply(lambda_nu, tf.log(tf.cast(2.,
+                                                 dtype=tf.float64))), aux))
 h5 = tf.reduce_sum(tf.subtract(tf.add(logB, lambda_nu),
                                tf.multiply(tf.div(tf.subtract(
                                    lambda_nu,
                                    tf.cast(3., dtype=tf.float64)),
-                                   tf.cast(2., dtype=tf.float64)), logDeltak)))
+                                   tf.cast(2., dtype=tf.float64)),
+                                   logDeltak)))
+
 aux = tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
                          tf.log(tf.cast(2., dtype=tf.float64) * np.pi)),
              tf.add(tf.multiply(beta_o, tf.multiply(lambda_nu, product)),
@@ -262,8 +276,7 @@ e4 = tf.reduce_sum(tf.multiply(tf.cast(1. / 2., dtype=tf.float64),
                                tf.subtract(
                                    tf.add(tf.log(beta_o), logDeltak), aux)))
 logB = tf.add(
-    tf.multiply(tf.div(nu_o, tf.cast(2., dtype=tf.float64)),
-                tf.log(tf.matrix_determinant(w_o))),
+    tf.multiply(tf.div(nu_o, tf.cast(2., dtype=tf.float64)), tf.log(det2)),
     tf.add(tf.multiply(nu_o, tf.cast(tf.log(2.), dtype=tf.float64)),
            tf.add(tf.multiply(tf.cast(1. / 2., dtype=tf.float64),
                               tf.cast(tf.log(np.pi), dtype=tf.float64)),
@@ -271,7 +284,8 @@ logB = tf.add(
                       tf.div(nu_o, tf.cast(2., dtype=tf.float64))),
                          tf.lgamma(tf.div(tf.subtract(
                              nu_o, tf.cast(1., dtype=tf.float64)),
-                                          tf.cast(2., dtype=tf.float64)))))))
+                                          tf.cast(2.,
+                                                  dtype=tf.float64)))))))
 e5 = tf.reduce_sum(tf.add(-logB, tf.subtract(
     tf.multiply(tf.div(tf.subtract(nu_o, tf.cast(3., dtype=tf.float64)),
                        tf.cast(2., dtype=tf.float64)), logDeltak),
@@ -290,20 +304,12 @@ elif args.optimizer == 'adadelta':
     optimizer = tf.train.AdadeltaOptimizer(learning_rate=learning_rate)
 elif args.optimizer == 'adagrad':
     optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
-grads_and_vars = optimizer.compute_gradients(
-    -LB, var_list=[lambda_pi_var, lambda_m,
-                   lambda_beta_var, lambda_nu_var, lambda_w_var])
-train = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
-# Summaries definition
-tf.summary.histogram('lambda_pi', lambda_pi)
-tf.summary.histogram('lambda_phi', lambda_phi)
-tf.summary.histogram('lambda_m', lambda_m)
-tf.summary.histogram('lambda_beta', lambda_beta)
-tf.summary.histogram('lambda_nu', lambda_nu)
-tf.summary.histogram('lambda_w', lambda_w)
-merged = tf.summary.merge_all()
-file_writer = tf.summary.FileWriter('/tmp/tensorboard/', tf.get_default_graph())
+with tf.device('/gpu:0'):
+    grads_and_vars = optimizer.compute_gradients(
+        -LB, var_list=[lambda_pi_var, lambda_m,
+                       lambda_beta_var, lambda_nu_var, lambda_w_var])
+    train = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
 
 def dirichlet_expectation_k(alpha, k):
@@ -385,8 +391,8 @@ def main():
         sess.run(lambda_phi.assign(new_lambda_phi))
 
         # ELBO computation and global variational parameter updates
-        _, mer, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
-            [train, merged, LB, lambda_pi, lambda_phi, lambda_m,
+        _, lb, pi_out, phi_out, m_out, beta_out, nu_out, w_out = sess.run(
+            [train, LB, lambda_pi, lambda_phi, lambda_m,
              lambda_beta, lambda_nu, lambda_w], feed_dict={idx_tensor: idx})
         lb = lb * (N / BATCH_SIZE)
         aux_lbs.append(lb)
@@ -396,32 +402,31 @@ def main():
             aux_lbs = []
 
         if VERBOSE:
-            print('\n******* ITERATION {} *******'.format(n_iters))
-            print('lambda_pi: {}'.format(pi_out))
-            print('lambda_phi: {}'.format(phi_out[0:9, :]))
-            print('lambda_m: {}'.format(m_out))
-            print('lambda_beta: {}'.format(beta_out))
-            print('lambda_nu: {}'.format(nu_out))
-            print('ELBO: {}'.format(lb))
+            tf.logging.info('\n******* ITERATION {} *******'.format(n_iters))
+            tf.logging.info('Time: {} seconds'.format(time()-init_time))
+            tf.logging.info('lambda_pi: {}'.format(pi_out))
+            tf.logging.info('lambda_phi: {}'.format(phi_out[0:9, :]))
+            tf.logging.info('lambda_m: {}'.format(m_out))
+            tf.logging.info('lambda_beta: {}'.format(beta_out))
+            tf.logging.info('lambda_nu: {}'.format(nu_out))
+            tf.logging.info('ELBO: {}'.format(lb))
 
             # Break condition
             improve = lb - lbs[n_iters - 1] if n_iters > 0 else lb
-            if VERBOSE: print('Improve: {}'.format(improve))
+            if VERBOSE: tf.logging.info('Improve: {}'.format(improve))
             if n_iters > 0 and 0 <= improve < THRESHOLD: break
-
-        file_writer.add_summary(mer, n_iters)
 
     zn = np.array([np.argmax(phi_out[n, :]) for n in range(N)])
 
     if VERBOSE:
-        print('\n******* RESULTS *******')
+        tf.logging.info('\n******* RESULTS *******')
         for k in range(K):
-            print('Mu k{}: {}'.format(k, m_out[k, :]))
+            tf.logging.info('Mu k{}: {}'.format(k, m_out[k, :]))
         final_time = time()
         exec_time = final_time - init_time
-        print('Time: {} seconds'.format(exec_time))
-        print('Iterations: {}'.format(n_iters))
-        print('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
+        tf.logging.info('Time: {} seconds'.format(exec_time))
+        tf.logging.info('Iterations: {}'.format(n_iters))
+        tf.logging.info('ELBOs: {}'.format(lbs[len(lbs)-10:len(lbs)]))
 
         if args.exportAssignments:
             with open('generated/sgavi_{}_assignments.csv'
