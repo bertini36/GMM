@@ -9,21 +9,15 @@ from __future__ import absolute_import
 
 import argparse
 import csv
-import os
 import pickle as pkl
-import sys
 from time import time
 
 import numpy as np
-from numpy.linalg import det, inv
 import tensorflow as tf
+from numpy.linalg import det, inv
+from scipy import random
 from scipy.special import psi
-
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
-from utils import dirichlet_expectation, log_, log_beta_function, multilgamma
-
-from common import init_kmeans, generate_random_positive_matrix
+from sklearn.cluster import KMeans
 
 """
 Parameters:
@@ -48,9 +42,9 @@ parser = argparse.ArgumentParser(description='Sthocastic GAVI in'
                                              ' mixture of gaussians')
 parser.add_argument('-maxIter', metavar='maxIter', type=int, default=300)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k2_10000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
-parser.add_argument('-bs', metavar='bs', type=int, default=500)
+parser.add_argument('-bs', metavar='bs', type=int, default=100)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
 parser.add_argument('-randomInit', dest='randomInit', action='store_true')
@@ -75,9 +69,69 @@ BATCH_SIZE = args.bs
 
 sess = tf.Session()
 
+
+def dirichlet_expectation(alpha):
+    """
+    Dirichlet expectation computation
+    \Psi(\alpha_{k}) - \Psi(\sum_{i=1}^{K}(\alpha_{i}))
+    """
+    return tf.subtract(tf.digamma(tf.add(alpha, np.finfo(np.float32).eps)),
+                       tf.digamma(tf.reduce_sum(alpha)))
+
+
+def multilgamma(a, D, D_t):
+    """
+    ln multigamma Tensorflow implementation
+    """
+    res = tf.multiply(tf.multiply(D_t, tf.multiply(tf.subtract(D_t, 1),
+                                                   tf.cast(0.25,
+                                                           dtype=tf.float64))),
+                      tf.log(tf.cast(np.pi, dtype=tf.float64)))
+    res += tf.reduce_sum(tf.lgamma([tf.subtract(a, tf.div(
+        tf.subtract(tf.cast(j, dtype=tf.float64),
+                    tf.cast(1., dtype=tf.float64)),
+        tf.cast(2., dtype=tf.float64))) for j in range(1, D + 1)]), axis=0)
+    return res
+
+
+def log_(x):
+    return tf.log(tf.add(x, np.finfo(np.float32).eps))
+
+
+def log_beta_function(x):
+    """
+    Log beta function
+    ln(\gamma(x)) - ln(\gamma(\sum_{i=1}^{N}(x_{i}))
+    """
+    return tf.subtract(
+        tf.reduce_sum(tf.lgamma(tf.add(x, np.finfo(np.float32).eps))),
+        tf.lgamma(tf.reduce_sum(tf.add(x, np.finfo(np.float32).eps))))
+
+
+def generate_random_positive_matrix(D):
+    """
+    Generate a random semidefinite positive matrix
+    :param D: Dimension
+    :return: DxD matrix
+    """
+    aux = random.rand(D, D)
+    return np.dot(aux, aux.transpose())
+
+
+def init_kmeans(xn, N, K):
+    """
+    Init points assignations (lambda_phi) with Kmeans clustering
+    """
+    lambda_phi = 0.1 / (K - 1) * np.ones((N, K))
+    labels = KMeans(K).fit(xn).predict(xn)
+    for i, lab in enumerate(labels):
+        lambda_phi[i, lab] = 0.9
+    return lambda_phi
+
+
 # Get data
-with open('{}'.format(args.dataset), 'r') as inputfile:
-    data = pkl.load(inputfile)
+with open('{}'.format(args.dataset), 'rb') as inputfile:
+    data = pkl.load(inputfile, encoding='latin1')
     xn = data['xn']
 N, D = xn.shape
 
@@ -140,7 +194,7 @@ h1 = tf.subtract(log_beta_function(lambda_pi),
                      tf.subtract(lambda_pi, tf.ones(K, dtype=tf.float64)),
                      dirichlet_expectation(lambda_pi))))
 logdet = tf.log(tf.convert_to_tensor([
-    tf.matrix_determinant(lambda_w[k, :, :]) for k in xrange(K)]))
+    tf.matrix_determinant(lambda_w[k, :, :]) for k in range(K)]))
 logDeltak = tf.add(tf.digamma(tf.div(lambda_nu, 2.)),
                    tf.add(tf.digamma(tf.div(tf.subtract(
                        lambda_nu, tf.cast(1., dtype=tf.float64)),
@@ -320,7 +374,7 @@ def main():
     w_out = sess.run(lambda_w)
     beta_out = sess.run(lambda_beta)
 
-    for i in range(args.maxIter * (N / BATCH_SIZE)):
+    for i in range(args.maxIter * int(N / BATCH_SIZE)):
 
         # Sample xn
         idx = np.random.randint(N, size=BATCH_SIZE)
@@ -357,7 +411,7 @@ def main():
 
         file_writer.add_summary(mer, n_iters)
 
-    zn = np.array([np.argmax(phi_out[n, :]) for n in xrange(N)])
+    zn = np.array([np.argmax(phi_out[n, :]) for n in range(N)])
 
     if VERBOSE:
         print('\n******* RESULTS *******')
