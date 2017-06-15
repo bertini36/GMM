@@ -14,7 +14,7 @@ class NIW:
     def __init__(self, m, beta, nu, w):
         self.m = m                          # (D)
         self.beta = beta                    # ()
-        self.nu = nu                        # () >D
+        self.nu = nu                        # () > D
         self.w = w                          # (D, D)
         self.D = len(self.m)
 

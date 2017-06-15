@@ -214,7 +214,6 @@ product = tf.convert_to_tensor([tf.reduce_sum(tf.matmul(
               lambda_w[k, :, :]),
     tf.reshape(tf.transpose(tf.subtract(lambda_m[k, :],
                                         m_o)), [2, 1]))) for k in range(K)])
-
 for i in range(BATCH_SIZE):
     n = idx_tensor[i]
     e2 = tf.add(e2, tf.reduce_sum(
@@ -239,7 +238,6 @@ for i in range(BATCH_SIZE):
     e3 = tf.add(e3, tf.reduce_sum(
         tf.multiply(tf.cast(1 / 2., dtype=tf.float64),
                     tf.multiply(tf.gather(lambda_phi, n), aux))))
-
 traces = tf.convert_to_tensor([tf.trace(
     tf.matmul(inv1, lambda_w[k, :, :])) for k in range(K)])
 h4 = tf.reduce_sum(
@@ -266,7 +264,6 @@ h5 = tf.reduce_sum(tf.subtract(tf.add(logB, lambda_nu),
                                    tf.cast(3., dtype=tf.float64)),
                                    tf.cast(2., dtype=tf.float64)),
                                    logDeltak)))
-
 aux = tf.add(tf.multiply(tf.cast(2., dtype=tf.float64),
                          tf.log(tf.cast(2., dtype=tf.float64) * np.pi)),
              tf.add(tf.multiply(beta_o, tf.multiply(lambda_nu, product)),

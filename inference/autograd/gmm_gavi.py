@@ -3,7 +3,7 @@
 """
 Gradient Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
-[DOING]
+[DOING]: NaNs problems
 """
 
 from __future__ import absolute_import
@@ -43,13 +43,13 @@ Parameters:
     * exportAssignments: If true generate a csv with the cluster assignments
      
 Execution:
-    python gmm_gavi.py -dataset data_k4_10000.pkl -k 2 -verbose
+    python gmm_gavi.py -dataset data_k2_500.pkl -k 2 -verbose
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=300)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k4_10000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_500.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)
@@ -309,17 +309,6 @@ for _ in range(args.maxIter):
     lambda_pi = softplus(lambda_pi)
     lambda_w = agnp.array([agnp.dot(lambda_w[k], lambda_w[k].T)
                            for k in range(K)])
-
-    """
-    lambda_pi = update_lambda_pi(lambda_pi, lambda_phi, alpha_o)
-    Nks = np.sum(lambda_phi, axis=0)
-    lambda_beta = update_lambda_beta(lambda_beta, beta_o, Nks)
-    lambda_nu = update_lambda_nu(lambda_nu, nu_o, Nks)
-    lambda_m -= ps['lambda_m'] * grads[2]
-    lambda_w = lambda_w - (ps['lambda_w'] * grads[5])
-    lambda_phi -= ps['lambda_phi'] * grads[1]
-    lambda_phi = agnp.array([softmax(lambda_phi[i]) for i in range(N)])
-    """
 
     # ELBO computation
     lb = elbo((lambda_pi, lambda_phi, lambda_m,
