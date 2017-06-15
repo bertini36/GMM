@@ -3,15 +3,16 @@
 """
 NormalWishart-Normal Model
 Posterior inference with Edward BBVI
+[DOING]: Error matrix not invertible
 """
 
-import edward as ed
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from edward.models import (MultivariateNormalCholesky, MultivariateNormalFull,
-                           WishartCholesky)
+from tensorflow.contrib.linalg import LinearOperatorTriL
+import edward as ed
+from edward.models import MultivariateNormalTriL, WishartCholesky
 from scipy import random
 from scipy.stats import invwishart
 
@@ -53,23 +54,21 @@ k_prior = tf.constant(0.6, dtype=tf.float64)
 # Posterior inference
 # Probabilistic model
 sigma = WishartCholesky(df=v_prior, scale=W_prior)
-mu = MultivariateNormalCholesky(m_prior, k_prior * sigma)
-xn = MultivariateNormalFull(
+mu = MultivariateNormalTriL(m_prior, k_prior * sigma)
+xn = MultivariateNormalTriL(
     tf.reshape(tf.tile(mu, [N]), [N, D]),
     tf.reshape(tf.tile(sigma, [N, 1]), [N, 2, 2]))
 
 # Variational model
-random_matrix_1 = tf.Variable(tf.random_normal([D, D], dtype=tf.float64))
-qmu = MultivariateNormalCholesky(
+# Variational model
+qmu = MultivariateNormalTriL(
     tf.Variable(tf.random_normal([D], dtype=tf.float64)),
-    tf.matmul(random_matrix_1, tf.transpose(random_matrix_1))
-    + D * tf.eye(D, dtype=tf.float64))
-
-random_matrix_2 = tf.Variable(tf.random_normal([D, D], dtype=tf.float64))
-qsigma = WishartCholesky(
-    df=tf.nn.softplus(tf.Variable(tf.random_normal([], dtype=tf.float64))),
-    scale=tf.matmul(random_matrix_2, tf.transpose(random_matrix_2)) +
-          D * tf.eye(D, dtype=tf.float64))
+    tf.nn.softplus(
+        tf.Variable(tf.random_normal([D, D], dtype=tf.float64))))
+L = tf.Variable(tf.random_normal([D, D], dtype=tf.float64))
+qsigma = WishartCholesky(tf.nn.softplus(
+    tf.Variable(tf.random_normal([], dtype=tf.float64))+D+1),
+    LinearOperatorTriL(L).to_dense())
 
 # Inference
 inference = ed.KLqp({mu: qmu, sigma: qsigma}, data={xn: xn_data})

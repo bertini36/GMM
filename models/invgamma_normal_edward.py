@@ -24,16 +24,16 @@ beta = tf.Variable(0.5, dtype=tf.float32, trainable=False)
 
 # Posterior inference
 # Probabilistic model
-ig = InverseGamma(alpha=alpha, beta=beta)
-xn = Normal(mu=mu, sigma=tf.ones([N]) * tf.sqrt(ig))
+ig = InverseGamma(alpha, beta)
+xn = Normal(mu, tf.ones([N]) * tf.sqrt(ig))
 
 # Variational model
-qig = InverseGamma(alpha=tf.nn.softplus(tf.Variable(tf.random_normal([]))),
-                   beta=tf.nn.softplus(tf.Variable(tf.random_normal([]))))
+qig = InverseGamma(tf.nn.softplus(tf.Variable(tf.random_normal([]))),
+                   tf.nn.softplus(tf.Variable(tf.random_normal([]))))
 
 # Inference
 inference = ed.KLqp({ig: qig}, data={xn: xn_data})
-inference.run(n_iter=2000, n_samples=150, logdir='/tmp/train/')
+inference.run(n_iter=2000, n_samples=150)
 
 sess = ed.get_session()
 print('Inferred sigma={}'.format(sess.run(tf.sqrt(qig.mean()))))
