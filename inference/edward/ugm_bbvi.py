@@ -3,7 +3,7 @@
 """
 Black Box Variational Inference
 process to approximate an univariate gaussian
-[DOING]
+[DOING]: Convergence problems
 """
 
 import edward as ed
@@ -47,5 +47,4 @@ inference.run(n_iter=1500, n_samples=30)
 sess = ed.get_session()
 
 print('Inferred mu={}'.format(sess.run(qmu.mean())))
-print('Inferred sigma={}'.format(sess.run(qsigma.mean())))
 print('Inferred sigma={}'.format(sess.run(1/qsigma.mean())))

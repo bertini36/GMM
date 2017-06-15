@@ -3,7 +3,7 @@
 """
 Black Box Variational Inference
 process to approximate a mixture of gaussians
-[DOING]
+[DOING]: Dirichlet error
 """
 
 from __future__ import absolute_import, division, print_function
@@ -40,11 +40,13 @@ c = Categorical(logits=tf.tile(tf.reshape(ed.logit(pi), [1, K]), [N, 1]))
 x = Normal(loc=tf.gather(mu, c), scale=tf.gather(sigma, c))
 
 # INFERENCE
-qpi = Dirichlet(concentration=tf.nn.softplus(tf.Variable(tf.random_normal([K]))))
+qpi = Dirichlet(
+    concentration=tf.nn.softplus(tf.Variable(tf.random_normal([K]))))
 qmu = Normal(loc=tf.Variable(tf.random_normal([K, D])),
              scale=tf.nn.softplus(tf.Variable(tf.random_normal([K, D]))))
-qsigma = InverseGamma(concentration=tf.nn.softplus(tf.Variable(tf.random_normal([K, D]))),
-                      rate=tf.nn.softplus(tf.Variable(tf.random_normal([K, D]))))
+qsigma = InverseGamma(
+    concentration=tf.nn.softplus(tf.Variable(tf.random_normal([K, D]))),
+    rate=tf.nn.softplus(tf.Variable(tf.random_normal([K, D]))))
 qc = Categorical(logits=tf.Variable(tf.zeros([N, K])))
 
 inference = ed.KLqp(
