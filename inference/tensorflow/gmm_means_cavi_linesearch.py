@@ -32,14 +32,14 @@ Parameters:
     * verbose: Printing time, intermediate variational parameters, plots, ...
     
 Execution:
-    python gmm_means_cavi_linesearch.py -dataset data_k4_10000.pkl -k 2 -verbose 
+    python gmm_means_cavi_linesearch.py -dataset data_k2_1000.pkl -k 2 -verbose 
 """
 
 parser = argparse.ArgumentParser(
     description='CAVI with Linesearch in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=300)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k4_10000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)

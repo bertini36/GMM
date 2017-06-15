@@ -3,6 +3,7 @@
 """
 Sthocastic Gradient Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
+Version prepared for Minotauro cluster using GPUs
 """
 
 from __future__ import absolute_import
