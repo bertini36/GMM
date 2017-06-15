@@ -27,7 +27,7 @@ Execution:
 """
 
 parser = argparse.ArgumentParser(description='CAVI in univariate gaussian')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=300)
 parser.add_argument('-nElements', metavar='nElements', type=int, default=1000)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
 parser.set_defaults(verbose=False)

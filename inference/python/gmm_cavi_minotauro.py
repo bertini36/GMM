@@ -3,6 +3,7 @@
 """
 Coordinate Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
+Version prepared for Minotauro cluster
 """
 
 from __future__ import absolute_import
@@ -31,14 +32,14 @@ Parameters:
                                    the variational parameters inferred
 
 Execution:
-    python gmm_cavi_minotauro.py -dataset data_k4_10000.pkl -k 2 -verbose 
+    python gmm_cavi_minotauro.py -dataset data_k2_1000.pkl -k 2 -verbose 
                                  -exportAssignments -exportVariationalParameters
 """
 
 parser = argparse.ArgumentParser(description='CAVI in mixture of gaussians')
-parser.add_argument('-maxIter', metavar='maxIter', type=int, default=500)
+parser.add_argument('-maxIter', metavar='maxIter', type=int, default=300)
 parser.add_argument('-dataset', metavar='dataset', type=str,
-                    default='../../data/synthetic/2D/k2/data_k4_10000.pkl')
+                    default='../../data/synthetic/2D/k2/data_k2_1000.pkl')
 parser.add_argument('-k', metavar='k', type=int, default=2)
 parser.set_defaults(exportVariationalParameters=False)
 parser.add_argument('-verbose', dest='verbose', action='store_true')
@@ -200,10 +201,14 @@ def elbo(lambda_phi, lambda_pi, lambda_beta, lambda_nu,
            - gammaln(np.sum(lambda_pi)) + np.sum(gammaln(lambda_pi))
     lb -= N * D / 2. * np.log(2. * np.pi)
     for k in xrange(K):
-        lb += -(nu_o[0] * D * np.log(2.)) / 2. + (lambda_nu[k] * D * np.log(2.)) / 2.
-        lb += -multigammaln(nu_o[0] / 2., D) + multigammaln(lambda_nu[k] / 2., D)
-        lb += (D / 2.) * np.log(np.absolute(beta_o[0])) - (D / 2.) * np.log(np.absolute(lambda_beta[k]))
-        lb += (nu_o[0] / 2.) * np.log(det(w_o)) - (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
+        lb += -(nu_o[0] * D * np.log(2.)) / 2. \
+              + (lambda_nu[k] * D * np.log(2.)) / 2.
+        lb += -multigammaln(nu_o[0] / 2., D) \
+              + multigammaln(lambda_nu[k] / 2., D)
+        lb += (D / 2.) * np.log(np.absolute(beta_o[0])) \
+              - (D / 2.) * np.log(np.absolute(lambda_beta[k]))
+        lb += (nu_o[0] / 2.) * np.log(det(w_o)) \
+              - (lambda_nu[k] / 2.) * np.log(det(lambda_w[k, :, :]))
         lb -= np.dot(np.log(lambda_phi[:, k]).T, lambda_phi[:, k])
     return lb
 
@@ -272,11 +277,9 @@ def main():
                 print('\n******* ITERATION {} *******'.format(n_iters))
 
             # Break condition
-            improve = lb - lbs[n_iters - 1]
+            improve = lb - lbs[n_iters - 1] if n_iters > 0 else lb
             if VERBOSE: print('Improve: {}'.format(improve))
-            if (n_iters == (args.maxIter - 1)) \
-                    or (n_iters > 0 and 0 < improve < THRESHOLD):
-                break
+            if n_iters > 0 and 0 <= improve < THRESHOLD: break
 
             n_iters += 1
 
