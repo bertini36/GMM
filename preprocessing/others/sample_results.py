@@ -20,7 +20,8 @@ def main():
         if not ('.csv' in TRACKS_PATH): raise Exception('input_format')
         if not ('.csv' in ASSIGNMENTS_PATH): raise Exception('input_format')
         if not ('.csv' in NEW_TRACKS_PATH): raise Exception('output_format')
-        if not ('.csv' in NEW_ASSIGNMENTS_PATH): raise Exception('output_format')
+        if not ('.csv' in NEW_ASSIGNMENTS_PATH):
+            raise Exception('output_format')
 
         with open(TRACKS_PATH, 'rb') as tracks, \
                 open(ASSIGNMENTS_PATH, 'rb') as assignments, \
@@ -41,13 +42,13 @@ def main():
             assignments_writer.writerow(['zn'])
 
             lines = 0
-            for assignment in assignments_reader: lines += 1
+            for _ in assignments_reader: lines += 1
             assignments.seek(0)
             assignments_reader.next()
 
             i_samples = random.sample(range(1, lines), N_SAMPLES)
             for i, track in enumerate(tracks_reader):
-            	ass = assignments_reader.next()
+                ass = assignments_reader.next()
                 if i in i_samples:
                     tracks_writer.writerow([track[0]])
                     assignments_writer.writerow(ass)

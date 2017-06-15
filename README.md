@@ -18,7 +18,7 @@ algorithm to learn an UGM.
  algorithm to learn a GMM with unknown means but known precisions.
 - `inference/python/gmm_cavi.py` Coordinate Ascent Variational Inference (CAVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
-- `inference/python/gmm_gavi.py` [DOING] Gradient Ascent Variational Inference (GAVI)
+- `inference/python/gmm_scavi.py` Sthocastic Coordinate Ascent Variational Inference (SCAVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
 
 ### Tensorflow 
@@ -37,26 +37,30 @@ algorithm to learn an UGM.
  means but known precisions.
 - `inference/tensorflow/gmm_means_gavi.py` Gradient Ascent Variational Inference 
 (GAVI) algorithm to learn a GMM with unknown means but known precisions.
+- `ìnference/tensorflow/gmm_gavi.py` Gradient Ascent Variational Inference (GAVI) algorithm
+to learn a GMM with unknown means and unknown precisions.
+- `inference/tensorflow/gmm_sgavi.py` Sthocastic Gradient Ascent Variational Inference (SGAVI)
+algorithm to learn a GMM with unknown means and unknown precisions.
 
 ### Autograd
 #### Mixture of Gaussians (GMM)
 - `inference/autograd/gmm_means_cavi.py` Coordinate Ascent Variational Inferecne (CAVI)
  algorithm to learn a GMM with unknown means but known precisions.
-- `inference/autograd/gmm_means.py` [DOING] Coordinate Ascent Variational Inference (CAVI)
+- [IN PROCESS] `inference/autograd/gmm_means.py` Coordinate Ascent Variational Inference (CAVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
  
 ### Edward
 #### Univariate Gaussian (UGM)
-- `inference/edward/ugm_bbvi.py` [DOING] Black Box Variational Inference (BBVI)
+- [IN PROCESS] `inference/edward/ugm_bbvi.py` Black Box Variational Inference (BBVI)
  algorithm to learn an UGM.
 #### Mixture of Gaussians (GMM)
-- `inference/edward/gmm_bbvi.py` [DOING] Black Box Variational Inference (BBVI)
+- [IN PROCESS] `inference/edward/gmm_bbvi.py` Black Box Variational Inference (BBVI)
  algorithm to learn a GMM with unknown means and unknown precisions.
 
 
 ## Data generation scripts
 - `data/synthetic/synthetic_data_generator.py` generates data from a mixture of 
- gaussians with different precision matrixs per each components. 
+ gaussians with different precision matrix per each components. 
 - `data/synthetic/synthetic_data_generator_means.py` generates data from a mixture
  of gaussians with a given precision matrix for all components. 
  
@@ -103,13 +107,12 @@ algorithm to learn an UGM.
  in a Dirichlet Categorical model.
 - `models/invgamma_normal_edward.py` Black Box Variational Inference in a 
  Inverse-Gamma Normal model.
-- `models/NW_normal_edward.py` [DOING] Black Box Variational Inference in a
+- [IN PROCESS] `models/NW_normal_edward.py` Black Box Variational Inference in a
  Normal-Wishart Normal model.
 
 
 ## Documentation
-- `docs/gmm_means.pdf` contains the derivation of CAVI algorithm for the case
- of unkown means but known precisions. 
+- `docs/` contains the GMM derivation of CAVI algorithm 
 
 
 ## Installation

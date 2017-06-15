@@ -3,7 +3,7 @@
 """
 Black Box Variational Inference
 process to approximate a mixture of gaussians
-[DOING]: Dirichlet error
+[IN PROCESS]: Dirichlet error
 """
 
 from __future__ import absolute_import, division, print_function

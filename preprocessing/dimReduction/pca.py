@@ -29,7 +29,7 @@ Execution:
 parser = argparse.ArgumentParser(description='Principal Component Analysis')
 parser.add_argument('-input', metavar='input', type=str, default='')
 parser.add_argument('-output', metavar='output', type=str, default='')
-parser.add_argument('-c', metavar='c', type=int)
+parser.add_argument('-c', metavar='c', type=int, default=50)
 parser.add_argument('-savePCA', dest='savePCA', action='store_true')
 parser.set_defaults(savePCA=False)
 args = parser.parse_args()

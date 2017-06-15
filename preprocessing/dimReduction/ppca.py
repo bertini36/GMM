@@ -3,6 +3,7 @@
 """
 Probabilistic Principal Component Analysis
 with automatic relevance determination
+Using 1.2.3 Edward version
 """
 
 from __future__ import absolute_import, division, print_function

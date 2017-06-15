@@ -60,7 +60,8 @@ def main():
                          for lb in (((output.split('\n')[2])
                                      .split('[')[1]).split(']')[0])
                              .split(',')]
-                writer2 = timing.mixtureOfGaussians.csv.writer(csvfile2, delimiter=';')
+                writer2 = timing.mixtureOfGaussians\
+                    .csv.writer(csvfile2, delimiter=';')
                 writer2.writerow(['Iteration', 'ELBO'])
                 for i, elbo in enumerate(elbos):
                     writer2.writerow([i, elbo])

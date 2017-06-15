@@ -1,8 +1,8 @@
 # Linear interpolation
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca.csv"
-OUTPUT_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca_test.csv"
+TRACKS_PATH = "mallorca.csv"
+OUTPUT_PATH = "mallorca_interpolated.csv"
 N_POINTS_INTERPOLATION = 30
 DELIMITER = ";"
 HEADER = TRUE

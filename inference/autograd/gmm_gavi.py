@@ -3,7 +3,7 @@
 """
 Gradient Ascent Variational Inference
 process to approximate a Mixture of Gaussians (GMM)
-[DOING]: NaNs problems
+[IN PROCESS]: NaNs problems
 """
 
 from __future__ import absolute_import

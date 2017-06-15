@@ -5,7 +5,7 @@ library(ggmap)
 library(maps)
 
 # Configuration
-TRACKS_PATH = "/home/alberto/Dropbox/BSC/GMM/data/real/mallorca/mallorca.csv"
+TRACKS_PATH = "/mallorca.csv"
 DELIMITER = ";"
 HEADER = TRUE
 LOCATION = "Mallorca"

@@ -3,7 +3,7 @@
 """
 Black Box Variational Inference
 process to approximate an univariate gaussian
-[DOING]: Convergence problems
+[IN PROCESS]: Convergence problems
 """
 
 import edward as ed

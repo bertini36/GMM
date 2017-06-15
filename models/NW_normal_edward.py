@@ -3,7 +3,7 @@
 """
 NormalWishart-Normal Model
 Posterior inference with Edward BBVI
-[DOING]: Error matrix not invertible
+[IN PROCESS]: Error matrix not invertible
 """
 
 import matplotlib.cm as cm

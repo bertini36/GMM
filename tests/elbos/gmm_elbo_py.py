@@ -212,7 +212,8 @@ def elbo2(xn, alpha_o, lambda_pi, lambda_phi, m_o, lambda_m, beta_o,
            + gammaln(lambda_nu / 2.) + gammaln((lambda_nu - 1) / 2.)
     h5 = np.sum((logB - (lambda_nu - 3.) / 2. * logDeltak + lambda_nu))
     e4 = np.sum((1. / 2 * (np.log(beta_o) + logDeltak - 2 * np.log(2. * math.pi)
-                           - beta_o * lambda_nu * product - 2. * beta_o / lambda_beta)))
+                           - beta_o * lambda_nu * product -
+                           2. * beta_o / lambda_beta)))
     logB = nu_o / 2. * np.log(np.linalg.det(w_o)) + nu_o * np.log(2.) \
            + 1. / 2 * np.log(math.pi) + gammaln(nu_o / 2.) + gammaln(
         (nu_o - 1) / 2.)
