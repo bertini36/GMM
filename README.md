@@ -1,4 +1,4 @@
-# Inference in Gaussian Mixture Model
+# Variational Inference in Gaussian Mixture Model
 
 This repo contains different variational methods to learn a Gaussian Mixture 
 Model (GMM) and an Univariate Gaussian (UGM) from data. It also contains 
