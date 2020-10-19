@@ -1,120 +1,154 @@
-# Variational Inference in Gaussian Mixture Model
+<h3 align="center">
+    bertini36/GMM 📈
+</h3>
+<h3 align="center">
+    Variational Inference in Gaussian Mixture Models
+</h3>
+<p align="center">
+  <a href="https://github.com/bertini36/GMM/blob/master/setup/provision.sh" target="_blank">
+    Installation
+  </a>&nbsp;&nbsp;•&nbsp;
+  <a href="https://github.com/bertini36/GMM/blob/master/inference/" target="_blank">
+    Inference strategies
+  </a>&nbsp;&nbsp;•&nbsp;
+  <a href="https://github.com/bertini36/GMM/blob/master/models/" target="_blank">
+    Other models
+  </a>&nbsp;&nbsp;•&nbsp;
+  <a href="https://github.com/bertini36/GMM/blob/master/docs/doc.pdf" target="_blank">
+    Docs
+  </a>
+</p>
+<p align="center">
+Variational methods to learn a Gaussian Mixture Model and an Univariate Gaussian from data
+</p>
+<p align="center">
+Powered by <a href="https://github.com/tensorflow/tensorflow" target="_blank">#tensorflow</a>,
+<a href="https://github.com/blei-lab/edward" target="_blank">#edward</a>,
+ <a href="https://github.com/scipy/scipy" target="_blank">#scipy</a> and
+ <a href="https://www.python.org/" target="_blank">#python</a>.
+</p>
 
-This repo contains different variational methods to learn a Gaussian Mixture 
-Model (GMM) and an Univariate Gaussian (UGM) from data. It also contains 
-documentation regarding the algorithm derivations, 2D interpolation scripts,
-dimensionality reduction scripts, map visualization scripts and other 
-interesting models.
+### 🎯 Inference strategies
 
-
-## List of available algorithms
-
-### Python
 #### Univariate Gaussian (UGM)
-- `inference/python/ugm_cavi.py` Coordinate Ascent Variational Inference (CAVI)
-algorithm to learn an UGM.
+<a href="https://github.com/bertini36/GMM/blob/master/inference/python/ugm_cavi.py" target="_blank">
+    <strong>Python</strong> | Coordinate Ascent Variational Inference algorithm to learn an UGM
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/ugm_cavi.py" target="_blank">
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference algorithm to learn an UGM
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/ugm_cavi_linesearch.py" target="_blank">
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference with linesearch algorithm to learn an UGM
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/ugm_gavi.py" target="_blank">
+    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference algorithm to learn an UGM
+</a><br>
+[BLOCKED] 🚧<a href="https://github.com/bertini36/GMM/blob/master/inference/edward/ugm_bbvi.py" target="_blank">
+    <strong>Edward</strong> | Black Box Variational Inference algorithm to learn an UGM
+</a>
+
+ 
 #### Mixture of Gaussians (GMM)
-- `inference/python/gmm_means_cavi.py` Coordinate Ascent Variational Inference (CAVI)
- algorithm to learn a GMM with unknown means but known precisions.
-- `inference/python/gmm_cavi.py` Coordinate Ascent Variational Inference (CAVI)
- algorithm to learn a GMM with unknown means and unknown precisions.
-- `inference/python/gmm_scavi.py` Sthocastic Coordinate Ascent Variational Inference (SCAVI)
- algorithm to learn a GMM with unknown means and unknown precisions.
+<a href="https://github.com/bertini36/GMM/blob/master/inference/python/gmm_means_cavi.py" target="_blank">
+    <strong>Python</strong> | Coordinate Ascent Variational Inference algorithm to learn a GMM with unknown means but known precision
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/python/gmm_cavi.py" target="_blank">
+    <strong>Python</strong> | Coordinate Ascent Variational Inference algorithm to learn a GMM with unknown and unknown precisions
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/python/gmm_scavi.py" target="_blank">
+    <strong>Python</strong> | Sthocastic Coordinate Ascent Variational Inference
+ algorithm to learn a GMM with unknown means and unknown precisions
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_means_cavi.py" target="_blank">
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference algorithm to learn a GMM with unknown means but known precisions
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_means_cavi_linesearch.py" target="_blank">
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference with linesearch algorithm to learn a GMM with unknown means but known precisions
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_means_gavi.py" target="_blank">
+    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference algorithm to learn a GMM with unknown means but known precisions
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_gavi.py" target="_blank">
+    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference algorithm to learn a GMM with unknown means and unknown precisions
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_sgavi.py" target="_blank">
+    <strong>Tensorflow</strong> | Sthocastic Gradient Ascent Variational Inference algorithm to learn a GMM with unknown means and unknown precisions
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/inference/autograd/gmm_means_cavi.py" target="_blank">
+    <strong>Autograd</strong> | Coordinate Ascent Variational Inference algorithm to learn a GMM with unknown means but known precisions
+</a><br>
+[BLOCKED] 🚧<a href="https://github.com/bertini36/GMM/blob/master/inference/autograd/gmm_means.py" target="_blank">
+    <strong>Autograd</strong> | Coordinate Ascent Variational Inference algorithm to learn a GMM with unknown means and unknown precisions
+</a><br>
+[BLOCKED] 🚧<a href="https://github.com/bertini36/GMM/blob/master/inference/edward/gmm_bbvi.py" target="_blank">
+    <strong>Edward</strong> |  Black Box Variational Inference algorithm to learn a GMM with unknown means and unknown precisions
+</a>
 
-### Tensorflow 
-#### Univariate Gaussian (UGM)
-- `inference/tensorflow/ugm_cavi.py` Coordinate Ascent Variational Inference (CAVI) 
- algorithm to learn an UGM.
-- `inference/tensorflow/ugm_cavi_linesearch.py` Coordinate Ascent Variational Inference
- (CAVI) with linesearch algorithm to learn an UGM.
-- `inference/tensorflow/ugm_gavi.py` contains a Gradient Ascent Variational Inference 
- (GAVI) algorithm to learn an UGM.
-#### Mixture of Gaussians (GMM)
-- `inference/tensorflow/gmm_means_cavi.py` Coordinate Ascent Variational Inference 
-(CAVI) algorithm to learn a GMM with unknown means but known precisions.
-- `tinference/tensorflow/gmm_means_cavi_linesearch.py` Coordinate Ascent Variational
- Inference (CAVI) with linesearch algorithm to learn a GMM with unknown 
- means but known precisions.
-- `inference/tensorflow/gmm_means_gavi.py` Gradient Ascent Variational Inference 
-(GAVI) algorithm to learn a GMM with unknown means but known precisions.
-- `ìnference/tensorflow/gmm_gavi.py` Gradient Ascent Variational Inference (GAVI) algorithm
-to learn a GMM with unknown means and unknown precisions.
-- `inference/tensorflow/gmm_sgavi.py` Sthocastic Gradient Ascent Variational Inference (SGAVI)
-algorithm to learn a GMM with unknown means and unknown precisions.
+### 🕺 Other models
 
-### Autograd
-#### Mixture of Gaussians (GMM)
-- `inference/autograd/gmm_means_cavi.py` Coordinate Ascent Variational Inferecne (CAVI)
- algorithm to learn a GMM with unknown means but known precisions.
-- [IN PROCESS] `inference/autograd/gmm_means.py` Coordinate Ascent Variational Inference (CAVI)
- algorithm to learn a GMM with unknown means and unknown precisions.
+<a href="https://github.com/bertini36/GMM/blob/master/models/dirichlet_categorical.py" target="_blank">
+    <strong>Python</strong> | Exact inference in a Dirichlet Categorical model
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/models/invgamma_normal.py" target="_blank">
+    <strong>Python</strong> | Exact inference in a Inverse-Gamma Normal model
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/models/NIW_normal.py" target="_blank">
+    <strong>Python</strong> | Exact inference in a Normal-Inverse-Wishart Normal model
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/models/linear_regression_tf.py" target="_blank">
+    <strong>Tensorflow</strong> | Linear regression model optimization with Gradient Descent algorithm
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/models/linear_regression_ag.py" target="_blank">
+    <strong>Autograd</strong> | Linear regression model optimization with Gradient Descent algorithm
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/models/dirichlet_categorical_edward.py" target="_blank">
+    <strong>Edward</strong> | Black Box Variational Inference in a Dirichlet Categorical model
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/models/invgamma_normal_edward.py" target="_blank">
+    <strong>Edward</strong> | Black Box Variational Inference in a Inverse-Gamma Normal model
+</a><br>
+[BLOCKED] 🚧<a href="https://github.com/bertini36/GMM/blob/master/models/NW_normal_edward.py" target="_blank">
+    <strong>Edward</strong> | Black Box Variational Inference in a Normal-Wishart Normal model
+</a>
  
-### Edward
-#### Univariate Gaussian (UGM)
-- [IN PROCESS] `inference/edward/ugm_bbvi.py` Black Box Variational Inference (BBVI)
- algorithm to learn an UGM.
-#### Mixture of Gaussians (GMM)
-- [IN PROCESS] `inference/edward/gmm_bbvi.py` Black Box Variational Inference (BBVI)
- algorithm to learn a GMM with unknown means and unknown precisions.
+### ⛏️ Other scripts
 
+#### Dimensionality reduction scripts
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/dimReduction/pca.py" target="_blank">
+    <strong>Sklearn</strong> | Sklearn Principal Component Analysis
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/dimReduction/ipca.p" target="_blank">
+    <strong>Sklearn</strong> | Sklearn Incremental Principal Component Analysis
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/dimReduction/ae.p" target="_blank">
+    <strong>Keras</strong> | Autoencoder
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/dimReduction/ppca.p" target="_blank">
+    <strong>Edward</strong> | Probabilistic Principal Component Analysis
+</a>
 
-## Data generation scripts
-- `data/synthetic/synthetic_data_generator.py` generates data from a mixture of 
- gaussians with different precision matrix per each components. 
-- `data/synthetic/synthetic_data_generator_means.py` generates data from a mixture
- of gaussians with a given precision matrix for all components. 
+#### Data generation scripts
+<a href="https://github.com/bertini36/GMM/blob/master/data/synthetic/synthetic_data_generator_means.py" target="_blank">
+    <strong>Python</strong> | Mixture of gaussians data generator with different precision matrix per each component
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/data/synthetic/synthetic_data_generator.py" target="_blank">
+    <strong>Python</strong> | Mixture of gaussians data generator with a given precision matrix for all components
+</a>
  
- 
-## 2D points interpolation scripts
-- `preprocessing/interpolation/nn_interpolation.py` Nearest Neighbors interpolation.
-- `preprocessing/interpolation/linear_interpolation.R` Linear interpolation.
+#### 2D points interpolation scripts
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/interpolation/nn_interpolation.py" target="_blank">
+    <strong>Python</strong> | Nearest Neighbors interpolation
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/interpolation/linear_interpolation.R" target="_blank">
+    <strong>R</strong> | Linear interpolation
+</a><br>
 
+#### Maps generation scripts
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/maps/map.R" target="_blank">
+    <strong>R</strong> | R map
+</a><br>
+<a href="https://github.com/bertini36/GMM/blob/master/preprocessing/maps/gmap.R" target="_blank">
+    <strong>R</strong> | R Google map
+</a><br>
 
-## Maps generation scripts
-- `preprocessing/maps/map.R`  R map
-- `preprocessing/maps/gmap.R` R Google map
- 
- 
-## Dimensionality reduction scripts
-- `preprocessing/dimReduction/pca.py` Sklearn Principal Component Analysis.
-- `preprocessing/dimReduction/ipca.py` Sklearn Incremental Principal
- Component Analysis.
-- `preprocessing/dimReduction/ae.py` Keras autoencoder.
-- `preprocessing/dimReduction/ppca.py` Edward Probabilistic Principal
- Component Analysis.
- 
- 
-## Other models
-
-### Python
-- `models/dirichlet_categorical.py` Exact inference in a Dirichlet Categorical
- model.
-- `models/invgamma_normal.py` Exact inference in a Inverse-Gamma Normal
- model.
-- `models/NIW_normal.py` Exact inference in a Normal-Inverse-Wishart Normal
- model.
- 
-### Tensorflow
-- `models/linear_regression_tf.py` Linear regression model optimization 
- with Gradient Descent algorithm.
-
-### Autograd
-- `models/linear_regression_ag.py` Linear regression model optimization
- with Gradient Descent algorithm.
- 
-### Edward
-- `models/dirichlet_categorical_edward.py` Black Box Variational Inference
- in a Dirichlet Categorical model.
-- `models/invgamma_normal_edward.py` Black Box Variational Inference in a 
- Inverse-Gamma Normal model.
-- [IN PROCESS] `models/NW_normal_edward.py` Black Box Variational Inference in a
- Normal-Wishart Normal model.
-
-
-## Documentation
-- `docs/` contains the GMM derivation of CAVI algorithm 
-
-
-## Installation
-- Set environment variables $PROJECT and $WORKON_HOME in `setup/provision.sh`
-- Execute `setup/provision.sh`
+<p align="center">&mdash; Built with :heart: from Mallorca &mdash;</p>
