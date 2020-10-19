@@ -32,55 +32,55 @@ Powered by <a href="https://github.com/tensorflow/tensorflow" target="_blank">#t
 
 #### Univariate Gaussian (UGM)
 <a href="https://github.com/bertini36/GMM/blob/master/inference/python/ugm_cavi.py" target="_blank">
-    <strong>Python</strong> | Coordinate Ascent Variational Inference algorithm
+    <strong>Python</strong> | Coordinate Ascent Variational Inference
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/ugm_cavi.py" target="_blank">
-    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference algorithm 
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference 
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/ugm_cavi_linesearch.py" target="_blank">
-    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference with linesearch algorithm
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference with linesearch
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/ugm_gavi.py" target="_blank">
-    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference algorithm
+    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference
 </a><br>
 [BLOCKED] 🚧<a href="https://github.com/bertini36/GMM/blob/master/inference/edward/ugm_bbvi.py" target="_blank">
-    <strong>Edward</strong> | Black Box Variational Inference algorithm
+    <strong>Edward</strong> | Black Box Variational Inference
 </a>
 
  
 #### Mixture of Gaussians (GMM)
 <a href="https://github.com/bertini36/GMM/blob/master/inference/python/gmm_means_cavi.py" target="_blank">
-    <strong>Python</strong> | Coordinate Ascent Variational Inference algorithm (unknown means but known precisions)
+    <strong>Python</strong> | Coordinate Ascent Variational Inference (unknown means but known precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/python/gmm_cavi.py" target="_blank">
-    <strong>Python</strong> | Coordinate Ascent Variational Inference algorithm (unknown and unknown precisions)
+    <strong>Python</strong> | Coordinate Ascent Variational Inference (unknown and unknown precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/python/gmm_scavi.py" target="_blank">
-    <strong>Python</strong> | Sthocastic Coordinate Ascent Variational Inference algorithm (unknown means and unknown precisions)
+    <strong>Python</strong> | Sthocastic Coordinate Ascent Variational Inference (unknown means and unknown precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_means_cavi.py" target="_blank">
-    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference algorithm (unknown means but known precisions)
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference (unknown means but known precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_means_cavi_linesearch.py" target="_blank">
-    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference with linesearch algorithm (unknown means but known precisions)
+    <strong>Tensorflow</strong> | Coordinate Ascent Variational Inference with linesearch (unknown means but known precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_means_gavi.py" target="_blank">
-    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference algorithm (unknown means but known precisions)
+    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference (unknown means but known precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_gavi.py" target="_blank">
-    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference algorithm (unknown means and unknown precisions)
+    <strong>Tensorflow</strong> | Gradient Ascent Variational Inference (unknown means and unknown precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/tensorflow/gmm_sgavi.py" target="_blank">
-    <strong>Tensorflow</strong> | Sthocastic Gradient Ascent Variational Inference algorithm (unknown means and unknown precisions)
+    <strong>Tensorflow</strong> | Sthocastic Gradient Ascent Variational Inference (unknown means and unknown precisions)
 </a><br>
 <a href="https://github.com/bertini36/GMM/blob/master/inference/autograd/gmm_means_cavi.py" target="_blank">
-    <strong>Autograd</strong> | Coordinate Ascent Variational Inference algorithm (unknown means but known precisions)
+    <strong>Autograd</strong> | Coordinate Ascent Variational Inference (unknown means but known precisions)
 </a><br>
 [BLOCKED] 🚧<a href="https://github.com/bertini36/GMM/blob/master/inference/autograd/gmm_means.py" target="_blank">
-    <strong>Autograd</strong> | Coordinate Ascent Variational Inference algorithm (unknown means and unknown precisions)
+    <strong>Autograd</strong> | Coordinate Ascent Variational Inference (unknown means and unknown precisions)
 </a><br>
 [BLOCKED] 🚧<a href="https://github.com/bertini36/GMM/blob/master/inference/edward/gmm_bbvi.py" target="_blank">
-    <strong>Edward</strong> |  Black Box Variational Inference algorithm (unknown means and unknown precisions)
+    <strong>Edward</strong> |  Black Box Variational Inference (unknown means and unknown precisions)
 </a>
 
 ### 🕺 Other models
