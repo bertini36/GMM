@@ -150,4 +150,4 @@ Powered by <a href="https://github.com/tensorflow/tensorflow" target="_blank">#t
     <strong>R</strong> | R Google map
 </a><br>
 
-<p align="center">&mdash; Built with :heart: from Mallorca &mdash;</p>
+<p align="center">&mdash; Built with :heart: from Barcelona &mdash;</p>
