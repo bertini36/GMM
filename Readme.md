@@ -16,6 +16,9 @@
   </a>&nbsp;&nbsp;•&nbsp;
   <a href="https://github.com/bertini36/GMM/blob/master/docs/doc.pdf" target="_blank">
     Docs
+  </a>&nbsp;&nbsp;•&nbsp;
+  <a href="https://albertopou.dev/blog/variational-inference-1" target="_blank">
+    Post
   </a>
 </p>
 <p align="center">
